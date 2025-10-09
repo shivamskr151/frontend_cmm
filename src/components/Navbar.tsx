@@ -83,9 +83,7 @@ const Navbar=()=> {
                 </h1>
                
               </div>
-              <p className="text-xs text-gray-500 leading-tight">
-                Monitor and manage your camera network
-              </p>
+              
             </div>
           </div>
 
