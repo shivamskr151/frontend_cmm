@@ -56,6 +56,9 @@ class CameraApiService {
    * Fetch cameras from the API with caching
    */
   async getCameras(forceRefresh: boolean = false): Promise<Camera[]> {
+    console.log('🔍 getCameras called with forceRefresh:', forceRefresh);
+    console.log('📦 Cache status - exists:', !!this.cache, 'valid:', this.isCacheValid());
+    
     // Return cached data if it's still valid and not forcing refresh
     if (!forceRefresh && this.cache && this.isCacheValid()) {
       console.log('📦 Returning cached camera data');
@@ -64,12 +67,19 @@ class CameraApiService {
 
     try {
       console.log('🌐 Fetching cameras from API...');
+      console.log('🌐 API URL:', `${this.baseUrl}/camera`);
+      
+      const authHeaders = this.getAuthHeaders();
+      console.log('🔐 Auth headers:', authHeaders);
+      
       const response = await fetch(`${this.baseUrl}/camera`, {
         method: 'GET',
-        headers: this.getAuthHeaders(),
+        headers: authHeaders,
         // Add timeout to prevent hanging requests
         signal: AbortSignal.timeout(10000), // 10 second timeout
       });
+      
+      console.log('📡 API Response status:', response.status, response.statusText);
 
       if (!response.ok) {
         if (response.status === 401) {
@@ -117,6 +127,11 @@ class CameraApiService {
 
     } catch (error) {
       console.error('❌ Error fetching cameras:', error);
+      console.error('❌ Error details:', {
+        name: error instanceof Error ? error.name : 'Unknown',
+        message: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined
+      });
       
       // Return cached data if available, even if expired
       if (this.cache) {

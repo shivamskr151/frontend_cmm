@@ -1,12 +1,12 @@
 @import "tailwindcss";
 
-/* 🌟 Custom minimal scrollbar design */
+/* 🌟 Custom minimal scrollbar design - Light Theme */
 .custom-scrollbar::-webkit-scrollbar {
     width: 6px;
   }
   
   .custom-scrollbar::-webkit-scrollbar-track {
-    background: transparent; /* ya rgba(30,41,59,0.4) for slight shade */
+    background: transparent;
   }
   
   .custom-scrollbar::-webkit-scrollbar-thumb {

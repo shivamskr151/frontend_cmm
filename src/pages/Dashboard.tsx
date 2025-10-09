@@ -473,7 +473,7 @@ const Dashboard: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 pt-8">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100 pt-8">
       <style>
         {`
           @keyframes spin {
@@ -490,7 +490,8 @@ const Dashboard: React.FC = () => {
           left: 0,
           right: 0,
           bottom: 0,
-          backgroundColor: 'rgba(0,0,0,0.5)',
+          backgroundColor: 'rgba(255,255,255,0.8)',
+          backdropFilter: 'blur(4px)',
         display: 'flex',
         alignItems: 'center',
           justifyContent: 'center',
@@ -498,17 +499,19 @@ const Dashboard: React.FC = () => {
         }}>
           <div style={{
             backgroundColor: 'white',
-            padding: '20px',
-            borderRadius: '8px',
+            padding: '24px',
+            borderRadius: '12px',
+            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
                 display: 'flex',
                 alignItems: 'center',
-            gap: '12px'
+            gap: '12px',
+            border: '1px solid rgba(0, 0, 0, 0.1)'
           }}>
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ animation: 'spin 1s linear infinite' }}>
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ animation: 'spin 1s linear infinite' }}>
               <circle cx="12" cy="12" r="10"></circle>
               <path d="M12 6v6l4 2"></path>
             </svg>
-            <span>Loading...</span>
+            <span style={{ color: '#374151', fontWeight: '500' }}>Loading...</span>
             </div>
               </div>
             )}
@@ -521,11 +524,11 @@ const Dashboard: React.FC = () => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 min-h-[calc(100vh-140px)]">
         {/* Left Column - Camera Controls */}
         <div className="space-y-6">
-          <div className="bg-slate-800/30 backdrop-blur-sm rounded-xl border border-slate-700/50 p-6 shadow-lg">
+          <div className="bg-gradient-to-br from-blue-50/90 to-indigo-50/90 backdrop-blur-sm rounded-xl border border-blue-200/70 p-6 shadow-lg shadow-blue-200/30">
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center space-x-2">
-                <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
-                <h3 className="text-lg font-semibold text-white">Camera Configuration</h3>
+                <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                <h3 className="text-lg font-semibold text-gray-800">Camera Configuration</h3>
               </div>
               <AddConfigDropdown
                 onOpenJsonEditor={() => setShowJsonEditorModal(true)}
@@ -535,13 +538,13 @@ const Dashboard: React.FC = () => {
             {/* Camera Selection */}
             <div className="mb-6">
               <div className="flex items-center justify-between mb-3">
-                <label className="block text-sm font-medium text-slate-300">
+                <label className="block text-sm font-medium text-gray-700">
                   Select Camera
                 </label>
                 <button
                   onClick={refreshCameras}
                   disabled={camerasLoading}
-                  className="p-1 hover:bg-slate-700/50 rounded transition-colors disabled:opacity-50"
+                  className="p-1 hover:bg-gray-100 rounded transition-colors disabled:opacity-50"
                   title="Refresh cameras"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -554,7 +557,7 @@ const Dashboard: React.FC = () => {
               </div>
               
               {camerasLoading && (
-                <div className="w-full px-3 py-2 bg-slate-700/50 text-slate-300 rounded-lg border border-slate-600/50 text-sm flex items-center gap-2">
+                <div className="w-full px-3 py-2 bg-gray-50 text-gray-600 rounded-lg border border-gray-200 text-sm flex items-center gap-2">
                   <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
@@ -564,11 +567,11 @@ const Dashboard: React.FC = () => {
               )}
               
               {camerasError && !camerasLoading && (
-                <div className="w-full px-3 py-2 bg-red-500/20 text-red-400 rounded-lg border border-red-500/30 text-sm flex items-center justify-between">
+                <div className="w-full px-3 py-2 bg-red-50 text-red-600 rounded-lg border border-red-200 text-sm flex items-center justify-between">
                   <span>Error loading cameras</span>
                   <button
                     onClick={refreshCameras}
-                    className="px-2 py-1 bg-red-500/20 hover:bg-red-500/30 rounded text-xs transition-colors"
+                    className="px-2 py-1 bg-red-100 hover:bg-red-200 text-red-700 rounded text-xs transition-colors"
                   >
                     Retry
                   </button>
@@ -579,7 +582,7 @@ const Dashboard: React.FC = () => {
                 <select 
                   value={selectedCamera}
                   onChange={(e) => handleCameraChange(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-700/50 text-white rounded-lg border border-slate-600/50 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400 transition-colors"
+                  className="w-full px-3 py-2 bg-white text-gray-800 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                   title="Select a camera from the list"
                   aria-label="Select a camera from the list"
                 >
@@ -593,7 +596,7 @@ const Dashboard: React.FC = () => {
               )}
               
               {!camerasLoading && !camerasError && cameras.length === 0 && (
-                <div className="w-full px-3 py-2 bg-slate-700/50 text-slate-400 rounded-lg border border-slate-600/50 text-sm text-center">
+                <div className="w-full px-3 py-2 bg-gray-50 text-gray-500 rounded-lg border border-gray-200 text-sm text-center">
                   No cameras available
                 </div>
               )}
@@ -601,13 +604,13 @@ const Dashboard: React.FC = () => {
             
             {/* Activity Selection */}
             <div className="mt-6">
-              <label className="block text-sm font-medium text-slate-300 mb-3">
+              <label className="block text-sm font-medium text-gray-700 mb-3">
                 Select Monitoring Activity
               </label>
               <select 
                 value={selectedActivity}
                 onChange={(e) => setSelectedActivity(e.target.value)}
-                className="w-full px-3 py-2 bg-slate-700/50 text-white rounded-lg border border-slate-600/50 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400 transition-colors"
+                className="w-full px-3 py-2 bg-white text-gray-800 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                 title="Select a monitoring activity"
                 aria-label="Select a monitoring activity"
               >
@@ -621,71 +624,28 @@ const Dashboard: React.FC = () => {
             </div>
             
             {/* Camera Details */}
-            <div className="bg-slate-800/30 backdrop-blur-sm rounded-xl border border-slate-700/50 p-6 mt-6 shadow-lg">
-              <div className="flex items-center space-x-2 mb-4">
-                <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
-                <h4 className="text-base font-semibold text-white">Camera Details</h4>
-              </div>
-              
-              <div className="flex justify-between items-center py-3 border-b border-slate-600/30 mb-3">
-                <span className="text-sm font-medium text-slate-300 flex items-center">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2">
-                    <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
-                    <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>
-                  </svg>
-                  Camera Name:
-                </span>
-                <span className="text-sm font-semibold text-white bg-slate-700/50 px-3 py-1 rounded-lg border border-slate-600/30 min-w-[120px] text-center">
-                  {cameraName}
-                </span>
-              </div>
-              
-              <div className="flex justify-between items-center py-3">
-                <span className="text-sm font-medium text-slate-300 flex items-center">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2">
-                    <path d="M22 12h-4l-3 9L9 3l-3 9H2"></path>
-                  </svg>
-                  Status:
-                </span>
-                <span className={`text-sm font-semibold px-3 py-1 rounded-lg border min-w-[120px] text-center flex items-center justify-center gap-2 ${
-                  cameraStatus === 'Active' 
-                    ? 'text-green-400 bg-green-500/20 border-green-500/30' 
-                    : cameraStatus === 'Inactive'
-                    ? 'text-red-400 bg-red-500/20 border-red-500/30'
-                    : 'text-yellow-400 bg-yellow-500/20 border-yellow-500/30'
-                }`}>
-                  <span className={`w-2 h-2 rounded-full ${
-                    cameraStatus === 'Active' 
-                      ? 'bg-green-400' 
-                      : cameraStatus === 'Inactive'
-                      ? 'bg-red-400'
-                      : 'bg-yellow-400'
-                  }`}></span>
-                  {cameraStatus}
-                </span>
-              </div>
-            </div>
+           
           </div>
           
           {/* Zone Configuration */}
-          <div className="bg-slate-800/30 backdrop-blur-sm rounded-xl border border-slate-700/50 p-6 shadow-lg">
+          <div className="bg-white/90 backdrop-blur-sm rounded-xl border border-blue-200/70 p-6 shadow-lg shadow-blue-200/30">
             <div className="flex items-center space-x-2 mb-4">
-              <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
-              <h4 className="text-base font-semibold text-white">Zone Drawing Mode</h4>
+              <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+              <h4 className="text-base font-semibold text-gray-800">Zone Drawing Mode</h4>
             </div>
             
-            <div className="mb-5 p-4 bg-slate-700/30 rounded-lg border-l-4 border-blue-400">
-              <p className="text-sm text-slate-300 mb-2">
-                <span className="font-semibold text-blue-400">1.</span> Choose your zone drawing mode below.
+            <div className="mb-5 p-4 bg-blue-50 rounded-lg border-l-4 border-blue-500">
+              <p className="text-sm text-gray-700 mb-2">
+                <span className="font-semibold text-blue-600">1.</span> Choose your zone drawing mode below.
               </p>
-              <p className="text-sm text-slate-300">
-                <span className="font-semibold text-blue-400">2.</span> Draw zones and lanes according to your selected mode.
+              <p className="text-sm text-gray-700">
+                <span className="font-semibold text-blue-600">2.</span> Draw zones and lanes according to your selected mode.
               </p>
             </div>
             
             <button 
               onClick={handleZoneTypeSelect}
-              className="w-full px-4 py-3 bg-slate-700/50 hover:bg-slate-600/50 text-white rounded-lg border border-slate-600/50 transition-all duration-200 hover:shadow-md flex items-center justify-center gap-2 font-medium"
+              className="w-full px-4 py-3 bg-white hover:bg-gray-50 text-gray-800 rounded-lg border border-gray-300 transition-all duration-200 hover:shadow-md flex items-center justify-center gap-2 font-medium"
             >
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"></polygon>
@@ -700,19 +660,19 @@ const Dashboard: React.FC = () => {
         {/* Right Column - Snapshot and Zone Drawing */}
         <div className="lg:col-span-2 space-y-6">
           {/* Snapshot Section */}
-          <div className="bg-slate-800/30 backdrop-blur-sm rounded-xl border border-slate-700/50 p-6 shadow-lg">
-            <div className="flex justify-between items-center mb-6 p-4 bg-slate-700/30 rounded-lg">
+          <div className="bg-gradient-to-br from-blue-50/90 to-indigo-50/90 backdrop-blur-sm rounded-xl border border-blue-200/70 p-6 shadow-lg shadow-blue-200/30">
+            <div className="flex justify-between items-center mb-6 p-4 bg-white/80 rounded-lg">
               <div className="flex items-center space-x-2">
-                <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
-                <h3 className="text-lg font-semibold text-white">Latest Snapshot</h3>
+                <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                <h3 className="text-lg font-semibold text-gray-800">Latest Snapshot</h3>
               </div>
               <button 
                 onClick={handleTakeSnapshot}
                 disabled={!selectedCamera || isLoading}
                 className={`px-4 py-2 rounded-lg font-medium flex items-center gap-2 transition-all duration-200 ${
                   isLoading || !selectedCamera 
-                    ? 'bg-slate-600/50 text-slate-400 cursor-not-allowed opacity-60' 
-                    : 'bg-gradient-to-r from-green-600/20 to-green-500/20 hover:from-green-600/30 hover:to-green-500/30 text-green-400 border border-green-500/30 hover:shadow-lg hover:shadow-green-500/10'
+                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed opacity-60' 
+                    : 'bg-gradient-to-r from-green-50 to-green-100 hover:from-green-100 hover:to-green-200 text-green-700 border border-green-200 hover:shadow-lg hover:shadow-green-200/50'
                 }`}
               >
                 {isLoading ? (
@@ -731,9 +691,9 @@ const Dashboard: React.FC = () => {
             </div>
             
             {/* Snapshot Container */}
-            <div className="relative w-full overflow-hidden min-h-[400px] bg-slate-900/50 border-2 border-dashed border-slate-600/50 rounded-xl">
+            <div className="relative w-full overflow-hidden min-h-[400px] bg-gray-50 border-2 border-dashed border-gray-300 rounded-xl">
               {!hasSnapshot ? (
-                <div className="absolute inset-0 flex flex-col items-center justify-center p-8 bg-gradient-to-br from-slate-800/50 to-slate-900/50 rounded-xl z-10">
+                <div className="absolute inset-0 flex flex-col items-center justify-center p-8 bg-gradient-to-br from-gray-50 to-white rounded-xl z-10">
                   <div className="mb-6">
                     <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="opacity-80">
                       <circle cx="12" cy="12" r="10"></circle>
@@ -741,15 +701,15 @@ const Dashboard: React.FC = () => {
                       <circle cx="12" cy="13" r="4"></circle>
                     </svg>
                   </div>
-                  <h4 className="text-xl font-semibold text-white mb-3">
+                  <h4 className="text-xl font-semibold text-gray-800 mb-3">
                     No Snapshot Available
                   </h4>
-                  <p className="text-slate-300 text-center mb-8 max-w-md leading-relaxed">
+                  <p className="text-gray-600 text-center mb-8 max-w-md leading-relaxed">
                     To start configuring zones and lanes, you'll need to take a snapshot from your selected camera first.
                   </p>
                   <button 
                     onClick={handleTakeSnapshot}
-                    className="px-6 py-3 bg-gradient-to-r from-blue-600/20 to-blue-500/20 hover:from-blue-600/30 hover:to-blue-500/30 text-blue-400 rounded-lg border border-blue-500/30 transition-all duration-200 hover:shadow-lg hover:shadow-blue-500/10 font-medium flex items-center gap-2"
+                    className="px-6 py-3 bg-gradient-to-r from-blue-50 to-blue-100 hover:from-blue-100 hover:to-blue-200 text-blue-700 rounded-lg border border-blue-200 transition-all duration-200 hover:shadow-lg hover:shadow-blue-200/50 font-medium flex items-center gap-2"
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <circle cx="12" cy="12" r="10"></circle>
@@ -764,7 +724,7 @@ const Dashboard: React.FC = () => {
                     ref={snapshotImageRef}
                     src={snapshotUrl || '/api/snapshot/placeholder'} 
                     alt="Zone Snapshot" 
-                    className="w-full h-auto block border border-slate-600/50 rounded-lg relative z-10"
+                    className="w-full h-auto block border border-gray-300 rounded-lg relative z-10"
                     onError={(e) => {
                       const target = e.target as HTMLImageElement;
                       target.src = '/api/snapshot/placeholder';
@@ -781,17 +741,17 @@ const Dashboard: React.FC = () => {
           </div>
 
           {/* Zone Drawing Tools */}
-          <div className="bg-slate-800/30 backdrop-blur-sm rounded-xl border border-slate-700/50 p-6 shadow-lg">
+          <div className="bg-white/90 backdrop-blur-sm rounded-xl border border-blue-200/70 p-6 shadow-lg shadow-blue-200/30">
             <div className="flex items-center space-x-2 mb-4">
-              <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
-              <h4 className="text-base font-semibold text-white">Zone Drawing Tools</h4>
+              <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+              <h4 className="text-base font-semibold text-gray-800">Zone Drawing Tools</h4>
             </div>
             
             {/* Current Zone Type Indicator */}
-            <div className="mb-4 p-3 bg-blue-500/20 border border-blue-500/30 rounded-lg flex items-center gap-2">
-              <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
-              <span className="text-sm font-medium text-blue-300">
-                Current Mode: <span className="font-semibold text-blue-200">
+            <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg flex items-center gap-2">
+              <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+              <span className="text-sm font-medium text-blue-700">
+                Current Mode: <span className="font-semibold text-blue-800">
                   {currentZoneType === 'rectangle' ? 'Rectangle Zone' : 
                     currentZoneType === 'rectangle-with-lanes' ? 'Rectangle Zone with Lanes' :
                     currentZoneType === 'polygon' ? 'Polygon Zone' :
@@ -813,7 +773,7 @@ const Dashboard: React.FC = () => {
               
               <button 
                 onClick={handleDrawLane}
-                className="px-4 py-2 bg-slate-700/50 hover:bg-slate-600/50 text-slate-300 rounded-lg border border-slate-600/50 transition-all duration-200 font-medium flex items-center gap-2"
+                className="px-4 py-2 bg-white hover:bg-gray-50 text-gray-700 rounded-lg border border-gray-300 transition-all duration-200 font-medium flex items-center gap-2"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <line x1="5" y1="12" x2="19" y2="12"></line>
@@ -823,7 +783,7 @@ const Dashboard: React.FC = () => {
               
               <button 
                 onClick={handleUndo}
-                className="px-4 py-2 bg-slate-700/50 hover:bg-slate-600/50 text-slate-300 rounded-lg border border-slate-600/50 transition-all duration-200 font-medium flex items-center gap-2"
+                className="px-4 py-2 bg-white hover:bg-gray-50 text-gray-700 rounded-lg border border-gray-300 transition-all duration-200 font-medium flex items-center gap-2"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M9 14L4 9l5-5"></path>
@@ -834,7 +794,7 @@ const Dashboard: React.FC = () => {
               
               <button 
                 onClick={handleRedo}
-                className="px-4 py-2 bg-slate-700/50 hover:bg-slate-600/50 text-slate-300 rounded-lg border border-slate-600/50 transition-all duration-200 font-medium flex items-center gap-2"
+                className="px-4 py-2 bg-white hover:bg-gray-50 text-gray-700 rounded-lg border border-gray-300 transition-all duration-200 font-medium flex items-center gap-2"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M14 9l5 5-5 5"></path>
@@ -863,77 +823,77 @@ const Dashboard: React.FC = () => {
 
         {/* Activity Parameters Section */}
         {showActivityParams && (
-          <div className="lg:col-span-3 mt-6 bg-slate-800/30 backdrop-blur-sm rounded-xl border border-slate-700/50 p-6 shadow-lg">
+          <div className="lg:col-span-3 mt-6 bg-gradient-to-br from-blue-50/90 to-indigo-50/90 backdrop-blur-sm rounded-xl border border-blue-200/70 p-6 shadow-lg shadow-blue-200/30">
             <div className="flex items-center space-x-2 mb-6">
-              <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
-              <h3 className="text-lg font-semibold text-white">Traffic Overspeeding Distancewise Parameters</h3>
+              <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+              <h3 className="text-lg font-semibold text-gray-800">Traffic Overspeeding Distancewise Parameters</h3>
             </div>
             
             <div className="mb-4">
-              <label className="block text-sm font-medium text-slate-300 mb-2">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
                 Real Distance (meters)
               </label>
               <input 
                 type="number" 
                 value={realDistance}
                 onChange={(e) => setRealDistance(parseFloat(e.target.value))}
-                className="w-full px-3 py-2 bg-slate-700/50 text-white rounded-lg border border-slate-600/50 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400 transition-colors"
+                className="w-full px-3 py-2 bg-white text-gray-800 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                 min="0" 
                 step="0.1"
               />
             </div>
             
             <div className="mb-4">
-              <label className="block text-sm font-medium text-slate-300 mb-2">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
                 Calibration
               </label>
               <input 
                 type="number" 
                 value={calibration}
                 onChange={(e) => setCalibration(parseFloat(e.target.value))}
-                className="w-full px-3 py-2 bg-slate-700/50 text-white rounded-lg border border-slate-600/50 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400 transition-colors"
+                className="w-full px-3 py-2 bg-white text-gray-800 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                 min="0" 
                 step="0.1"
               />
             </div>
             
             <div className="mb-4">
-              <label className="block text-sm font-medium text-slate-300 mb-2">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
                 Frame to Track
               </label>
               <input 
                 type="number" 
                 value={frameToTrack}
                 onChange={(e) => setFrameToTrack(parseInt(e.target.value, 10))}
-                className="w-full px-3 py-2 bg-slate-700/50 text-white rounded-lg border border-slate-600/50 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400 transition-colors"
+                className="w-full px-3 py-2 bg-white text-gray-800 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                 min="1" 
                 step="1"
               />
             </div>
             
             <div className="mb-4">
-              <label className="block text-sm font-medium text-slate-300 mb-2">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
                 Speed Limits
               </label>
-              <div className="border border-slate-600/50 rounded-lg p-4 bg-slate-700/30 mb-3">
+              <div className="border border-gray-300 rounded-lg p-4 bg-gray-50 mb-3">
                 {speedLimits.map((limit, index) => (
-                  <div key={index} className="flex justify-between items-center py-2 border-b border-slate-600/30 last:border-b-0">
-                    <span className="text-slate-300">{limit.vehicleType}: {limit.speed} km/h</span>
+                  <div key={index} className="flex justify-between items-center py-2 border-b border-gray-200 last:border-b-0">
+                    <span className="text-gray-700">{limit.vehicleType}: {limit.speed} km/h</span>
                     <button 
                       onClick={() => setSpeedLimits(speedLimits.filter((_, i) => i !== index))}
-                      className="px-3 py-1 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded-lg text-xs font-medium transition-colors border border-red-500/30"
+                      className="px-3 py-1 bg-red-100 hover:bg-red-200 text-red-700 rounded-lg text-xs font-medium transition-colors border border-red-200"
                     >
                       Remove
                     </button>
                   </div>
                 ))}
                 {speedLimits.length === 0 && (
-                  <div className="text-slate-400 italic text-sm">No speed limits added</div>
+                  <div className="text-gray-500 italic text-sm">No speed limits added</div>
                 )}
               </div>
               <div className="flex gap-3">
                 <div className="flex-1">
-                  <label className="block text-xs font-medium text-slate-400 mb-1">
+                  <label className="block text-xs font-medium text-gray-600 mb-1">
                     Vehicle Type
                   </label>
                   <input 
@@ -943,11 +903,11 @@ const Dashboard: React.FC = () => {
                     placeholder="e.g. car, truck"
                     title="Enter vehicle type"
                     aria-label="Enter vehicle type"
-                    className="w-full px-3 py-2 bg-slate-700/50 text-white rounded-lg border border-slate-600/50 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400 transition-colors"
+                    className="w-full px-3 py-2 bg-white text-gray-800 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                   />
                 </div>
                 <div className="flex-1">
-                  <label className="block text-xs font-medium text-slate-400 mb-1">
+                  <label className="block text-xs font-medium text-gray-600 mb-1">
                     Speed Limit
                   </label>
                   <input 
@@ -957,14 +917,14 @@ const Dashboard: React.FC = () => {
                     placeholder="km/h"
                     title="Enter speed limit in km/h"
                     aria-label="Enter speed limit in km/h"
-                    className="w-full px-3 py-2 bg-slate-700/50 text-white rounded-lg border border-slate-600/50 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400 transition-colors"
+                    className="w-full px-3 py-2 bg-white text-gray-800 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                     min="1"
                   />
                 </div>
                 <div className="flex items-end">
                   <button 
                     onClick={handleAddSpeedLimit}
-                    className="px-4 py-2 bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 rounded-lg border border-blue-500/30 transition-all duration-200 hover:shadow-lg hover:shadow-blue-500/10 font-medium"
+                    className="px-4 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg border border-blue-200 transition-all duration-200 hover:shadow-lg hover:shadow-blue-200/50 font-medium"
                   >
                     Add
                   </button>
@@ -984,70 +944,70 @@ const Dashboard: React.FC = () => {
         )}
       </div>
       {/* new  coordinates & analytics */}
-      <div className="bg-slate-800/30 backdrop-blur-sm rounded-xl border border-slate-700/50 p-6 shadow-lg mt-2 ">
+      <div className="bg-gradient-to-br from-blue-50/90 to-indigo-50/90 backdrop-blur-sm rounded-xl border border-blue-200/70 p-6 shadow-lg shadow-blue-200/30 mt-2 ">
             <div className="flex items-center space-x-2 mb-6">
-              <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
-              <h5 className="text-lg font-semibold text-white">Coordinates & Analytics</h5>
+              <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+              <h5 className="text-lg font-semibold text-gray-800">Coordinates & Analytics</h5>
             </div>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Zone Coordinates */}
-            <div className="bg-slate-700/30 rounded-xl p-5 mb-5 border border-slate-600/30">
+            <div className="bg-white/90 rounded-xl p-5 mb-5 border border-blue-200/60">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center">
-                  <div className="w-3 h-3 bg-blue-400 rounded-full mr-3 shadow-lg shadow-blue-400/30"></div>
-                  <h6 className="text-white font-semibold">Zone Coordinates</h6>
+                  <div className="w-3 h-3 bg-blue-500 rounded-full mr-3 shadow-lg shadow-blue-500/30"></div>
+                  <h6 className="text-gray-800 font-semibold">Zone Coordinates</h6>
                 </div>
                 <button 
                   onClick={() => copyToClipboard(JSON.stringify(zoneCoordinates.zones))}
-                  className="px-3 py-1.5 bg-slate-600/50 hover:bg-slate-500/50 text-slate-300 rounded-lg text-xs font-medium transition-colors border border-slate-500/30"
+                  className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-xs font-medium transition-colors border border-gray-300"
                 >
                   Copy
                 </button>
               </div>
-              <div className="bg-slate-800/50 rounded-lg p-4">
-                <div className="text-slate-300 font-mono text-sm leading-relaxed">
+              <div className="bg-white rounded-lg p-4 border border-gray-200">
+                <div className="text-gray-700 font-mono text-sm leading-relaxed">
                   {zoneCoordinates.zones.length > 0 ? JSON.stringify(zoneCoordinates.zones, null, 2) : 'No zone drawn'}
                 </div>
               </div>
             </div>
             
             {/* Lane Coordinates */}
-            <div className="bg-slate-700/30 rounded-xl p-5 mb-5 border border-slate-600/30">
+            <div className="bg-white/90 rounded-xl p-5 mb-5 border border-blue-200/60">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center">
-                  <div className="w-3 h-3 bg-green-400 rounded-full mr-3 shadow-lg shadow-green-400/30"></div>
-                  <h6 className="text-white font-semibold">Lane Coordinates</h6>
+                  <div className="w-3 h-3 bg-blue-500 rounded-full mr-3 shadow-lg shadow-blue-500/30"></div>
+                  <h6 className="text-gray-800 font-semibold">Lane Coordinates</h6>
                 </div>
                 <button 
                   onClick={() => copyToClipboard(JSON.stringify(zoneCoordinates.lanes))}
-                  className="px-3 py-1.5 bg-slate-600/50 hover:bg-slate-500/50 text-slate-300 rounded-lg text-xs font-medium transition-colors border border-slate-500/30"
+                  className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-xs font-medium transition-colors border border-gray-300"
                 >
                   Copy
                 </button>
               </div>
-              <div className="bg-slate-800/50 rounded-lg p-4">
-                <div className="text-slate-300 font-mono text-sm leading-relaxed">
+              <div className="bg-white rounded-lg p-4 border border-gray-200">
+                <div className="text-gray-700 font-mono text-sm leading-relaxed">
                   {zoneCoordinates.lanes.length > 0 ? JSON.stringify(zoneCoordinates.lanes, null, 2) : 'No lanes drawn'}
                 </div>
               </div>
             </div>
             
             {/* Polygons Coordinates */}
-            <div className="bg-slate-700/30 rounded-xl p-2 border border-slate-600/30 col-span-2">
+            <div className="bg-white/90 rounded-xl p-2 border border-blue-200/60 col-span-2">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center">
-                  <div className="w-3 h-3 bg-purple-400 rounded-full mr-3 shadow-lg shadow-purple-400/30"></div>
-                  <h6 className="text-white font-semibold">Polygon Coordinates</h6>
+                  <div className="w-3 h-3 bg-blue-500 rounded-full mr-3 shadow-lg shadow-blue-500/30"></div>
+                  <h6 className="text-gray-800 font-semibold">Polygon Coordinates</h6>
                 </div>
                 <button 
                   onClick={() => copyToClipboard(JSON.stringify(zoneCoordinates.polygons))}
-                  className="px-3 py-1.5 bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 rounded-lg text-xs font-medium transition-colors border border-blue-500/30"
+                  className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-xs font-medium transition-colors border border-gray-300"
                 >
                   Copy
                 </button>
               </div>
-              <div className="bg-slate-800/50 rounded-lg p-4 max-h-48 overflow-auto">
-                <div className="text-slate-300 font-mono text-sm leading-relaxed">
+              <div className="bg-white rounded-lg p-4 max-h-48 overflow-auto border border-gray-200">
+                <div className="text-gray-700 font-mono text-sm leading-relaxed">
                   {zoneCoordinates.polygons.length > 0 ? JSON.stringify(zoneCoordinates.polygons, null, 2) : 'No polygons drawn'}
                 </div>
               </div>
@@ -1058,13 +1018,13 @@ const Dashboard: React.FC = () => {
       {/* Zone Type Selection Modal */}
       {showZoneTypeModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[9999]">
-          <div className="bg-slate-800/90 backdrop-blur-sm rounded-xl p-6 max-w-2xl w-[90%] border border-slate-700/50 shadow-2xl">
+          <div className="bg-white/95 backdrop-blur-sm rounded-xl p-6 max-w-2xl w-[90%] border border-gray-200/60 shadow-2xl">
             <div className="flex items-center mb-5">
-              <div className="w-2 h-2 bg-blue-400 rounded-full mr-3"></div>
-              <h5 className="text-lg font-semibold text-white">Select Zone Type</h5>
+              <div className="w-2 h-2 bg-blue-500 rounded-full mr-3"></div>
+              <h5 className="text-lg font-semibold text-gray-800">Select Zone Type</h5>
             </div>
             
-            <p className="text-slate-300 text-sm mb-6">
+            <p className="text-gray-600 text-sm mb-6">
               Choose the type of zone you want to draw:
             </p>
             
@@ -1078,15 +1038,15 @@ const Dashboard: React.FC = () => {
                 <div 
                   key={option.type}
                   onClick={() => handleZoneTypeChange(option.type)}
-                  className="border-2 border-slate-600/50 rounded-xl p-5 cursor-pointer transition-all duration-200 bg-slate-700/30 hover:border-blue-400/50 hover:transform hover:-translate-y-1 hover:shadow-lg hover:shadow-blue-500/10"
+                  className="border-2 border-gray-300 rounded-xl p-5 cursor-pointer transition-all duration-200 bg-gray-50 hover:border-blue-400 hover:transform hover:-translate-y-1 hover:shadow-lg hover:shadow-blue-200/50"
                 >
                   <div className="flex items-center gap-4">
                     <div className="w-16 h-10 border-2 border-blue-400 rounded bg-blue-400/20 relative">
                       <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-8 h-0.5 bg-blue-400"></div>
                     </div>
                     <div className="flex-1">
-                      <h6 className="text-white font-semibold mb-1">{option.name}</h6>
-                      <p className="text-slate-300 text-sm">{option.description}</p>
+                      <h6 className="text-gray-800 font-semibold mb-1">{option.name}</h6>
+                      <p className="text-gray-600 text-sm">{option.description}</p>
                     </div>
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <rect x="3" y="3" width="18" height="18" rx="2"></rect>
@@ -1099,7 +1059,7 @@ const Dashboard: React.FC = () => {
             <div className="mt-6 text-right">
               <button 
                 onClick={() => setShowZoneTypeModal(false)}
-                className="px-4 py-2 bg-slate-600/50 hover:bg-slate-500/50 text-slate-300 rounded-lg border border-slate-500/30 transition-colors font-medium"
+                className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg border border-gray-300 transition-colors font-medium"
               >
                 Cancel
               </button>
@@ -1111,12 +1071,12 @@ const Dashboard: React.FC = () => {
       {/* Message Modal */}
       {showMessageModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[9999]">
-          <div className="bg-slate-800/90 backdrop-blur-sm rounded-xl p-6 max-w-md w-[90%] border border-slate-700/50 shadow-2xl">
+          <div className="bg-white/95 backdrop-blur-sm rounded-xl p-6 max-w-md w-[90%] border border-gray-200/60 shadow-2xl">
             <div className="flex items-center mb-4">
               <div className={`w-10 h-10 rounded-full flex items-center justify-center mr-3 ${
-                modalType === 'success' ? 'bg-green-500/20' : 
-                modalType === 'error' ? 'bg-red-500/20' : 
-                modalType === 'warning' ? 'bg-yellow-500/20' : 'bg-blue-500/20'
+                modalType === 'success' ? 'bg-green-100' : 
+                modalType === 'error' ? 'bg-red-100' : 
+                modalType === 'warning' ? 'bg-yellow-100' : 'bg-blue-100'
               }`}>
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={
                   modalType === 'success' ? '#10b981' : 
@@ -1134,15 +1094,15 @@ const Dashboard: React.FC = () => {
                   )}
                 </svg>
               </div>
-              <h5 className="text-lg font-semibold text-white">{modalTitle}</h5>
+              <h5 className="text-lg font-semibold text-gray-800">{modalTitle}</h5>
             </div>
             
-            <p className="text-slate-300 mb-6">{modalMessage}</p>
+            <p className="text-gray-600 mb-6">{modalMessage}</p>
             
             <div className="text-right">
               <button 
                 onClick={() => setShowMessageModal(false)}
-                className="px-4 py-2 bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 rounded-lg border border-blue-500/30 transition-all duration-200 hover:shadow-lg hover:shadow-blue-500/10 font-medium"
+                className="px-4 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg border border-blue-200 transition-all duration-200 hover:shadow-lg hover:shadow-blue-200/50 font-medium"
               >
                 OK
               </button>
