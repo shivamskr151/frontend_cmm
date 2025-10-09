@@ -117,7 +117,7 @@ export const JsonEditorModal: React.FC<JsonEditorModalProps> = ({
               </pre>
             </details>
             <p className="text-xs text-slate-400 mt-2">
-              You can paste the full configuration.json or just the activities_data section.
+              You can paste the full activities configuration or just the activities_data section.
             </p>
           </div>
 

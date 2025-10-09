@@ -5,6 +5,7 @@ import Dashboard from './pages/Dashboard';
 import MoniterPage from './pages/MoniterPage';
 import Navbar from './components/Navbar';
 import { UserProvider } from './contexts/UserContext';
+import { CameraProvider } from './contexts/CameraContext';
 
 function AppContent() {
   const location = useLocation();
@@ -27,9 +28,11 @@ function AppContent() {
 function App() {
   return (
     <UserProvider>
-      <Router>
-        <AppContent />
-      </Router>
+      <CameraProvider>
+        <Router>
+          <AppContent />
+        </Router>
+      </CameraProvider>
     </UserProvider>
   );
 }

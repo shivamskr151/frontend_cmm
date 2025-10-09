@@ -1,14 +1,14 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { auth } from '../utils/auth';
-import { cameraApi, type Camera } from '../api';
+import { type Camera } from '../api';
 import { RectangleZoneDrawer } from '../utils/rectangleZone';
 import { ZoneDrawer as RectangleZoneWithLanesDrawer } from '../utils/rectangle-lanes';
 import { PolygonZoneDrawer } from '../utils/polygon-Zone';
 import { PolygonZoneDrawerWithLanes } from '../utils/polygonZone-lanes-draw';
 import { useActivities } from '../hooks/useActivities';
 import { AddConfigDropdown, AddActivityModal, JsonEditorModal } from '../components/activities';
-import type { ActivitiesData } from '../types/activity';
+import { useCameras } from '../contexts/CameraContext';
 
 
 
@@ -27,9 +27,8 @@ const Dashboard: React.FC = () => {
   const [selectedActivity, setSelectedActivity] = useState('');
   const [currentZoneType, setCurrentZoneType] = useState('rectangle');
   // const [username, setUsername] = useState('Loading...');
-  const [cameras, setCameras] = useState<Camera[]>([]);
-  const [camerasLoading, setCamerasLoading] = useState(false);
-  const [camerasError, setCamerasError] = useState<string | null>(null);
+  // Use shared camera context instead of local state
+  const { cameras, camerasLoading, camerasError, loadCameras, refreshCameras } = useCameras();
   const [showZoneTypeModal, setShowZoneTypeModal] = useState(false);
   const [showMessageModal, setShowMessageModal] = useState(false);
   const [modalMessage, setModalMessage] = useState('');
@@ -52,7 +51,6 @@ const Dashboard: React.FC = () => {
   // Use the new activity system
   const {
     activities,
-    setActivities,
     addActivity,
     addActivitiesFromJson
   } = useActivities();
@@ -109,50 +107,7 @@ const Dashboard: React.FC = () => {
     return response.json();
   };
 
-  // Load cameras from API
-  const loadCameras = async () => {
-    setCamerasLoading(true);
-    setCamerasError(null);
-    
-    try {
-      console.log('🌐 Loading cameras from API...');
-      const cameraData = await cameraApi.getCameras();
-      setCameras(cameraData);
-      console.log('✅ Cameras loaded successfully:', cameraData.length);
-    } catch (error) {
-      console.error('❌ Error loading cameras:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Failed to load cameras';
-      setCamerasError(errorMessage);
-      
-      // If authentication failed, redirect to login
-      if (errorMessage.includes('Authentication failed') || errorMessage.includes('No authentication token')) {
-        console.log('🔐 Authentication failed, redirecting to login...');
-        navigate('/login');
-      }
-    } finally {
-      setCamerasLoading(false);
-    }
-  };
-
-  // Refresh cameras data
-  const refreshCameras = async () => {
-    try {
-      const cameraData = await cameraApi.refreshCameras();
-      setCameras(cameraData);
-      setCamerasError(null);
-      console.log('✅ Cameras refreshed successfully');
-    } catch (error) {
-      console.error('❌ Error refreshing cameras:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Failed to refresh cameras';
-      setCamerasError(errorMessage);
-      
-      // If authentication failed, redirect to login
-      if (errorMessage.includes('Authentication failed') || errorMessage.includes('No authentication token')) {
-        console.log('🔐 Authentication failed, redirecting to login...');
-        navigate('/login');
-      }
-    }
-  };
+  // Camera loading and refreshing is now handled by the shared CameraContext
 
   // Additional API functions can be added here as needed
   // Examples: getCameraById, addCamera, updateCameraConfig, etc.
@@ -170,13 +125,6 @@ const Dashboard: React.FC = () => {
     }
   };
 
-  // Configuration API Functions
-  const getActivitiesConfig = async (): Promise<{ activities_data: ActivitiesData }> => {
-    console.log('Calling getActivitiesConfig...');
-    const result = await makeApiRequest<{ activities_data: ActivitiesData }>('/configuration.json');
-    console.log('getActivitiesConfig result:', result);
-    return result;
-  };
 
   // User API Functions
   // const getUserProfile = async (): Promise<any> => {
@@ -188,18 +136,8 @@ const Dashboard: React.FC = () => {
     try {
       setIsLoading(true);
       
-      // Load cameras and activities in parallel
-      const [activitiesData] = await Promise.all([
-        getActivitiesConfig(),
-        loadCameras() // This will handle its own loading state
-      ]);
-      
-      console.log('Loaded activities data:', activitiesData);
-      console.log('activitiesData.activities_data:', activitiesData.activities_data);
-      console.log('Type of activities_data:', typeof activitiesData.activities_data);
-      console.log('Keys of activities_data:', activitiesData.activities_data ? Object.keys(activitiesData.activities_data) : 'No activities_data');
-      
-      setActivities(activitiesData.activities_data || {});
+      // Load cameras only
+      await loadCameras(); // This will handle its own loading state
       
     } catch (error) {
       console.error('Error loading initial data:', error);
@@ -208,7 +146,7 @@ const Dashboard: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [loadCameras]);
 
   // Check authentication on component mount
   useEffect(() => {
@@ -277,14 +215,6 @@ const Dashboard: React.FC = () => {
     if (camera) {
       setCameraName(camera.appName || camera.name);
       setCameraStatus(camera.status === 'online' ? 'Active' : 'Inactive');
-      
-      // Load activities for this camera
-      try {
-        const activitiesData = await getActivitiesConfig();
-        setActivities(activitiesData.activities_data || {});
-      } catch (error) {
-        console.error('Error loading activities:', error);
-      }
     } else {
       setCameraName('Unknown');
       setCameraStatus('Disconnected');

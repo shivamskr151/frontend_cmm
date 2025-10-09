@@ -27,6 +27,7 @@ interface CameraApiResponse {
 class CameraApiService {
   private cache: Camera[] | null = null;
   private cacheTimestamp: number = 0;
+  private pendingRequest: Promise<Camera[]> | null = null;
 
   /**
    * Get authorization headers for API requests
@@ -47,7 +48,7 @@ class CameraApiService {
   }
 
   /**
-   * Fetch cameras from the API with caching
+   * Fetch cameras from the API with caching and request deduplication
    */
   async getCameras(forceRefresh: boolean = false): Promise<Camera[]> {
     console.log('🔍 getCameras called with forceRefresh:', forceRefresh);
@@ -59,6 +60,28 @@ class CameraApiService {
       return this.cache;
     }
 
+    // If there's already a pending request, return it instead of making a new one
+    if (this.pendingRequest && !forceRefresh) {
+      console.log('🔄 Reusing pending request to prevent duplicate API calls');
+      return this.pendingRequest;
+    }
+
+    // Create the request promise and store it to prevent concurrent calls
+    this.pendingRequest = this.fetchCamerasFromAPI(forceRefresh);
+    
+    try {
+      const result = await this.pendingRequest;
+      return result;
+    } finally {
+      // Clear the pending request when done
+      this.pendingRequest = null;
+    }
+  }
+
+  /**
+   * Internal method to fetch cameras from API
+   */
+  private async fetchCamerasFromAPI(_forceRefresh: boolean = false): Promise<Camera[]> {
     try {
       console.log('🌐 Fetching cameras from API...');
       console.log('🌐 API URL:', `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.CAMERA}`);
@@ -81,7 +104,7 @@ class CameraApiService {
           console.log('🔄 Received 304, forcing fresh request...');
           this.cache = null;
           this.cacheTimestamp = 0;
-          return this.getCameras(true); // Force refresh
+          return this.fetchCamerasFromAPI(true); // Force refresh
         } else if (response.status === 401) {
           throw new Error('Authentication failed. Please login again.');
         } else if (response.status === 403) {
@@ -166,12 +189,13 @@ class CameraApiService {
   }
 
   /**
-   * Clear the cache
+   * Clear the cache and cancel any pending requests
    */
   clearCache(): void {
     this.cache = null;
     this.cacheTimestamp = 0;
-    console.log('🗑️ Camera cache cleared');
+    this.pendingRequest = null;
+    console.log('🗑️ Camera cache cleared and pending requests cancelled');
   }
 
   /**

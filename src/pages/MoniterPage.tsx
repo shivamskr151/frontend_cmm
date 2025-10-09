@@ -3,7 +3,8 @@
 
 import { useEffect, useRef, useState, useCallback } from "react";
 import nipplejs from "nipplejs";
-import { cameraApi, type Camera } from "../api";
+// Camera type is now imported through the context
+import { useCameras } from "../contexts/CameraContext";
 
 function MoniterPage() {
   const joystickRef = useRef<HTMLDivElement | null>(null);
@@ -23,35 +24,12 @@ function MoniterPage() {
   const [selectedCamera, setSelectedCamera] = useState('');
   const [showCameraDropdown, setShowCameraDropdown] = useState(false);
   const [showCameraModal, setShowCameraModal] = useState(false);
-  const [cameras, setCameras] = useState<Camera[]>([]);
-  const [, setCamerasLoading] = useState(false);
-  const [, setCamerasError] = useState<string | null>(null);
+  // Use shared camera context instead of local state
+  const { cameras, loadCameras } = useCameras();
   const dropdownRef = useRef<HTMLDivElement>(null);
 
 
-  // Load cameras from API
-  const loadCameras = async () => {
-    setCamerasLoading(true);
-    setCamerasError(null);
-    
-    try {
-      const cameraData = await cameraApi.getCameras();
-      setCameras(cameraData);
-      console.log('✅ Cameras loaded successfully:', cameraData.length);
-    } catch (error) {
-      console.error('❌ Error loading cameras:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Failed to load cameras';
-      setCamerasError(errorMessage);
-      
-      // If authentication failed, redirect to login
-      if (errorMessage.includes('Authentication failed') || errorMessage.includes('No authentication token')) {
-        console.log('🔐 Authentication failed, redirecting to login...');
-        window.location.href = '/login';
-      }
-    } finally {
-      setCamerasLoading(false);
-    }
-  };
+  // Camera loading is now handled by the shared CameraContext
 
 
   const handleCameraSelect = (cameraId: string) => {
