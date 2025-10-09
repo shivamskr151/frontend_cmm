@@ -2,7 +2,7 @@ import React, { useRef, useState } from 'react';
 import Editor from '@monaco-editor/react';
 import type * as monaco from 'monaco-editor';
 import { configureMonacoEditor } from '../../utils/monacoConfig';
-import { sampleActivitiesData } from '../../data/sampleActivitiesData';
+import sampleActivitiesData from '../../data/sampleActivitiesData.json';
 
 interface JsonEditorProps {
   value: string;

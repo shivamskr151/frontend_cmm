@@ -21,8 +21,8 @@ interface ZoneCoordinates {
 }
 
 const Dashboard: React.FC = () => {
-  const [cameraName, setCameraName] = useState('Unknown');
-  const [cameraStatus, setCameraStatus] = useState('Disconnected');
+  const [, setCameraName] = useState('Unknown');
+  const [, setCameraStatus] = useState('Disconnected');
   const [selectedCamera, setSelectedCamera] = useState('');
   const [selectedActivity, setSelectedActivity] = useState('');
   const [currentZoneType, setCurrentZoneType] = useState('rectangle');
