@@ -24,8 +24,8 @@ function MoniterPage() {
   const [showCameraDropdown, setShowCameraDropdown] = useState(false);
   const [showCameraModal, setShowCameraModal] = useState(false);
   const [cameras, setCameras] = useState<Camera[]>([]);
-  const [camerasLoading, setCamerasLoading] = useState(false);
-  const [camerasError, setCamerasError] = useState<string | null>(null);
+  const [, setCamerasLoading] = useState(false);
+  const [, setCamerasError] = useState<string | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
 
