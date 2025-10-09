@@ -8,6 +8,8 @@ import { PolygonZoneDrawer } from '../utils/polygon-Zone';
 import { PolygonZoneDrawerWithLanes } from '../utils/polygonZone-lanes-draw';
 import { useActivities } from '../hooks/useActivities';
 import { AddConfigDropdown, AddActivityModal, JsonEditorModal } from '../components/activities';
+import { DynamicActivityForm } from '../components/activities/DynamicActivityForm';
+import { ErrorBoundary } from '../components/ErrorBoundary';
 import { useCameras } from '../contexts/CameraContext';
 
 
@@ -47,6 +49,8 @@ const Dashboard: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [showAddActivityModal, setShowAddActivityModal] = useState(false);
   const [showJsonEditorModal, setShowJsonEditorModal] = useState(false);
+  const [activityParameters, setActivityParameters] = useState<Record<string, unknown>>({});
+  const [isSaving, setIsSaving] = useState(false);
 
   // Use the new activity system
   const {
@@ -384,6 +388,38 @@ const Dashboard: React.FC = () => {
     setShowMessageModal(true);
   };
 
+  const handleSaveActivityParameters = async () => {
+    if (!selectedActivity || Object.keys(activityParameters).length === 0) {
+      setModalMessage('No parameters to save');
+      setModalTitle('Warning');
+      setModalType('warning');
+      setShowMessageModal(true);
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      // Here you would typically save to your backend
+      // For now, we'll just show a success message
+      console.log('Saving parameters for activity:', selectedActivity, activityParameters);
+      
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      setModalMessage(`Parameters saved successfully for ${selectedActivity}`);
+      setModalTitle('Success');
+      setModalType('success');
+      setShowMessageModal(true);
+    } catch (error) {
+      setModalMessage('Failed to save parameters');
+      setModalTitle('Error');
+      setModalType('error');
+      setShowMessageModal(true);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   const handleAddSpeedLimit = () => {
     if (!newVehicleType || !newSpeedValue) {
       showMessage('Please enter both vehicle type and speed limit value.', 'Warning', 'warning');
@@ -545,7 +581,12 @@ const Dashboard: React.FC = () => {
               </label>
               <select 
                 value={selectedActivity}
-                onChange={(e) => setSelectedActivity(e.target.value)}
+                onChange={(e) => {
+                  console.log('Activity selection changed to:', e.target.value);
+                  console.log('Available activities:', Object.keys(activities));
+                  console.log('Selected activity data:', activities[e.target.value]);
+                  setSelectedActivity(e.target.value);
+                }}
                 className="w-full px-3 py-2 bg-white text-gray-800 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                 title="Select a monitoring activity"
                 aria-label="Select a monitoring activity"
@@ -558,6 +599,53 @@ const Dashboard: React.FC = () => {
                 ))}
               </select>
             </div>
+            
+            {/* Dynamic Activity Parameters */}
+            {selectedActivity && (
+              <div className="mt-6">
+                <div className="bg-white/90 backdrop-blur-sm rounded-xl border border-blue-200/70 p-6 shadow-lg shadow-blue-200/30">
+                  <ErrorBoundary>
+                    <DynamicActivityForm
+                      selectedActivity={selectedActivity}
+                      initialValues={activities[selectedActivity]?.parameters || {}}
+                      onChange={setActivityParameters}
+                    />
+                  </ErrorBoundary>
+                </div>
+                
+                {/* Save Button */}
+                <div className="mt-4 flex justify-end">
+                  <button
+                    onClick={handleSaveActivityParameters}
+                    disabled={isSaving || !selectedActivity}
+                    className={`px-6 py-2 rounded-lg font-medium flex items-center gap-2 transition-all duration-200 ${
+                      isSaving || !selectedActivity
+                        ? 'bg-gray-100 text-gray-400 cursor-not-allowed opacity-60'
+                        : 'bg-gradient-to-r from-green-50 to-green-100 hover:from-green-100 hover:to-green-200 text-green-700 border border-green-200 hover:shadow-lg hover:shadow-green-200/50'
+                    }`}
+                  >
+                    {isSaving ? (
+                      <>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="animate-spin">
+                          <circle cx="12" cy="12" r="10"></circle>
+                          <path d="M12 6v6l4 2"></path>
+                        </svg>
+                        Saving...
+                      </>
+                    ) : (
+                      <>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                          <polyline points="17,21 17,13 7,13 7,21"></polyline>
+                          <polyline points="7,3 7,8 15,8"></polyline>
+                        </svg>
+                        Save Parameters
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            )}
             
             {/* Camera Details */}
            
