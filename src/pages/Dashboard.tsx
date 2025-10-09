@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { auth } from '../utils/auth';
-import { cameraApi, type Camera } from '../utils/cameraApi';
+import { cameraApi, type Camera } from '../api';
 import { RectangleZoneDrawer } from '../utils/rectangleZone';
 import { ZoneDrawer as RectangleZoneWithLanesDrawer } from '../utils/rectangle-lanes';
 import { PolygonZoneDrawer } from '../utils/polygon-Zone';
@@ -72,6 +72,9 @@ const Dashboard: React.FC = () => {
     const headers = {
       'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json',
+      'Cache-Control': 'no-cache, no-store, must-revalidate',
+      'Pragma': 'no-cache',
+      'Expires': '0',
       ...options.headers
     };
 
@@ -82,6 +85,22 @@ const Dashboard: React.FC = () => {
     });
 
     if (!response.ok) {
+      if (response.status === 304) {
+        // Force a fresh request by adding cache-busting parameter
+        console.log('🔄 Received 304, retrying with fresh request...');
+        const freshUrl = url.includes('?') ? `${url}&t=${Date.now()}` : `${url}?t=${Date.now()}`;
+        const freshResponse = await fetch(freshUrl, {
+          ...options,
+          headers,
+          credentials: 'include'
+        });
+        if (!freshResponse.ok) {
+          const errorData = await freshResponse.json().catch(() => ({}));
+          const errorMessage = errorData.detail || errorData.message || `HTTP ${freshResponse.status}: ${freshResponse.statusText}`;
+          throw new Error(errorMessage);
+        }
+        return freshResponse.json();
+      }
       const errorData = await response.json().catch(() => ({}));
       const errorMessage = errorData.detail || errorData.message || `HTTP ${response.status}: ${response.statusText}`;
       throw new Error(errorMessage);

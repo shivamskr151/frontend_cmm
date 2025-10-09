@@ -1,4 +1,4 @@
-import { loginApi, type Client } from './loginApi';
+import { loginApi, type Client } from '../api';
 
 class AuthService {
 

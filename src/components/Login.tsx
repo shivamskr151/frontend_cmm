@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useUser } from '../contexts/UserContext';
-import { LoginApiService } from '../utils/loginApi';
+import { LoginApiService } from '../api';
 
 const Login: React.FC = () => {
   const [email, setEmail] = useState('');

@@ -3,7 +3,7 @@
  */
 
 import React, { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
-import { loginApi, type Client } from '../utils/loginApi';
+import { loginApi, type Client } from '../api';
 
 interface UserContextType {
   client: Client | null;

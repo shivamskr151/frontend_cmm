@@ -2,6 +2,7 @@ import React, { useRef, useState } from 'react';
 import Editor from '@monaco-editor/react';
 import type * as monaco from 'monaco-editor';
 import { configureMonacoEditor } from '../../utils/monacoConfig';
+import { sampleActivitiesData } from '../../data/sampleActivitiesData';
 
 interface JsonEditorProps {
   value: string;
@@ -23,6 +24,7 @@ export const JsonEditor: React.FC<JsonEditorProps> = ({
   const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
   const [isValid, setIsValid] = useState(true);
   const [errors, setErrors] = useState<string[]>([]);
+  const [isGenerating, setIsGenerating] = useState(false);
 
   const handleEditorDidMount = (editor: monaco.editor.IStandaloneCodeEditor, monaco: typeof import('monaco-editor')) => {
     editorRef.current = editor;
@@ -85,6 +87,21 @@ export const JsonEditor: React.FC<JsonEditorProps> = ({
     }
   };
 
+  const generateData = async () => {
+    if (editorRef.current && !isGenerating) {
+      setIsGenerating(true);
+      
+      // Add a small delay to simulate loading
+      await new Promise(resolve => setTimeout(resolve, 800));
+      
+      const formattedData = JSON.stringify(sampleActivitiesData, null, 2);
+      editorRef.current.setValue(formattedData);
+      onChange(formattedData);
+      
+      setIsGenerating(false);
+    }
+  };
+
   return (
     <div className="relative">
       {/* Editor Toolbar */}
@@ -112,6 +129,24 @@ export const JsonEditor: React.FC<JsonEditorProps> = ({
           )}
         </div>
         <div className="flex items-center gap-2">
+          <button
+            onClick={generateData}
+            disabled={isGenerating}
+            className="px-2 py-1 text-xs bg-green-500/20 hover:bg-green-500/30 text-green-400 rounded border border-green-500/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+            title="Generate sample data"
+          >
+            {isGenerating ? (
+              <>
+                <svg className="animate-spin h-3 w-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Generating...
+              </>
+            ) : (
+              'Generate Data'
+            )}
+          </button>
           <button
             onClick={formatJson}
             disabled={!value.trim() || !isValid}

@@ -4,7 +4,7 @@ import type {
   NewActivityFormData, 
   ActivityValidationResult 
 } from '../types/activity';
-import { ActivityService } from '../services/ActivityService';
+import { ActivityService } from '../api';
 
 export interface UseActivitiesReturn {
   activities: ActivitiesData;

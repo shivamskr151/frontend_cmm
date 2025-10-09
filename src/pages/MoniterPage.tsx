@@ -3,7 +3,7 @@
 
 import { useEffect, useRef, useState, useCallback } from "react";
 import nipplejs from "nipplejs";
-import { cameraApi, type Camera } from "../utils/cameraApi";
+import { cameraApi, type Camera } from "../api";
 
 function MoniterPage() {
   const joystickRef = useRef<HTMLDivElement | null>(null);
