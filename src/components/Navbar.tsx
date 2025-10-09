@@ -53,9 +53,9 @@ const Navbar=()=> {
     }
   };
 
-  // Redirect to login if not authenticated
+  // Redirect to login if not authenticated (except for /moniter route)
   useEffect(() => {
-    if (!isAuthenticated && location.pathname !== '/login') {
+    if (!isAuthenticated && location.pathname !== '/login' ) {
       navigate('/login');
     }
   }, [isAuthenticated, location.pathname, navigate]);
@@ -147,45 +147,62 @@ const Navbar=()=> {
               </svg>
             </button>
 
-            {/* Profile Dropdown Trigger */}
-            <button
-              onClick={() => setShowProfileDropdown(!showProfileDropdown)}
-              className="flex items-center gap-2 px-3 py-2 cursor-pointer transition-all duration-200 text-sm font-medium text-gray-600 hover:text-gray-800 hover:bg-gray-50 rounded-lg"
-            >
-              <div className="relative">
-                <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center text-white text-xs font-semibold shadow-md shadow-blue-500/25">
-                  {client?.name?.charAt(0).toUpperCase() || 'U'}
-                </div>
-                <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-400 border-2 border-white rounded-full"></div>
-              </div>
-              <div className="hidden sm:flex flex-col items-start">
-                <span className="text-sm text-gray-700 font-medium">
-                  {client?.name || 'User'}
-                </span>
-                <span className="text-xs text-gray-500">
-                  {client?.role || 'USER'}
-                </span>
-              </div>
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className={`transition-transform duration-200 ${
-                  showProfileDropdown ? 'rotate-180' : 'rotate-0'
-                }`}
+            {/* Profile Dropdown Trigger - Only show if authenticated */}
+            {isAuthenticated && (
+              <button
+                onClick={() => setShowProfileDropdown(!showProfileDropdown)}
+                className="flex items-center gap-2 px-3 py-2 cursor-pointer transition-all duration-200 text-sm font-medium text-gray-600 hover:text-gray-800 hover:bg-gray-50 rounded-lg"
               >
-                <polyline points="6,9 12,15 18,9"></polyline>
-              </svg>
-            </button>
+                <div className="relative">
+                  <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center text-white text-xs font-semibold shadow-md shadow-blue-500/25">
+                    {client?.name?.charAt(0).toUpperCase() || 'U'}
+                  </div>
+                  <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-400 border-2 border-white rounded-full"></div>
+                </div>
+                <div className="hidden sm:flex flex-col items-start">
+                  <span className="text-sm text-gray-700 font-medium">
+                    {client?.name || 'User'}
+                  </span>
+                  <span className="text-xs text-gray-500">
+                    {client?.role || 'USER'}
+                  </span>
+                </div>
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className={`transition-transform duration-200 ${
+                    showProfileDropdown ? 'rotate-180' : 'rotate-0'
+                  }`}
+                >
+                  <polyline points="6,9 12,15 18,9"></polyline>
+                </svg>
+              </button>
+            )}
 
-            {/* Profile Dropdown */}
-            {showProfileDropdown && (
+            {/* Login Button - Show if not authenticated */}
+            {!isAuthenticated && (
+              <button
+                onClick={() => navigate('/login')}
+                className="flex items-center gap-2 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-all duration-200 text-sm font-medium shadow-md shadow-blue-500/25 hover:shadow-lg hover:shadow-blue-500/35"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path>
+                  <polyline points="10,17 15,12 10,7"></polyline>
+                  <line x1="15" y1="12" x2="3" y2="12"></line>
+                </svg>
+                Login
+              </button>
+            )}
+
+            {/* Profile Dropdown - Only show if authenticated */}
+            {isAuthenticated && showProfileDropdown && (
               <div className="absolute top-full right-0 mt-2 w-64 bg-white/95 backdrop-blur-md border border-gray-200/60 rounded-xl shadow-2xl shadow-gray-200/20 z-50 overflow-hidden">
                 <div className="px-4 py-3 border-b border-gray-200/50 bg-gray-50/50">
                   <div className="text-base font-semibold text-gray-800 mb-1">

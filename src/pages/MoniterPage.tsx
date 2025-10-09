@@ -13,13 +13,17 @@ function MoniterPage() {
   // State for Pan/Tilt
   const [speeds, setSpeeds] = useState({ Pan: 0.5, Tilt: 0.5 });
   const [zoomLevel, setZoomLevel] = useState(50); // Zoom percentage (0-100) - Display only
-  const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'connected' | 'disconnected'>('connecting');
+  const [, setConnectionStatus] = useState<'connecting' | 'connected' | 'disconnected'>('connecting');
   const [patrolStatus, setPatrolStatus] = useState<'idle' | 'running' | 'paused'>('idle');
   const [currentPatrolStep, setCurrentPatrolStep] = useState(0);
   const [patrolProgress, setPatrolProgress] = useState(0);
+  const [selectedPatrolPatterns, setSelectedPatrolPatterns] = useState<number[]>([]);
+  const [showEditPatrolModal, setShowEditPatrolModal] = useState(false);
+  const [editingPatrolPattern, setEditingPatrolPattern] = useState<any>(null);
   const cameraId = "CAM001"; // Example camera ID, aap dynamic bhi kar sakte ho
   const zoomLevelRef = useRef<number>(50);
   const [showCreatePresetModal, setShowCreatePresetModal] = useState(false);
+  const [useCurrentPosition, setUseCurrentPosition] = useState(false);
   const [SectionName, setSectionName] = useState('Joystick');
   const [selectedCamera, setSelectedCamera] = useState('');
   const [showCameraDropdown, setShowCameraDropdown] = useState(false);
@@ -38,15 +42,7 @@ function MoniterPage() {
     setShowCameraModal(false);
   };
 
-  const handleCameraButtonClick = () => {
-    if (selectedCamera) {
-      // If camera is already selected, show modal
-      setShowCameraModal(true);
-    } else {
-      // If no camera selected, show dropdown
-      setShowCameraDropdown(!showCameraDropdown);
-    }
-  };
+  // Removed handleCameraButtonClick as it's no longer needed
 
   // Load cameras on component mount
   useEffect(() => {
@@ -143,17 +139,14 @@ function MoniterPage() {
 
   // Patrol Functions
   const patrolPatterns = [
-    { id: 1, name: "Standard Patrol", duration: 300, steps: 4 },
-    { id: 2, name: "Quick Scan", duration: 120, steps: 2 },
-    { id: 3, name: "Detailed Survey", duration: 600, steps: 8 },
-    { id: 4, name: "Perimeter Check", duration: 180, steps: 3 },
-    { id: 1, name: "Standard Patrol", duration: 300, steps: 4 },
-    { id: 2, name: "Quick Scan", duration: 120, steps: 2 },
-    { id: 3, name: "Detailed Survey", duration: 600, steps: 8 },
-    { id: 4, name: "Perimeter Check", duration: 180, steps: 3 }, { id: 1, name: "Standard Patrol", duration: 300, steps: 4 },
-    { id: 2, name: "Quick Scan", duration: 120, steps: 2 },
-    { id: 3, name: "Detailed Survey", duration: 600, steps: 8 },
-    { id: 4, name: "Perimeter Check", duration: 180, steps: 3 }
+    { id: 1, name: "Standard Patrol", pan: 0.5, tilt: 0.3, zoom: 50 },
+    { id: 2, name: "Quick Scan", pan: 0.8, tilt: 0.7, zoom: 75 },
+    { id: 3, name: "Detailed Survey", pan: 0.2, tilt: 0.4, zoom: 90 },
+    { id: 4, name: "Perimeter Check", pan: 0.9, tilt: 0.1, zoom: 25 },
+    { id: 5, name: "Entrance Monitor", pan: 0.1, tilt: 0.8, zoom: 60 },
+    { id: 6, name: "Parking Lot View", pan: 0.7, tilt: 0.6, zoom: 40 },
+    { id: 7, name: "Building Corner", pan: 0.3, tilt: 0.2, zoom: 80 },
+    { id: 8, name: "Main Gate", pan: 0.6, tilt: 0.9, zoom: 35 }
   ];
 
   const startPatrol = (patternId: number) => {
@@ -167,7 +160,9 @@ function MoniterPage() {
       cameraId,
       patternId,
       pattern: pattern.name,
-      duration: pattern.duration
+      pan: pattern.pan,
+      tilt: pattern.tilt,
+      zoom: pattern.zoom
     };
 
     socketRef.current.send(JSON.stringify(message));
@@ -218,6 +213,46 @@ function MoniterPage() {
     console.log("▶️ Resumed patrol");
   };
 
+  // Patrol Pattern Management Functions
+  const handlePatrolPatternSelect = (patternId: number) => {
+    setSelectedPatrolPatterns(prev => 
+      prev.includes(patternId) 
+        ? prev.filter(id => id !== patternId)
+        : [...prev, patternId]
+    );
+  };
+
+  const handleSelectAllPatrolPatterns = () => {
+    if (selectedPatrolPatterns.length === patrolPatterns.length) {
+      setSelectedPatrolPatterns([]);
+    } else {
+      setSelectedPatrolPatterns(patrolPatterns.map(p => p.id));
+    }
+  };
+
+  const handleDeleteSelectedPatrolPatterns = () => {
+    if (selectedPatrolPatterns.length === 0) return;
+    
+    // Here you would typically make an API call to delete the patterns
+    console.log("Deleting patrol patterns:", selectedPatrolPatterns);
+    
+    // For now, just clear the selection
+    setSelectedPatrolPatterns([]);
+  };
+
+  const handleEditPatrolPattern = (pattern: any) => {
+    setEditingPatrolPattern(pattern);
+    setShowEditPatrolModal(true);
+  };
+
+  const handleSavePatrolPattern = (updatedPattern: any) => {
+    // Here you would typically make an API call to update the pattern
+    console.log("Saving patrol pattern:", updatedPattern);
+    
+    setShowEditPatrolModal(false);
+    setEditingPatrolPattern(null);
+  };
+
   // Setup Joystick
   useEffect(() => {
     if (SectionName !== "Joystick") return;
@@ -264,7 +299,7 @@ function MoniterPage() {
   // Render
   // ----------------------
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50">
+    <div className="min-h-screen fixed inset-0 bg-gradient-to-br from-blue-50 via-white to-indigo-50">
       {/* Main Content */}
       <div className="pt-16 p-6">
         <div className={`grid grid-cols-3 gap-6 min-h-[calc(100vh-140px)]`}>
@@ -283,7 +318,7 @@ function MoniterPage() {
                     </div> */}
                     <div className="flex items-center gap-3">
                       {/* Camera Name - Clickable */}
-                      <div className="relative" ref={dropdownRef}>
+                      {/* <div className="relative" ref={dropdownRef}>
                         <button
                           onClick={handleCameraButtonClick}
                           className="px-3 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg border border-gray-300 text-xs transition-colors flex items-center gap-2"
@@ -298,10 +333,10 @@ function MoniterPage() {
                           </svg>
                         </button>
 
-                      </div>
+                      </div> */}
 
                       {/* Connection Status */}
-                      <div className={`flex items-center gap-2 px-3 py-1 rounded-lg text-xs font-medium ${connectionStatus === 'connected'
+                      {/* <div className={`flex items-center gap-2 px-3 py-1 rounded-lg text-xs font-medium ${connectionStatus === 'connected'
                           ? 'bg-green-100 text-green-700 border border-green-300'
                           : connectionStatus === 'connecting'
                             ? 'bg-yellow-100 text-yellow-700 border border-yellow-300'
@@ -313,7 +348,7 @@ function MoniterPage() {
                           }`}></div>
                         {connectionStatus === 'connected' ? 'Connected' :
                           connectionStatus === 'connecting' ? 'Connecting...' : 'Disconnected'}
-                      </div>
+                      </div> */}
                     </div>
                   </div>
 
@@ -379,12 +414,75 @@ function MoniterPage() {
 
           {/* Control Panel - Only show when camera is selected */}
         
-            <div className="space-y-2 pt-2">
+            <div className="space-y-2 pt-2 overflow-visible">
               {/* Section Toggle */}
-              <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-gray-200/50 p-2 shadow-lg shadow-gray-200/20">
-                <div className="flex items-center space-x-2 mb-4">
-                  <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                  <h3 className="text-sm font-semibold text-gray-700">PTZ Control Panel</h3>
+              <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-gray-200/50 p-2 shadow-lg shadow-gray-200/20 overflow-visible">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center space-x-2">
+                    <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                    <h3 className="text-sm font-semibold text-gray-700">PTZ Control Panel</h3>
+                  </div>
+                  
+                  {/* Camera Selection Dropdown */}
+                  <div className="relative z-10" ref={dropdownRef}>
+                    <button
+                      onClick={() => setShowCameraModal(true)}
+                      className="px-3 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg border border-gray-300 text-xs transition-colors flex items-center gap-2"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+                        <circle cx="12" cy="13" r="4"></circle>
+                      </svg>
+                      {cameras.find(cam => cam.id === selectedCamera)?.name || 'Select Camera'}
+                      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="6,9 12,15 18,9"></polyline>
+                      </svg>
+                    </button>
+
+                    {/* Camera Dropdown Menu */}
+                    {/* {showCameraDropdown && (
+                      <div className="absolute top-full right-0 mt-2 w-64 bg-white/95 backdrop-blur-sm rounded-xl border border-gray-200/50 shadow-2xl shadow-gray-200/20 z-[9999] overflow-hidden">
+                        <div className="p-2">
+                          <div className="text-xs font-semibold text-gray-600 mb-2 px-2">Available Cameras</div>
+                          <div className="space-y-1 max-h-48 overflow-y-auto">
+                            {cameras.map((camera) => (
+                              <button
+                                key={camera.id}
+                                onClick={() => handleCameraSelect(camera.id)}
+                                className={`w-full p-2 rounded-lg text-left transition-all duration-200 flex items-center gap-3 ${
+                                  camera.id === selectedCamera
+                                    ? 'bg-blue-100 text-blue-700 border border-blue-300'
+                                    : 'bg-gray-100 hover:bg-gray-200 text-gray-600 hover:text-gray-800'
+                                }`}
+                              >
+                                <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+                                  camera.id === selectedCamera ? 'bg-blue-200' : 'bg-gray-200'
+                                }`}>
+                                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+                                    <circle cx="12" cy="13" r="4"></circle>
+                                  </svg>
+                                </div>
+                                <div className="flex-1">
+                                  <div className="text-sm font-medium">{camera.appName || camera.name}</div>
+                                  <div className="text-xs opacity-75">
+                                    {camera.id === selectedCamera ? 'Currently Selected' : 'Available'}
+                                  </div>
+                                </div>
+                                {camera.id === selectedCamera && (
+                                  <div className="w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                                      <polyline points="20,6 9,17 4,12"></polyline>
+                                    </svg>
+                                  </div>
+                                )}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    )} */}
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-3 gap-2">
@@ -539,7 +637,7 @@ function MoniterPage() {
 
 
               {/* Preset Controls */}
-              {SectionName == "Preset" && <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-gray-200/50 overflow-hidden shadow-lg shadow-gray-200/20 flex flex-col">
+              {SectionName == "Preset" && <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-gray-200/50 overflow-hidden shadow-lg shadow-gray-200/20 flex flex-col h-[calc(93vh-140px)]">
                 <div className="flex items-center space-x-2 p-4 border-b border-gray-300">
                   <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
                   <h3 className="text-sm font-semibold text-gray-700">Preset Management</h3>
@@ -566,31 +664,104 @@ function MoniterPage() {
 
                     {showCreatePresetModal && (
                       <form className="space-y-3">
-                        <div className="grid grid-cols-2 gap-2">
+                        {/* Preset Name */}
+                        <div>
                           <input
                             type="text"
-                            placeholder="Name"
-                            className="w-full px-2 py-1.5 bg-white text-gray-700 rounded border border-gray-300 text-xs focus:outline-none focus:ring-1 focus:ring-blue-400 transition-colors"
-                          />
-                          <input
-                            type="number"
-                            placeholder="Pan"
-                            min={0} max={1} step={0.01}
-                            className="w-full px-2 py-1.5 bg-white text-gray-700 rounded border border-gray-300 text-xs focus:outline-none focus:ring-1 focus:ring-blue-400 transition-colors"
-                          />
-                          <input
-                            type="number"
-                            placeholder="Tilt"
-                            min={0} max={1} step={0.01}
-                            className="w-full px-2 py-1.5 bg-white text-gray-700 rounded border border-gray-300 text-xs focus:outline-none focus:ring-1 focus:ring-blue-400 transition-colors"
-                          />
-                          <input
-                            type="number"
-                            placeholder="Zoom"
-                            min={0} max={100} step={1}
+                            placeholder="Preset Name"
                             className="w-full px-2 py-1.5 bg-white text-gray-700 rounded border border-gray-300 text-xs focus:outline-none focus:ring-1 focus:ring-blue-400 transition-colors"
                           />
                         </div>
+
+                        {/* Use Current Position Checkbox */}
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            id="useCurrentPosition"
+                            checked={useCurrentPosition}
+                            onChange={(e) => setUseCurrentPosition(e.target.checked)}
+                            className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+                          />
+                          <label htmlFor="useCurrentPosition" className="text-xs text-gray-600 flex items-center gap-1">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <circle cx="12" cy="12" r="3"></circle>
+                              <path d="M12 1v6m0 6v6m11-7h-6m-6 0H1"></path>
+                            </svg>
+                            Use Current Camera Position
+                          </label>
+                        </div>
+
+                        {/* Position Inputs - Only show when checkbox is checked */}
+                        {useCurrentPosition && (
+                          <div className="space-y-2 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                            <div className="text-xs font-medium text-blue-700 mb-2">Current Position Values</div>
+                            <div className="grid grid-cols-3 gap-2">
+                              <div>
+                                <label className="text-xs text-gray-600 block mb-1">Pan</label>
+                                <input
+                                  type="number"
+                                  value={speeds.Pan}
+                                  readOnly
+                                  className="w-full px-2 py-1.5 bg-white text-gray-700 rounded border border-gray-300 text-xs focus:outline-none focus:ring-1 focus:ring-blue-400 transition-colors"
+                                />
+                              </div>
+                              <div>
+                                <label className="text-xs text-gray-600 block mb-1">Tilt</label>
+                                <input
+                                  type="number"
+                                  value={speeds.Tilt}
+                                  readOnly
+                                  className="w-full px-2 py-1.5 bg-white text-gray-700 rounded border border-gray-300 text-xs focus:outline-none focus:ring-1 focus:ring-blue-400 transition-colors"
+                                />
+                              </div>
+                              <div>
+                                <label className="text-xs text-gray-600 block mb-1">Zoom</label>
+                                <input
+                                  type="number"
+                                  value={zoomLevel}
+                                  readOnly
+                                  className="w-full px-2 py-1.5 bg-white text-gray-700 rounded border border-gray-300 text-xs focus:outline-none focus:ring-1 focus:ring-blue-400 transition-colors"
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Manual Position Inputs - Only show when checkbox is unchecked */}
+                        {!useCurrentPosition && (
+                          <div className="space-y-2 p-3 bg-gray-50 rounded-lg border border-gray-200">
+                            <div className="text-xs font-medium text-gray-700 mb-2">Manual Position Values</div>
+                            <div className="grid grid-cols-3 gap-2">
+                              <div>
+                                <label className="text-xs text-gray-600 block mb-1">Pan</label>
+                                <input
+                                  type="number"
+                                  placeholder="0.5"
+                                  min={0} max={1} step={0.01}
+                                  className="w-full px-2 py-1.5 bg-white text-gray-700 rounded border border-gray-300 text-xs focus:outline-none focus:ring-1 focus:ring-blue-400 transition-colors"
+                                />
+                              </div>
+                              <div>
+                                <label className="text-xs text-gray-600 block mb-1">Tilt</label>
+                                <input
+                                  type="number"
+                                  placeholder="0.5"
+                                  min={0} max={1} step={0.01}
+                                  className="w-full px-2 py-1.5 bg-white text-gray-700 rounded border border-gray-300 text-xs focus:outline-none focus:ring-1 focus:ring-blue-400 transition-colors"
+                                />
+                              </div>
+                              <div>
+                                <label className="text-xs text-gray-600 block mb-1">Zoom</label>
+                                <input
+                                  type="number"
+                                  placeholder="50"
+                                  min={0} max={100} step={1}
+                                  className="w-full px-2 py-1.5 bg-white text-gray-700 rounded border border-gray-300 text-xs focus:outline-none focus:ring-1 focus:ring-blue-400 transition-colors"
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        )}
 
                         <button
                           type="button"
@@ -635,7 +806,7 @@ function MoniterPage() {
 
 
               {/* Patrol Controls */}
-              {SectionName == "Patrol" && <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-gray-200/50 overflow-hidden shadow-lg shadow-gray-200/20">
+              {SectionName == "Patrol" && <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-gray-200/50 overflow-hidden shadow-lg shadow-gray-200/20 h-[calc(93vh-140px)]">
                 <div className="flex items-center justify-between p-2 border-b border-gray-300">
                   <div className="flex items-center space-x-2">
                     <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
@@ -658,8 +829,8 @@ function MoniterPage() {
                 {/* Content */}
                 <div className="p-6 space-y-6">
                   {/* Status Panel */}
-                  <div className="bg-gray-100 rounded-lg p-2 border border-gray-300">
-                    <div className="flex items-center justify-between mb-3">
+                  {/* <div className="bg-gray-100 rounded-lg  border border-gray-300">
+                    <div className="flex items-center justify-between ">
                       <span className="text-xs font-medium text-gray-600 flex items-center gap-2">
                         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                           <circle cx="12" cy="12" r="10"></circle>
@@ -679,7 +850,7 @@ function MoniterPage() {
                     </div>
 
                     {/* Enhanced Progress Bar */}
-                    {patrolStatus !== 'idle' && (
+                    {/* {patrolStatus !== 'idle' && (
                       <div className="space-y-3">
                         <div className="flex justify-between text-sm text-gray-500">
                           <span>Step {currentPatrolStep + 1} of 4</span>
@@ -693,36 +864,122 @@ function MoniterPage() {
                         </div>
                       </div>
                     )}
-                  </div>
+                  </div>  */}
 
                   {/* Patrol Patterns */}
                   <div>
-                    <h4 className="text-sm font-semibold text-gray-600 mb-4 flex items-center gap-2">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"></path>
-                      </svg>
-                      Available Patterns
-                    </h4>
+                    <div className="flex items-center justify-between mb-4">
+                      <h4 className="text-sm font-semibold text-gray-600 flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"></path>
+                        </svg>
+                        Available Patterns
+                      </h4>
+                      
+                      {/* Select All Checkbox */}
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          checked={selectedPatrolPatterns.length === patrolPatterns.length && patrolPatterns.length > 0}
+                          onChange={handleSelectAllPatrolPatterns}
+                          className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+                        />
+                        <span className="text-xs text-gray-600">Select All</span>
+                      </div>
+                    </div>
 
-                    <div className="space-y-3 max-h-64 overflow-y-auto custom-scrollbar">
-                      {patrolPatterns.slice(0, 4).map((pattern) => (
-                        <button
+                    {/* Bulk Actions - Show when patterns are selected */}
+                    {/* {selectedPatrolPatterns.length > 0 && (
+                      <div className="mb-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-blue-700">
+                            {selectedPatrolPatterns.length} pattern{selectedPatrolPatterns.length > 1 ? 's' : ''} selected
+                          </span>
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => {
+                                const firstSelected = patrolPatterns.find(p => selectedPatrolPatterns.includes(p.id));
+                                if (firstSelected) handleEditPatrolPattern(firstSelected);
+                              }}
+                              className="px-3 py-1 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded text-xs font-medium transition-all duration-200 border border-blue-300 flex items-center gap-1"
+                            >
+                              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                              </svg>
+                              Edit
+                            </button>
+                            <button
+                              onClick={handleDeleteSelectedPatrolPatterns}
+                              className="px-3 py-1 bg-red-100 hover:bg-red-200 text-red-700 rounded text-xs font-medium transition-all duration-200 border border-red-300 flex items-center gap-1"
+                            >
+                              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <polyline points="3,6 5,6 21,6"></polyline>
+                                <path d="M19,6v14a2,2 0 0,1 -2,2H7a2,2 0 0,1 -2,-2V6m3,0V4a2,2 0 0,1 2,-2h4a2,2 0 0,1 2,2v2"></path>
+                              </svg>
+                              Delete
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    )} */}
+
+                    <div className="space-y-3 max-h-80 overflow-y-auto custom-scrollbar">
+                      {patrolPatterns.slice(0, 12).map((pattern) => (
+                        <div
                           key={pattern.id}
-                          onClick={() => startPatrol(pattern.id)}
-                          disabled={patrolStatus === 'running'}
-                          className="w-full p-4 bg-gradient-to-r from-gray-100 to-gray-200 hover:from-gray-200 hover:to-gray-300 disabled:from-gray-50 disabled:to-gray-100 disabled:cursor-not-allowed text-gray-700 rounded-lg border border-gray-300 transition-all duration-200 hover:shadow-md group"
+                          className={`w-full p-4 bg-gradient-to-r from-gray-100 to-gray-200 hover:from-gray-200 hover:to-gray-300 text-gray-700 rounded-lg border border-gray-300 transition-all duration-200 hover:shadow-md group ${
+                            selectedPatrolPatterns.includes(pattern.id) ? ' bg-blue-50' : ''
+                          }`}
                         >
-                          <div className="flex justify-between items-center">
-                            <div className="text-left">
-                              <div className="text-sm font-medium">{pattern.name}</div>
-                              <div className="text-xs text-gray-500">{pattern.steps} steps • {pattern.duration}s duration</div>
+                          <div className="flex items-center gap-3">
+                            {/* Checkbox */}
+                            <input
+                              type="checkbox"
+                              checked={selectedPatrolPatterns.includes(pattern.id)}
+                              onChange={() => handlePatrolPatternSelect(pattern.id)}
+                              className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+                            />
+                            
+                            {/* Pattern Info */}
+                            <div className="flex-1 flex justify-between items-center">
+                              <div className="text-left">
+                                <div className="text-sm font-medium">{pattern.name}</div>
+                                <div className="text-xs text-gray-500">
+                                  Pan: {pattern.pan} • Tilt: {pattern.tilt} • Zoom: {pattern.zoom}%
+                                </div>
+                              </div>
+                              <div className="flex items-center space-x-2">
+                                <div className="w-2 h-2 bg-blue-500 rounded-full opacity-60 group-hover:opacity-100 transition-opacity"></div>
+                                <span className="text-xs text-gray-500">{pattern.zoom}%</span>
+                              </div>
                             </div>
-                            <div className="flex items-center space-x-2">
-                              <div className="w-2 h-2 bg-blue-500 rounded-full opacity-60 group-hover:opacity-100 transition-opacity"></div>
-                              <span className="text-xs text-gray-500">{pattern.duration}s</span>
+
+                            {/* Action Buttons */}
+                            <div className="flex items-center gap-1">
+                              <button
+                                onClick={() => startPatrol(pattern.id)}
+                                disabled={patrolStatus === 'running'}
+                                className="p-2 bg-green-100 hover:bg-green-200 disabled:bg-gray-100 disabled:cursor-not-allowed text-green-700 disabled:text-gray-400 rounded transition-all duration-200"
+                                title="Start Patrol"
+                              >
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                  <polygon points="5,3 19,12 5,21"></polygon>
+                                </svg>
+                              </button>
+                              <button
+                                onClick={() => handleEditPatrolPattern(pattern)}
+                                className="p-2 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded transition-all duration-200"
+                                title="Edit Pattern"
+                              >
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                                </svg>
+                              </button>
                             </div>
                           </div>
-                        </button>
+                        </div>
                       ))}
                     </div>
                   </div>
@@ -870,6 +1127,142 @@ function MoniterPage() {
                 className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors"
               >
                 Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Patrol Pattern Modal */}
+      {showEditPatrolModal && editingPatrolPattern && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[10000]">
+          <div className="bg-white/95 backdrop-blur-sm rounded-xl border border-gray-200/50 shadow-2xl w-96 max-h-[85vh] overflow-hidden">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between p-6 border-b border-gray-300">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-700">Edit Patrol Pattern</h3>
+                  <p className="text-sm text-gray-500">Modify pattern settings</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowEditPatrolModal(false)}
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                title="Close edit modal"
+                aria-label="Close edit modal"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="18" y1="6" x2="6" y2="18"></line>
+                  <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+              </button>
+            </div>
+
+            {/* Modal Content */}
+            <div className="p-6 space-y-4">
+              <form onSubmit={(e) => {
+                e.preventDefault();
+                const formData = new FormData(e.target as HTMLFormElement);
+                const updatedPattern = {
+                  ...editingPatrolPattern,
+                  name: formData.get('name') as string,
+                  pan: parseFloat(formData.get('pan') as string),
+                  tilt: parseFloat(formData.get('tilt') as string),
+                  zoom: parseInt(formData.get('zoom') as string)
+                };
+                handleSavePatrolPattern(updatedPattern);
+              }}>
+                {/* Pattern Name */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Pattern Name</label>
+                  <input
+                    type="text"
+                    name="name"
+                    defaultValue={editingPatrolPattern.name}
+                    className="w-full px-3 py-2 bg-white text-gray-700 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                    required
+                  />
+                </div>
+
+                {/* Pan */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Pan</label>
+                  <input
+                    type="number"
+                    name="pan"
+                    defaultValue={editingPatrolPattern.pan || 0.5}
+                    min="0"
+                    max="1"
+                    step="0.01"
+                    className="w-full px-3 py-2 bg-white text-gray-700 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                    required
+                  />
+                </div>
+
+                {/* Tilt */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Tilt</label>
+                  <input
+                    type="number"
+                    name="tilt"
+                    defaultValue={editingPatrolPattern.tilt || 0.5}
+                    min="0"
+                    max="1"
+                    step="0.01"
+                    className="w-full px-3 py-2 bg-white text-gray-700 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                    required
+                  />
+                </div>
+
+                {/* Zoom */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Zoom</label>
+                  <input
+                    type="number"
+                    name="zoom"
+                    defaultValue={editingPatrolPattern.zoom || 50}
+                    min="0"
+                    max="100"
+                    step="1"
+                    className="w-full px-3 py-2 bg-white text-gray-700 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                    required
+                  />
+                </div>
+              </form>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="flex items-center justify-end gap-3 p-6 border-t border-gray-300">
+              <button
+                onClick={() => setShowEditPatrolModal(false)}
+                className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  const form = document.querySelector('form') as HTMLFormElement;
+                  if (form) {
+                    const formData = new FormData(form);
+                    const updatedPattern = {
+                      ...editingPatrolPattern,
+                      name: formData.get('name') as string,
+                      pan: parseFloat(formData.get('pan') as string),
+                      tilt: parseFloat(formData.get('tilt') as string),
+                      zoom: parseInt(formData.get('zoom') as string)
+                    };
+                    handleSavePatrolPattern(updatedPattern);
+                  }
+                }}
+                className="px-4 py-2 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-lg transition-colors"
+              >
+                Save Changes
               </button>
             </div>
           </div>
