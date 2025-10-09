@@ -20,6 +20,9 @@ function MoniterPage() {
   const [selectedPatrolPatterns, setSelectedPatrolPatterns] = useState<number[]>([]);
   const [showEditPatrolModal, setShowEditPatrolModal] = useState(false);
   const [editingPatrolPattern, setEditingPatrolPattern] = useState<any>(null);
+  const [selectedPresets, setSelectedPresets] = useState<number[]>([]);
+  const [showEditPresetModal, setShowEditPresetModal] = useState(false);
+  const [editingPreset, setEditingPreset] = useState<any>(null);
   const cameraId = "CAM001"; // Example camera ID, aap dynamic bhi kar sakte ho
   const zoomLevelRef = useRef<number>(50);
   const [showCreatePresetModal, setShowCreatePresetModal] = useState(false);
@@ -253,6 +256,47 @@ function MoniterPage() {
     setEditingPatrolPattern(null);
   };
 
+  // Preset Management Functions
+  const handlePresetSelect = (presetId: number) => {
+    setSelectedPresets(prev => 
+      prev.includes(presetId) 
+        ? prev.filter(id => id !== presetId)
+        : [...prev, presetId]
+    );
+  };
+
+  const handleSelectAllPresets = () => {
+    const allPresets = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+    if (selectedPresets.length === allPresets.length) {
+      setSelectedPresets([]);
+    } else {
+      setSelectedPresets(allPresets);
+    }
+  };
+
+  const handleDeleteSelectedPresets = () => {
+    if (selectedPresets.length === 0) return;
+    
+    // Here you would typically make an API call to delete the presets
+    console.log("Deleting presets:", selectedPresets);
+    
+    // For now, just clear the selection
+    setSelectedPresets([]);
+  };
+
+  const handleEditPreset = (preset: any) => {
+    setEditingPreset(preset);
+    setShowEditPresetModal(true);
+  };
+
+  const handleSavePreset = (updatedPreset: any) => {
+    // Here you would typically make an API call to update the preset
+    console.log("Saving preset:", updatedPreset);
+    
+    setShowEditPresetModal(false);
+    setEditingPreset(null);
+  };
+
   // Setup Joystick
   useEffect(() => {
     if (SectionName !== "Joystick") return;
@@ -433,7 +477,7 @@ function MoniterPage() {
                         <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
                         <circle cx="12" cy="13" r="4"></circle>
                       </svg>
-                      {cameras.find(cam => cam.id === selectedCamera)?.name || 'Select Camera'}
+                      {cameras.find(cam => cam.id === selectedCamera)?.appName || 'Select Camera'}
                       <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <polyline points="6,9 12,15 18,9"></polyline>
                       </svg>
@@ -778,26 +822,107 @@ function MoniterPage() {
 
                   {/* Preset Grid */}
                   <div className="flex-1">
-                    <h4 className="text-sm font-semibold text-gray-600 mb-3 flex items-center gap-2">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M3 3h18v18H3zM9 9h6v6H9z"></path>
-                      </svg>
-                      Saved Presets
-                    </h4>
+                    <div className="flex items-center justify-between mb-3">
+                      <h4 className="text-sm font-semibold text-gray-600 flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M3 3h18v18H3zM9 9h6v6H9z"></path>
+                        </svg>
+                        Saved Presets
+                      </h4>
+                      
+                      {/* Select All Checkbox */}
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          checked={selectedPresets.length === 12 && 12 > 0}
+                          onChange={handleSelectAllPresets}
+                          className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+                        />
+                        <span className="text-xs text-gray-600">Select All</span>
+                      </div>
+                    </div>
+
+                    {/* Bulk Actions - Show when presets are selected */}
+                    {selectedPresets.length > 0 && (
+                      <div className="mb-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-blue-700">
+                            {selectedPresets.length} preset{selectedPresets.length > 1 ? 's' : ''} selected
+                          </span>
+                          <div className="flex items-center gap-2">
+                           
+                            <button
+                              onClick={handleDeleteSelectedPresets}
+                              className="px-3 py-1 bg-red-100 hover:bg-red-200 text-red-700 rounded text-xs font-medium transition-all duration-200 border border-red-300 flex items-center gap-1"
+                            >
+                              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <polyline points="3,6 5,6 21,6"></polyline>
+                                <path d="M19,6v14a2,2 0 0,1 -2,2H7a2,2 0 0,1 -2,-2V6m3,0V4a2,2 0 0,1 2,-2h4a2,2 0 0,1 2,2v2"></path>
+                              </svg>
+                              Delete
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
                     <div className="grid grid-cols-2 gap-2 h-[calc(74vh-200px)] overflow-y-auto custom-scrollbar">
                       {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((preset) => (
-                        <button
+                        <div
                           key={preset}
-                          className="group relative px-3 py-2 bg-gradient-to-br from-gray-100 to-gray-200 hover:from-gray-200 hover:to-gray-300 text-gray-700 rounded-lg border border-gray-300 transition-all duration-200 hover:shadow-md hover:scale-[1.02] active:scale-[0.98]"
+                          className={`group relative px-3 py-2 bg-gradient-to-br from-gray-100 to-gray-200 hover:from-gray-200 hover:to-gray-300 text-gray-700 rounded-lg border border-gray-300 transition-all duration-200 hover:shadow-md hover:scale-[1.02] active:scale-[0.98] ${
+                            selectedPresets.includes(preset) ? 'bg-blue-50' : ''
+                          }`}
                         >
-                          <div className="flex items-center justify-between">
-                            <div className="text-left">
-                              <div className="text-xs font-medium">P{preset}</div>
-                              <div className="text-xs text-gray-500">0.5, 0.3</div>
+                          <div className="flex items-center gap-2">
+                            {/* Checkbox */}
+                            <input
+                              type="checkbox"
+                              checked={selectedPresets.includes(preset)}
+                              onChange={() => handlePresetSelect(preset)}
+                              className="w-3 h-3 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-1"
+                            />
+                            
+                            {/* Preset Info */}
+                            <div className="flex-1 flex items-center justify-between">
+                              <div className="text-left">
+                                <div className="text-xs font-medium">P{preset}</div>
+                                <div className="text-xs text-gray-500">0.5, 0.3</div>
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <div className="w-1.5 h-1.5 bg-green-500 rounded-full opacity-60 group-hover:opacity-100 transition-opacity"></div>
+                                
+                                {/* Action Buttons */}
+                                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                  <button
+                                    onClick={() => handleEditPreset({ id: preset, name: `P${preset}`, pan: 0.5, tilt: 0.3, zoom: 50 })}
+                                    className="p-1 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded transition-all duration-200"
+                                    title="Edit Preset"
+                                  >
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                                    </svg>
+                                  </button>
+                                  <button
+                                    onClick={() => {
+                                      if (confirm(`Delete preset P${preset}?`)) {
+                                        console.log("Deleting preset:", preset);
+                                      }
+                                    }}
+                                    className="p-1 bg-red-100 hover:bg-red-200 text-red-700 rounded transition-all duration-200"
+                                    title="Delete Preset"
+                                  >
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                      <polyline points="3,6 5,6 21,6"></polyline>
+                                      <path d="M19,6v14a2,2 0 0,1 -2,2H7a2,2 0 0,1 -2,-2V6m3,0V4a2,2 0 0,1 2,-2h4a2,2 0 0,1 2,2v2"></path>
+                                    </svg>
+                                  </button>
+                                </div>
+                              </div>
                             </div>
-                            <div className="w-1.5 h-1.5 bg-green-500 rounded-full opacity-60 group-hover:opacity-100 transition-opacity"></div>
                           </div>
-                        </button>
+                        </div>
                       ))}
                     </div>
                   </div>
@@ -975,6 +1100,21 @@ function MoniterPage() {
                                 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                   <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
                                   <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                                </svg>
+                              </button>
+                              <button
+                                onClick={() => {
+                                  if (confirm(`Delete patrol pattern "${pattern.name}"?`)) {
+                                    console.log("Deleting patrol pattern:", pattern);
+                                    // Here you would typically make an API call to delete the pattern
+                                  }
+                                }}
+                                className="p-2 bg-red-100 hover:bg-red-200 text-red-700 rounded transition-all duration-200"
+                                title="Delete Pattern"
+                              >
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                  <polyline points="3,6 5,6 21,6"></polyline>
+                                  <path d="M19,6v14a2,2 0 0,1 -2,2H7a2,2 0 0,1 -2,-2V6m3,0V4a2,2 0 0,1 2,-2h4a2,2 0 0,1 2,2v2"></path>
                                 </svg>
                               </button>
                             </div>
@@ -1258,6 +1398,141 @@ function MoniterPage() {
                       zoom: parseInt(formData.get('zoom') as string)
                     };
                     handleSavePatrolPattern(updatedPattern);
+                  }
+                }}
+                className="px-4 py-2 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-lg transition-colors"
+              >
+                Save Changes
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Preset Modal */}
+      {showEditPresetModal && editingPreset && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[10000]">
+          <div className="bg-white/95 backdrop-blur-sm rounded-xl border border-gray-200/50 shadow-2xl w-96 max-h-[85vh] overflow-hidden">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between p-6 border-b border-gray-300">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M3 3h18v18H3zM9 9h6v6H9z"></path>
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-700">Edit Preset</h3>
+                  <p className="text-sm text-gray-500">Modify preset settings</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowEditPresetModal(false)}
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                title="Close edit modal"
+                aria-label="Close edit modal"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="18" y1="6" x2="6" y2="18"></line>
+                  <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+              </button>
+            </div>
+
+            {/* Modal Content */}
+            <div className="p-6 space-y-4">
+              <form onSubmit={(e) => {
+                e.preventDefault();
+                const formData = new FormData(e.target as HTMLFormElement);
+                const updatedPreset = {
+                  ...editingPreset,
+                  name: formData.get('name') as string,
+                  pan: parseFloat(formData.get('pan') as string),
+                  tilt: parseFloat(formData.get('tilt') as string),
+                  zoom: parseInt(formData.get('zoom') as string)
+                };
+                handleSavePreset(updatedPreset);
+              }}>
+                {/* Preset Name */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Preset Name</label>
+                  <input
+                    type="text"
+                    name="name"
+                    defaultValue={editingPreset.name}
+                    className="w-full px-3 py-2 bg-white text-gray-700 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                    required
+                  />
+                </div>
+
+                {/* Pan */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Pan</label>
+                  <input
+                    type="number"
+                    name="pan"
+                    defaultValue={editingPreset.pan || 0.5}
+                    min="0"
+                    max="1"
+                    step="0.01"
+                    className="w-full px-3 py-2 bg-white text-gray-700 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                    required
+                  />
+                </div>
+
+                {/* Tilt */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Tilt</label>
+                  <input
+                    type="number"
+                    name="tilt"
+                    defaultValue={editingPreset.tilt || 0.5}
+                    min="0"
+                    max="1"
+                    step="0.01"
+                    className="w-full px-3 py-2 bg-white text-gray-700 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                    required
+                  />
+                </div>
+
+                {/* Zoom */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Zoom</label>
+                  <input
+                    type="number"
+                    name="zoom"
+                    defaultValue={editingPreset.zoom || 50}
+                    min="0"
+                    max="100"
+                    step="1"
+                    className="w-full px-3 py-2 bg-white text-gray-700 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                    required
+                  />
+                </div>
+              </form>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="flex items-center justify-end gap-3 p-6 border-t border-gray-300">
+              <button
+                onClick={() => setShowEditPresetModal(false)}
+                className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  const form = document.querySelector('form') as HTMLFormElement;
+                  if (form) {
+                    const formData = new FormData(form);
+                    const updatedPreset = {
+                      ...editingPreset,
+                      name: formData.get('name') as string,
+                      pan: parseFloat(formData.get('pan') as string),
+                      tilt: parseFloat(formData.get('tilt') as string),
+                      zoom: parseInt(formData.get('zoom') as string)
+                    };
+                    handleSavePreset(updatedPreset);
                   }
                 }}
                 className="px-4 py-2 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-lg transition-colors"
