@@ -383,7 +383,7 @@ const Dashboard: React.FC = () => {
             // Update polygon coordinates state
             setZoneCoordinates(prev => ({
               ...prev,
-              polygons: [...prev.polygons, polygon.points]
+              polygons: [...prev.polygons, polygon]
             }));
           };
           
@@ -1076,7 +1076,12 @@ const Dashboard: React.FC = () => {
                   <h6 className="text-gray-800 font-semibold">Zone Coordinates</h6>
                 </div>
                 <button 
-                  onClick={() => copyToClipboard(JSON.stringify(zoneCoordinates.zones))}
+                  onClick={() => {
+                    const dataToCopy = (currentZoneType === 'polygon' || currentZoneType === 'polygon-with-lanes') 
+                      ? zoneCoordinates.polygons 
+                      : zoneCoordinates.zones;
+                    copyToClipboard(JSON.stringify(dataToCopy));
+                  }}
                   className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-xs font-medium transition-colors border border-gray-300"
                 >
                   Copy
@@ -1084,52 +1089,40 @@ const Dashboard: React.FC = () => {
               </div>
               <div className="bg-white rounded-lg p-4 border border-gray-200">
                 <div className="text-gray-700 font-mono text-sm leading-relaxed">
-                  {zoneCoordinates.zones.length > 0 ? JSON.stringify(zoneCoordinates.zones, null, 2) : 'No zone drawn'}
+                  {(() => {
+                    if (currentZoneType === 'polygon' || currentZoneType === 'polygon-with-lanes') {
+                      return zoneCoordinates.polygons.length > 0 ? JSON.stringify(zoneCoordinates.polygons, null, 2) : 'No polygons drawn';
+                    } else {
+                      return zoneCoordinates.zones.length > 0 ? JSON.stringify(zoneCoordinates.zones, null, 2) : 'No zones drawn';
+                    }
+                  })()}
                 </div>
               </div>
             </div>
             
-            {/* Lane Coordinates */}
-            <div className="bg-white/90 rounded-xl p-5 mb-5 border border-blue-200/60">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center">
-                  <div className="w-3 h-3 bg-blue-500 rounded-full mr-3 shadow-lg shadow-blue-500/30"></div>
-                  <h6 className="text-gray-800 font-semibold">Lane Coordinates</h6>
+            {/* Lane Coordinates - Only show when zone type includes lanes */}
+            {(currentZoneType === 'rectangle-with-lanes' || currentZoneType === 'polygon-with-lanes') && (
+              <div className="bg-white/90 rounded-xl p-5 mb-5 border border-blue-200/60">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center">
+                    <div className="w-3 h-3 bg-blue-500 rounded-full mr-3 shadow-lg shadow-blue-500/30"></div>
+                    <h6 className="text-gray-800 font-semibold">Lane Coordinates</h6>
+                  </div>
+                  <button 
+                    onClick={() => copyToClipboard(JSON.stringify(zoneCoordinates.lanes))}
+                    className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-xs font-medium transition-colors border border-gray-300"
+                  >
+                    Copy
+                  </button>
                 </div>
-                <button 
-                  onClick={() => copyToClipboard(JSON.stringify(zoneCoordinates.lanes))}
-                  className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-xs font-medium transition-colors border border-gray-300"
-                >
-                  Copy
-                </button>
-              </div>
-              <div className="bg-white rounded-lg p-4 border border-gray-200">
-                <div className="text-gray-700 font-mono text-sm leading-relaxed">
-                  {zoneCoordinates.lanes.length > 0 ? JSON.stringify(zoneCoordinates.lanes, null, 2) : 'No lanes drawn'}
+                <div className="bg-white rounded-lg p-4 border border-gray-200">
+                  <div className="text-gray-700 font-mono text-sm leading-relaxed">
+                    {zoneCoordinates.lanes.length > 0 ? JSON.stringify(zoneCoordinates.lanes, null, 2) : 'No lanes drawn'}
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
             
-            {/* Polygons Coordinates */}
-            <div className="bg-white/90 rounded-xl p-2 border border-blue-200/60 col-span-2">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center">
-                  <div className="w-3 h-3 bg-blue-500 rounded-full mr-3 shadow-lg shadow-blue-500/30"></div>
-                  <h6 className="text-gray-800 font-semibold">Polygon Coordinates</h6>
-                </div>
-                <button 
-                  onClick={() => copyToClipboard(JSON.stringify(zoneCoordinates.polygons))}
-                  className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-xs font-medium transition-colors border border-gray-300"
-                >
-                  Copy
-                </button>
-              </div>
-              <div className="bg-white rounded-lg p-4 max-h-48 overflow-auto border border-gray-200">
-                <div className="text-gray-700 font-mono text-sm leading-relaxed">
-                  {zoneCoordinates.polygons.length > 0 ? JSON.stringify(zoneCoordinates.polygons, null, 2) : 'No polygons drawn'}
-                </div>
-              </div>
-            </div>
             </div>
           </div>
         </div>
