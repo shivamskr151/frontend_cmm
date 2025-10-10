@@ -2,10 +2,10 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { auth } from '../utils/auth';
 import { type Camera } from '../api';
-import { RectangleZoneDrawer } from '../utils/rectangleZone';
+import { RectangleZoneDrawer } from '../utils/rectangle-Zone';
 import { ZoneDrawer as RectangleZoneWithLanesDrawer } from '../utils/rectangle-lanes';
 import { PolygonZoneDrawer } from '../utils/polygon-Zone';
-import { PolygonZoneDrawerWithLanes } from '../utils/polygonZone-lanes-draw';
+import { PolygonZoneDrawerWithLanes } from '../utils/polygon-lanes';
 import { useActivities } from '../hooks/useActivities';
 import { AddConfigDropdown, AddActivityModal, JsonEditorModal } from '../components/activities';
 import { DynamicActivityForm } from '../components/activities/DynamicActivityForm';
@@ -25,12 +25,11 @@ interface ZoneCoordinates {
 const Dashboard: React.FC = () => {
   const [, setCameraName] = useState('Unknown');
   const [, setCameraStatus] = useState('Disconnected');
-  const [selectedCamera, setSelectedCamera] = useState('');
   const [selectedActivity, setSelectedActivity] = useState('');
   const [currentZoneType, setCurrentZoneType] = useState('rectangle');
   // const [username, setUsername] = useState('Loading...');
   // Use shared camera context instead of local state
-  const { cameras, camerasLoading, camerasError, loadCameras, refreshCameras } = useCameras();
+  const { cameras, camerasLoading, camerasError, loadCameras, refreshCameras, selectedCamera, setSelectedCamera, getSelectedCameraData } = useCameras();
   const [showZoneTypeModal, setShowZoneTypeModal] = useState(false);
   const [showMessageModal, setShowMessageModal] = useState(false);
   const [modalMessage, setModalMessage] = useState('');
@@ -116,9 +115,14 @@ const Dashboard: React.FC = () => {
   // Additional API functions can be added here as needed
   // Examples: getCameraById, addCamera, updateCameraConfig, etc.
 
-  const refreshSnapshot = async (cameraId: string): Promise<any> => {
+  const refreshSnapshot = async (cameraId?: string): Promise<any> => {
+    const targetCameraId = cameraId || selectedCamera;
+    if (!targetCameraId) {
+      throw new Error('No camera selected');
+    }
+    
     try {
-      return await makeApiRequest(`/api/cameras/${encodeURIComponent(cameraId)}/refresh_snapshot`, {
+      return await makeApiRequest(`/api/cameras/${encodeURIComponent(targetCameraId)}/refresh_snapshot`, {
         method: 'POST'
       });
     } catch (error) {
@@ -154,18 +158,18 @@ const Dashboard: React.FC = () => {
 
   // Check authentication on component mount
   useEffect(() => {
-    if (!auth.isAuthenticated()) {
+    console.log('Dashboard: Checking authentication...');
+    const isAuth = auth.isAuthenticated();
+    console.log('Dashboard: isAuthenticated =', isAuth);
+    if (!isAuth) {
+      console.log('Dashboard: Not authenticated, redirecting to login');
       navigate('/login');
       return;
     }
+    console.log('Dashboard: Authenticated, proceeding with Dashboard');
     console.log('User is authenticated, loading data...');
     loadInitialData();
   }, [navigate, loadInitialData]);
-
-  // Debug cameras state changes
-  useEffect(() => {
-    console.log('Cameras state updated:', cameras);
-  }, [cameras]);
 
   // Debug activities state changes
   useEffect(() => {
@@ -173,6 +177,33 @@ const Dashboard: React.FC = () => {
     console.log('Activities keys:', Object.keys(activities));
   }, [activities]);
 
+  // Initialize zone drawer for dummy image when component mounts
+  useEffect(() => {
+    const initializeDummyImageZoneDrawer = () => {
+      if (snapshotImageRef.current && zoneCanvasRef.current && !hasSnapshot) {
+        console.log('Initializing zone drawer for dummy image');
+        setTimeout(() => {
+          initializeZoneDrawer(currentZoneType);
+        }, 100);
+      }
+    };
+
+    // Initialize immediately if image is already loaded
+    initializeDummyImageZoneDrawer();
+
+    // Also initialize when image loads
+    const imageElement = snapshotImageRef.current;
+    if (imageElement) {
+      if (imageElement.complete) {
+        initializeDummyImageZoneDrawer();
+      } else {
+        imageElement.addEventListener('load', initializeDummyImageZoneDrawer);
+        return () => {
+          imageElement.removeEventListener('load', initializeDummyImageZoneDrawer);
+        };
+      }
+    }
+  }, [hasSnapshot, currentZoneType]);
 
   // Cleanup zone drawer on component unmount
   useEffect(() => {
@@ -182,8 +213,6 @@ const Dashboard: React.FC = () => {
       }
     };
   }, []);
-
- 
 
   const handleZoneTypeSelect = () => {
     setShowZoneTypeModal(true);
@@ -213,7 +242,7 @@ const Dashboard: React.FC = () => {
     }
   };
 
-  const handleCameraChange = async (cameraId: string) => {
+  const handleCameraChange = useCallback(async (cameraId: string) => {
     setSelectedCamera(cameraId);
     const camera = cameras.find((c: Camera) => c.id === cameraId);
     if (camera) {
@@ -223,10 +252,49 @@ const Dashboard: React.FC = () => {
       setCameraName('Unknown');
       setCameraStatus('Disconnected');
     }
-  };
+  }, [cameras, setSelectedCamera]);
+
+  // Debug cameras state changes and update camera info when selected camera changes
+  useEffect(() => {
+    console.log('Cameras state updated:', cameras);
+    console.log('Selected camera:', selectedCamera);
+    
+    // Update camera info when selected camera changes
+    if (selectedCamera && cameras.length > 0) {
+      const camera = cameras.find((c: Camera) => c.id === selectedCamera);
+      if (camera) {
+        setCameraName(camera.appName || camera.name);
+        setCameraStatus(camera.status === 'online' ? 'Active' : 'Inactive');
+      } else {
+        setCameraName('Unknown');
+        setCameraStatus('Disconnected');
+      }
+    }
+  }, [cameras, selectedCamera]);
+
+  // Auto-load camera data when camera is restored from storage
+  useEffect(() => {
+    if (selectedCamera && cameras.length > 0 && !camerasLoading) {
+      const cameraData = getSelectedCameraData();
+      if (cameraData) {
+        console.log('🔄 Auto-loading data for restored camera:', cameraData);
+        // Here you can add any camera-specific data loading logic
+        // For example, loading camera settings, zones, activities, etc.
+        
+        // Example: Load camera snapshot if needed
+        // loadCameraSnapshot(cameraData.id);
+        
+        // Example: Load camera-specific activities
+        // loadCameraActivities(cameraData.id);
+        
+        console.log('✅ Camera data auto-loaded successfully');
+      }
+    }
+  }, [selectedCamera, cameras, camerasLoading, getSelectedCameraData]);
 
   const initializeZoneDrawer = (zoneType?: string) => {
     const typeToUse = zoneType || currentZoneType;
+    console.log('initializeZoneDrawer called with zoneType:', zoneType, 'currentZoneType:', currentZoneType, 'typeToUse:', typeToUse);
     if (zoneCanvasRef.current && snapshotImageRef.current) {
       try {
         console.log('Initializing zone drawer for type:', typeToUse);
@@ -244,11 +312,52 @@ const Dashboard: React.FC = () => {
           // Set up callbacks for rectangle drawer
           zoneDrawerRef.current.onRectangleCreated = (rectangle: any) => {
             console.log('Rectangle zone created:', rectangle);
+            // Update zone coordinates state
+            setZoneCoordinates(prev => ({
+              ...prev,
+              zones: [...prev.zones, {
+                x: rectangle.x1,
+                y: rectangle.y1,
+                width: rectangle.x2 - rectangle.x1,
+                height: rectangle.y2 - rectangle.y1
+              }]
+            }));
           };
           
         } else if (typeToUse === 'rectangle-with-lanes') {
           console.log('Creating RectangleZoneWithLanesDrawer');
-          zoneDrawerRef.current = new RectangleZoneWithLanesDrawer(zoneCanvasRef.current);
+          zoneDrawerRef.current = new RectangleZoneWithLanesDrawer(zoneCanvasRef.current, snapshotImageRef.current);
+          console.log('RectangleZoneWithLanesDrawer created:', zoneDrawerRef.current.constructor.name);
+          
+          // Set up callbacks for rectangle with lanes drawer
+          zoneDrawerRef.current.onZoneCreated = (zone: any) => {
+            console.log('Rectangle zone with lanes created:', zone);
+            // Update zone coordinates state
+            setZoneCoordinates(prev => ({
+              ...prev,
+              zones: [...prev.zones, {
+                x: zone.rectangle.x1,
+                y: zone.rectangle.y1,
+                width: zone.rectangle.x2 - zone.rectangle.x1,
+                height: zone.rectangle.y2 - zone.rectangle.y1
+              }]
+            }));
+          };
+          
+          zoneDrawerRef.current.onLaneCreated = (lane: any, zoneIndex: number) => {
+            console.log('Lane created:', lane, 'in zone:', zoneIndex);
+            // Update lane coordinates state
+            setZoneCoordinates(prev => ({
+              ...prev,
+              lanes: [...prev.lanes, {
+                x1: lane.start.x,
+                y1: lane.start.y,
+                x2: lane.end.x,
+                y2: lane.end.y,
+                color: lane.color
+              }]
+            }));
+          };
           
         } else if (typeToUse === 'polygon') {
           console.log('Creating PolygonZoneDrawer');
@@ -256,14 +365,46 @@ const Dashboard: React.FC = () => {
           
           // Set up callbacks for polygon drawer
           zoneDrawerRef.current.onPolygonCreated = (polygon: any) => {
-            console.log('Polygon created:', polygon);
+            console.log('Polygon zone created:', polygon);
+            // Update polygon coordinates state
+            setZoneCoordinates(prev => ({
+              ...prev,
+              polygons: [...prev.polygons, polygon]
+            }));
           };
-          
-          console.log('PolygonZoneDrawer created and callbacks set');
           
         } else if (typeToUse === 'polygon-with-lanes') {
           console.log('Creating PolygonZoneDrawerWithLanes');
-          zoneDrawerRef.current = new PolygonZoneDrawerWithLanes(zoneCanvasRef.current);
+          zoneDrawerRef.current = new PolygonZoneDrawerWithLanes(zoneCanvasRef.current, snapshotImageRef.current);
+          
+          // Set up callbacks for polygon with lanes drawer
+          zoneDrawerRef.current.onPolygonCreated = (polygon: any) => {
+            console.log('Polygon zone with lanes created:', polygon);
+            // Update polygon coordinates state
+            setZoneCoordinates(prev => ({
+              ...prev,
+              polygons: [...prev.polygons, polygon.points]
+            }));
+          };
+          
+          zoneDrawerRef.current.onLaneCreated = (lane: any) => {
+            console.log('Lane created in polygon zone:', lane);
+            // Update lane coordinates state
+            setZoneCoordinates(prev => ({
+              ...prev,
+              lanes: [...prev.lanes, {
+                x1: lane.x1,
+                y1: lane.y1,
+                x2: lane.x2,
+                y2: lane.y2,
+                color: '#00cc00' // Default green color for lanes
+              }]
+            }));
+          };
+          
+        } else {
+          console.log('Zone type not yet implemented:', typeToUse);
+          showMessage(`Zone type "${typeToUse}" is not yet implemented.`, 'Warning', 'warning');
         }
         
         console.log('Zone drawer initialized successfully for type:', typeToUse);
@@ -282,7 +423,7 @@ const Dashboard: React.FC = () => {
 
     try {
       setIsLoading(true);
-      const snapshotData = await refreshSnapshot(selectedCamera);
+      const snapshotData = await refreshSnapshot();
       
       if (snapshotData && snapshotData.snapshot_url) {
         setSnapshotUrl(snapshotData.snapshot_url);
@@ -292,7 +433,7 @@ const Dashboard: React.FC = () => {
         // Initialize zone drawer after snapshot is loaded
         setTimeout(() => {
           if (snapshotImageRef.current && zoneCanvasRef.current) {
-            initializeZoneDrawer();
+            initializeZoneDrawer(currentZoneType);
           }
         }, 100);
       } else {
@@ -321,31 +462,122 @@ const Dashboard: React.FC = () => {
         (zoneDrawerRef.current as RectangleZoneWithLanesDrawer).setDrawMode('zone');
         showMessage('Rectangle zone drawing mode activated. Click and drag to draw a zone.', 'Info', 'info');
       } else if (currentZoneType === 'polygon') {
-        console.log('Using PolygonZoneDrawer - polygon drawing is always active');
-        showMessage('Polygon drawing mode activated. Click to add points, click on the first point to complete the polygon.', 'Info', 'info');
+        console.log('Using PolygonZoneDrawer - starting polygon drawing');
+        (zoneDrawerRef.current as PolygonZoneDrawer).startDrawing();
+        showMessage('Polygon zone drawing mode activated. Click to add points, double-click to complete polygon.', 'Info', 'info');
       } else if (currentZoneType === 'polygon-with-lanes') {
-        console.log('Using PolygonZoneDrawerWithLanes - polygon drawing is always active');
-        showMessage('Polygon drawing mode activated. Click to add points, double-click to finish.', 'Info', 'info');
+        console.log('Using PolygonZoneDrawerWithLanes - setting draw mode to polygon');
+        (zoneDrawerRef.current as PolygonZoneDrawerWithLanes).setDrawMode('polygon');
+        showMessage('Polygon zone drawing mode activated. Click to add points, double-click to complete polygon.', 'Info', 'info');
+      } else {
+        showMessage(`Zone type "${currentZoneType}" is not yet implemented.`, 'Warning', 'warning');
       }
     } else {
-      showMessage('Please take a snapshot first to enable zone drawing.', 'Warning', 'warning');
+      // Try to initialize the zone drawer if it's not already initialized
+      if (snapshotImageRef.current && zoneCanvasRef.current) {
+        console.log('Zone drawer not initialized, attempting to initialize...');
+        initializeZoneDrawer(currentZoneType);
+        // Try again after a short delay
+        setTimeout(() => {
+          if (zoneDrawerRef.current) {
+            handleDrawZone();
+          } else {
+            showMessage('Failed to initialize zone drawing. Please refresh the page.', 'Error', 'error');
+          }
+        }, 200);
+      } else {
+        showMessage('Please wait for the image to load before drawing zones.', 'Warning', 'warning');
+      }
     }
   };
 
   const handleDrawLane = () => {
     if (zoneDrawerRef.current) {
       if (currentZoneType === 'rectangle-with-lanes') {
-        console.log('Using RectangleZoneWithLanesDrawer - setting draw mode to lane');
-        (zoneDrawerRef.current as RectangleZoneWithLanesDrawer).setDrawMode('lane');
-        showMessage('Lane drawing mode activated. Click and drag to draw a lane.', 'Info', 'info');
+        console.log('Dashboard: Draw Lane clicked');
+        console.log('Dashboard: Zone drawer type:', zoneDrawerRef.current.constructor.name);
+        
+        // Check if the drawer has the hasZones method (RectangleZoneWithLanesDrawer)
+        if (typeof (zoneDrawerRef.current as any).hasZones === 'function') {
+          const hasZones = (zoneDrawerRef.current as RectangleZoneWithLanesDrawer).hasZones();
+          console.log('Dashboard: Has zones:', hasZones);
+          if (!hasZones) {
+            showMessage('Please create a zone first before drawing lanes. Use "Draw Zone" to create a rectangle zone.', 'Warning', 'warning');
+            return;
+          }
+          
+          console.log('Dashboard: Setting draw mode to lane');
+          (zoneDrawerRef.current as RectangleZoneWithLanesDrawer).setDrawMode('lane');
+          const activeZoneIndex = (zoneDrawerRef.current as RectangleZoneWithLanesDrawer).getActiveZoneIndex();
+          console.log('Dashboard: Active zone index:', activeZoneIndex);
+          if (activeZoneIndex !== -1) {
+            showMessage('Lane drawing mode activated. Click and drag to draw a lane within the selected zone.', 'Info', 'info');
+          } else {
+            showMessage('Lane drawing mode activated. Click and drag within any zone to draw a lane.', 'Info', 'info');
+          }
+        } else {
+          console.error('Dashboard: Zone drawer does not support lanes. Current type:', zoneDrawerRef.current.constructor.name);
+          console.log('Dashboard: Reinitializing with correct drawer type...');
+          // Force reinitialize with the correct drawer type
+          initializeZoneDrawer('rectangle-with-lanes');
+          // Try again after a short delay
+          setTimeout(() => {
+            if (zoneDrawerRef.current && typeof (zoneDrawerRef.current as any).hasZones === 'function') {
+              handleDrawLane();
+            } else {
+              showMessage('Failed to initialize lane drawing. Please refresh the page.', 'Error', 'error');
+            }
+          }, 100);
+        }
       } else if (currentZoneType === 'polygon-with-lanes') {
-        console.log('Using PolygonZoneDrawerWithLanes - lane drawing is always active');
-        showMessage('Lane drawing mode activated. Click and drag to draw a lane.', 'Info', 'info');
+        console.log('Dashboard: Draw Lane clicked for polygon with lanes');
+        console.log('Dashboard: Zone drawer type:', zoneDrawerRef.current.constructor.name);
+        
+        // Check if the drawer has the hasZones method (PolygonZoneDrawerWithLanes)
+        if (typeof (zoneDrawerRef.current as any).hasZones === 'function') {
+          const hasZones = (zoneDrawerRef.current as PolygonZoneDrawerWithLanes).hasZones();
+          console.log('Dashboard: Has zones:', hasZones);
+          if (!hasZones) {
+            showMessage('Please create a polygon zone first before drawing lanes. Use "Draw Zone" to create a polygon zone.', 'Warning', 'warning');
+            return;
+          }
+          
+          console.log('Dashboard: Setting draw mode to lane');
+          (zoneDrawerRef.current as PolygonZoneDrawerWithLanes).setDrawMode('lane');
+          showMessage('Lane drawing mode activated. Click and drag to draw a lane within the polygon zone.', 'Info', 'info');
+        } else {
+          console.error('Dashboard: Zone drawer does not support lanes. Current type:', zoneDrawerRef.current.constructor.name);
+          console.log('Dashboard: Reinitializing with correct drawer type...');
+          // Force reinitialize with the correct drawer type
+          initializeZoneDrawer('polygon-with-lanes');
+          // Try again after a short delay
+          setTimeout(() => {
+            if (zoneDrawerRef.current && typeof (zoneDrawerRef.current as any).hasZones === 'function') {
+              handleDrawLane();
+            } else {
+              showMessage('Failed to initialize lane drawing. Please refresh the page.', 'Error', 'error');
+            }
+          }, 100);
+        }
       } else {
-        showMessage('Lane drawing is only available for zone types with lanes.', 'Warning', 'warning');
+        showMessage('Lane drawing is only available for zone types with lanes. Rectangle Zone and Polygon Zone do not support lanes.', 'Warning', 'warning');
       }
     } else {
-      showMessage('Please take a snapshot first to enable lane drawing.', 'Warning', 'warning');
+      // Try to initialize the zone drawer if it's not already initialized
+      if (snapshotImageRef.current && zoneCanvasRef.current) {
+        console.log('Zone drawer not initialized, attempting to initialize...');
+        initializeZoneDrawer(currentZoneType);
+        // Try again after a short delay
+        setTimeout(() => {
+          if (zoneDrawerRef.current) {
+            handleDrawLane();
+          } else {
+            showMessage('Failed to initialize zone drawing. Please refresh the page.', 'Error', 'error');
+          }
+        }, 200);
+      } else {
+        showMessage('Please wait for the image to load before drawing lanes.', 'Warning', 'warning');
+      }
     }
   };
 
@@ -365,16 +597,15 @@ const Dashboard: React.FC = () => {
     if (zoneDrawerRef.current) {
       // Call the appropriate clear method based on the drawer type
       if (currentZoneType === 'rectangle') {
-        // Rectangle zone drawer doesn't have a clear method, so we'll recreate it
-        (zoneDrawerRef.current as any).rectangles = [];
-        (zoneDrawerRef.current as any).redraw?.();
+        (zoneDrawerRef.current as RectangleZoneDrawer).clearAllRectangles();
       } else if (currentZoneType === 'rectangle-with-lanes') {
         (zoneDrawerRef.current as RectangleZoneWithLanesDrawer).resetZones();
       } else if (currentZoneType === 'polygon') {
         (zoneDrawerRef.current as PolygonZoneDrawer).clearAllPolygons();
       } else if (currentZoneType === 'polygon-with-lanes') {
-        // PolygonZoneDrawerWithLanes doesn't have a clearAll method, so we'll use the base methods
-        (zoneDrawerRef.current as any).clearAll?.();
+        (zoneDrawerRef.current as PolygonZoneDrawerWithLanes).resetZones();
+      } else {
+        showMessage(`Clear functionality not yet implemented for zone type "${currentZoneType}".`, 'Warning', 'warning');
       }
       setZoneCoordinates({ zones: [], lanes: [], polygons: [] });
       showMessage('All zones and lanes cleared.', 'Success', 'success');
@@ -458,7 +689,8 @@ const Dashboard: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100 pt-8">
+    <>
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100 pt-8">
       <style>
         {`
           @keyframes spin {
@@ -506,9 +738,8 @@ const Dashboard: React.FC = () => {
 
       {/* Main Content */}
       <div className="pt-16 p-6">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 min-h-[calc(100vh-140px)]">
-        {/* Left Column - Camera Controls */}
-        <div className="space-y-6">
+        {/* Camera Configuration - Full Width */}
+        <div className="mb-6">
           <div className="bg-gradient-to-br from-blue-50/90 to-indigo-50/90 backdrop-blur-sm rounded-xl border border-blue-200/70 p-6 shadow-lg shadow-blue-200/30">
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center space-x-2">
@@ -518,172 +749,130 @@ const Dashboard: React.FC = () => {
               <AddConfigDropdown
                 onOpenJsonEditor={() => setShowJsonEditorModal(true)}
                 onOpenAddActivity={() => setShowAddActivityModal(true)}
+                disabled={!selectedCamera}
               />
             </div>
-            {/* Camera Selection */}
-            <div className="mb-6">
-              <div className="mb-3">
-                <label className="block text-sm font-medium text-gray-700">
-                  Select Camera
-                </label>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {/* Camera Selection */}
+              <div>
+                <div className="mb-3">
+                  <label className="block text-sm font-medium text-gray-700">
+                    Select Camera
+                  </label>
+                </div>
+                
+                {camerasLoading && (
+                  <div className="w-full px-3 py-2 bg-gray-50 text-gray-600 rounded-lg border border-gray-200 text-sm flex items-center gap-2">
+                    <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Loading cameras...
+                  </div>
+                )}
+                
+                {camerasError && !camerasLoading && (
+                  <div className="w-full px-3 py-2 bg-red-50 text-red-600 rounded-lg border border-red-200 text-sm flex items-center justify-between">
+                    <span>Error loading cameras</span>
+                    <button
+                      onClick={refreshCameras}
+                      className="px-2 py-1 bg-red-100 hover:bg-red-200 text-red-700 rounded text-xs transition-colors"
+                    >
+                      Retry
+                    </button>
+                  </div>
+                )}
+                
+                {!camerasLoading && !camerasError && (
+                  <select 
+                    value={selectedCamera || ''}
+                    onChange={(e) => handleCameraChange(e.target.value)}
+                    className="w-full px-3 py-2 bg-white text-gray-800 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                    title="Select a camera from the list"
+                    aria-label="Select a camera from the list"
+                  >
+                    <option value="">Select a camera</option>
+                    {cameras.map(camera => (
+                      <option key={camera.id} value={camera.id}>
+                        {camera.appName || camera.name}
+                      </option>
+                    ))}
+                  </select>
+                )}
+                
+                {!camerasLoading && !camerasError && cameras.length === 0 && (
+                  <div className="w-full px-3 py-2 bg-gray-50 text-gray-500 rounded-lg border border-gray-200 text-sm text-center">
+                    No cameras available
+                  </div>
+                )}
               </div>
               
-              {camerasLoading && (
-                <div className="w-full px-3 py-2 bg-gray-50 text-gray-600 rounded-lg border border-gray-200 text-sm flex items-center gap-2">
-                  <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  Loading cameras...
-                </div>
-              )}
-              
-              {camerasError && !camerasLoading && (
-                <div className="w-full px-3 py-2 bg-red-50 text-red-600 rounded-lg border border-red-200 text-sm flex items-center justify-between">
-                  <span>Error loading cameras</span>
-                  <button
-                    onClick={refreshCameras}
-                    className="px-2 py-1 bg-red-100 hover:bg-red-200 text-red-700 rounded text-xs transition-colors"
-                  >
-                    Retry
-                  </button>
-                </div>
-              )}
-              
-              {!camerasLoading && !camerasError && (
+              {/* Activity Selection */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-3">
+                  Select Monitoring Activity
+                </label>
                 <select 
-                  value={selectedCamera}
-                  onChange={(e) => handleCameraChange(e.target.value)}
-                  className="w-full px-3 py-2 bg-white text-gray-800 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                  title="Select a camera from the list"
-                  aria-label="Select a camera from the list"
+                  value={selectedActivity}
+                  onChange={(e) => {
+                    console.log('Activity selection changed to:', e.target.value);
+                    console.log('Available activities:', Object.keys(activities));
+                    console.log('Selected activity data:', activities[e.target.value]);
+                    setSelectedActivity(e.target.value);
+                  }}
+                  disabled={!selectedCamera}
+                  className={`w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
+                    !selectedCamera 
+                      ? 'bg-gray-100 text-gray-400 border-gray-300 cursor-not-allowed' 
+                      : 'bg-white text-gray-800 border-gray-300'
+                  }`}
+                  title="Select a monitoring activity"
+                  aria-label="Select a monitoring activity"
                 >
-                  <option value="">Select a camera</option>
-                  {cameras.map(camera => (
-                    <option key={camera.id} value={camera.id}>
-                      {camera.appName || camera.name}
+                  <option value="">Select an activity</option>
+                  {Object.keys(activities).map(activityName => (
+                    <option key={activityName} value={activityName}>
+                      {activityName}
                     </option>
                   ))}
                 </select>
-              )}
-              
-              {!camerasLoading && !camerasError && cameras.length === 0 && (
-                <div className="w-full px-3 py-2 bg-gray-50 text-gray-500 rounded-lg border border-gray-200 text-sm text-center">
-                  No cameras available
-                </div>
-              )}
-            </div>
-            
-            {/* Activity Selection */}
-            <div className="mt-6">
-              <label className="block text-sm font-medium text-gray-700 mb-3">
-                Select Monitoring Activity
-              </label>
-              <select 
-                value={selectedActivity}
-                onChange={(e) => {
-                  console.log('Activity selection changed to:', e.target.value);
-                  console.log('Available activities:', Object.keys(activities));
-                  console.log('Selected activity data:', activities[e.target.value]);
-                  setSelectedActivity(e.target.value);
-                }}
-                className="w-full px-3 py-2 bg-white text-gray-800 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                title="Select a monitoring activity"
-                aria-label="Select a monitoring activity"
-              >
-                <option value="">Select an activity</option>
-                {Object.keys(activities).map(activityName => (
-                  <option key={activityName} value={activityName}>
-                    {activityName}
-                  </option>
-                ))}
-              </select>
-            </div>
-            
-            {/* Dynamic Activity Parameters */}
-            {selectedActivity && (
-              <div className="mt-6">
-                <div className="bg-white/90 backdrop-blur-sm rounded-xl border border-blue-200/70 p-6 shadow-lg shadow-blue-200/30">
-                  <ErrorBoundary>
-                    <DynamicActivityForm
-                      selectedActivity={selectedActivity}
-                      initialValues={activities[selectedActivity]?.parameters || {}}
-                      onChange={setActivityParameters}
-                    />
-                  </ErrorBoundary>
-                </div>
-                
-                {/* Save Button */}
-                <div className="mt-4 flex justify-end">
-                  <button
-                    onClick={handleSaveActivityParameters}
-                    disabled={isSaving || !selectedActivity}
-                    className={`px-6 py-2 rounded-lg font-medium flex items-center gap-2 transition-all duration-200 ${
-                      isSaving || !selectedActivity
-                        ? 'bg-gray-100 text-gray-400 cursor-not-allowed opacity-60'
-                        : 'bg-gradient-to-r from-green-50 to-green-100 hover:from-green-100 hover:to-green-200 text-green-700 border border-green-200 hover:shadow-lg hover:shadow-green-200/50'
-                    }`}
-                  >
-                    {isSaving ? (
-                      <>
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="animate-spin">
-                          <circle cx="12" cy="12" r="10"></circle>
-                          <path d="M12 6v6l4 2"></path>
-                        </svg>
-                        Saving...
-                      </>
-                    ) : (
-                      <>
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
-                          <polyline points="17,21 17,13 7,13 7,21"></polyline>
-                          <polyline points="7,3 7,8 15,8"></polyline>
-                        </svg>
-                        Save Parameters
-                      </>
-                    )}
-                  </button>
-                </div>
               </div>
-            )}
-            
-            {/* Camera Details */}
-           
-          </div>
-          
-          {/* Zone Configuration */}
-          <div className="bg-white/90 backdrop-blur-sm rounded-xl border border-blue-200/70 p-6 shadow-lg shadow-blue-200/30">
-            <div className="flex items-center space-x-2 mb-4">
-              <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-              <h4 className="text-base font-semibold text-gray-800">Zone Drawing Mode</h4>
+
+              {/* Zone Type Selection */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-3">
+                  Select Zone Type
+                </label>
+                <button 
+                  onClick={handleZoneTypeSelect}
+                  disabled={!selectedCamera}
+                  className={`w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors flex items-center justify-between ${
+                    !selectedCamera 
+                      ? 'bg-gray-100 text-gray-400 border-gray-300 cursor-not-allowed' 
+                      : 'bg-white text-gray-800 border-gray-300 hover:bg-gray-50'
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"></polygon>
+                      <line x1="8" y1="2" x2="8" y2="18"></line>
+                      <line x1="16" y1="6" x2="16" y2="22"></line>
+                    </svg>
+                    <span className="capitalize">{currentZoneType.replace('-', ' ')}</span>
+                  </div>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="6,9 12,15 18,9"></polyline>
+                  </svg>
+                </button>
+              </div>
             </div>
-            
-            <div className="mb-5 p-4 bg-blue-50 rounded-lg border-l-4 border-blue-500">
-              <p className="text-sm text-gray-700 mb-2">
-                <span className="font-semibold text-blue-600">1.</span> Choose your zone drawing mode below.
-              </p>
-              <p className="text-sm text-gray-700">
-                <span className="font-semibold text-blue-600">2.</span> Draw zones and lanes according to your selected mode.
-              </p>
-            </div>
-            
-            <button 
-              onClick={handleZoneTypeSelect}
-              className="w-full px-4 py-3 bg-white hover:bg-gray-50 text-gray-800 rounded-lg border border-gray-300 transition-all duration-200 hover:shadow-md flex items-center justify-center gap-2 font-medium"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"></polygon>
-                <line x1="8" y1="2" x2="8" y2="18"></line>
-                <line x1="16" y1="6" x2="16" y2="22"></line>
-              </svg>
-              {currentZoneType}
-            </button>
           </div>
         </div>
-        
-        {/* Right Column - Snapshot and Zone Drawing */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* Snapshot Section */}
+
+
+        {/* Snapshot Section - Full Width */}
+        <div className="mb-6">
           <div className="bg-gradient-to-br from-blue-50/90 to-indigo-50/90 backdrop-blur-sm rounded-xl border border-blue-200/70 p-6 shadow-lg shadow-blue-200/30">
             <div className="flex justify-between items-center mb-6 p-4 bg-white/80 rounded-lg">
               <div className="flex items-center space-x-2">
@@ -716,259 +905,164 @@ const Dashboard: React.FC = () => {
             
             {/* Snapshot Container */}
             <div className="relative w-full overflow-hidden min-h-[400px] bg-gray-50 border-2 border-dashed border-gray-300 rounded-xl">
-              {!hasSnapshot ? (
-                <div className="absolute inset-0 flex flex-col items-center justify-center p-8 bg-gradient-to-br from-gray-50 to-white rounded-xl z-10">
-                  <div className="mb-6">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="opacity-80">
-                      <circle cx="12" cy="12" r="10"></circle>
-                      <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
-                      <circle cx="12" cy="13" r="4"></circle>
-                    </svg>
-                  </div>
-                  <h4 className="text-xl font-semibold text-gray-800 mb-3">
-                    No Snapshot Available
-                  </h4>
-                  <p className="text-gray-600 text-center mb-8 max-w-md leading-relaxed">
-                    To start configuring zones and lanes, you'll need to take a snapshot from your selected camera first.
-                  </p>
-                  <button 
-                    onClick={handleTakeSnapshot}
-                    className="px-6 py-3 bg-gradient-to-r from-blue-50 to-blue-100 hover:from-blue-100 hover:to-blue-200 text-blue-700 rounded-lg border border-blue-200 transition-all duration-200 hover:shadow-lg hover:shadow-blue-200/50 font-medium flex items-center gap-2"
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <circle cx="12" cy="12" r="10"></circle>
-                      <path d="M9 12l2 2 4-4"></path>
-                    </svg>
-                    Ready to capture your first snapshot
-                  </button>
-                </div>
-              ) : (
-                <div className="relative w-full h-[400px]">
-                  <img 
-                    ref={snapshotImageRef}
-                    src={snapshotUrl || '/api/snapshot/placeholder'} 
-                    alt="Zone Snapshot" 
-                    className="w-full h-auto block border border-gray-300 rounded-lg relative z-10"
-                    onError={(e) => {
-                      const target = e.target as HTMLImageElement;
-                      target.src = '/api/snapshot/placeholder';
-                    }}
-                  />
-                  
-                  <canvas 
-                    ref={zoneCanvasRef}
-                    className="absolute top-0 left-0 w-full h-full z-20"
-                  />
-                </div>
-              )}
-      </div>
+              <div className="relative w-full h-[400px]">
+                <img 
+                  ref={snapshotImageRef}
+                  src={hasSnapshot ? (snapshotUrl || '/api/snapshot/placeholder') : 'https://picsum.photos/800/400?random=1'} 
+                  alt="Zone Snapshot" 
+                  className="w-full h-auto block border border-gray-300 rounded-lg relative z-10"
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement;
+                    target.src = 'https://picsum.photos/800/400?random=1';
+                  }}
+                />
+                
+                <canvas 
+                  ref={zoneCanvasRef}
+                  className="absolute top-0 left-0 w-full h-full z-20"
+                />
+              </div>
+            </div>
+            </div>
           </div>
+        </div>
 
-          {/* Zone Drawing Tools */}
+        {/* Zone Drawing Tools - Full Width */}
+        <div className="mb-6">
           <div className="bg-white/90 backdrop-blur-sm rounded-xl border border-blue-200/70 p-6 shadow-lg shadow-blue-200/30">
             <div className="flex items-center space-x-2 mb-4">
               <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
               <h4 className="text-base font-semibold text-gray-800">Zone Drawing Tools</h4>
             </div>
             
-            {/* Current Zone Type Indicator */}
-            <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg flex items-center gap-2">
-              <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-              <span className="text-sm font-medium text-blue-700">
-                Current Mode: <span className="font-semibold text-blue-800">
-                  {currentZoneType === 'rectangle' ? 'Rectangle Zone' : 
-                    currentZoneType === 'rectangle-with-lanes' ? 'Rectangle Zone with Lanes' :
-                    currentZoneType === 'polygon' ? 'Polygon Zone' :
-                    currentZoneType === 'polygon-with-lanes' ? 'Polygon Zone with Lanes' : 'Unknown'}
-                </span>
-              </span>
-            </div>
-            
-            <div className="flex flex-wrap gap-3">
-              <button 
-                onClick={handleDrawZone}
-                className="px-4 py-2 bg-gradient-to-r from-blue-600/20 to-blue-500/20 hover:from-blue-600/30 hover:to-blue-500/30 text-blue-400 rounded-lg border border-blue-500/30 transition-all duration-200 hover:shadow-lg hover:shadow-blue-500/10 font-medium flex items-center gap-2"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <rect x="3" y="3" width="18" height="18" rx="2"></rect>
-                </svg>
-                Draw Zone
-              </button>
-              
-              <button 
-                onClick={handleDrawLane}
-                className="px-4 py-2 bg-white hover:bg-gray-50 text-gray-700 rounded-lg border border-gray-300 transition-all duration-200 font-medium flex items-center gap-2"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <line x1="5" y1="12" x2="19" y2="12"></line>
-                </svg>
-                Draw Lane
-              </button>
-              
-              <button 
-                onClick={handleUndo}
-                className="px-4 py-2 bg-white hover:bg-gray-50 text-gray-700 rounded-lg border border-gray-300 transition-all duration-200 font-medium flex items-center gap-2"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M9 14L4 9l5-5"></path>
-                  <path d="M4 9h16a2 2 0 0 1 2 2v4"></path>
-                </svg>
-                Undo
-              </button>
-              
-              <button 
-                onClick={handleRedo}
-                className="px-4 py-2 bg-white hover:bg-gray-50 text-gray-700 rounded-lg border border-gray-300 transition-all duration-200 font-medium flex items-center gap-2"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M14 9l5 5-5 5"></path>
-                  <path d="M20 14H4a2 2 0 0 1-2-2V8"></path>
-                </svg>
-                Redo
-              </button>
-              
-              <button 
-                onClick={handleClearAll}
-                className="px-4 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded-lg border border-red-500/30 transition-all duration-200 hover:shadow-lg hover:shadow-red-500/10 font-medium flex items-center gap-2"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="12" cy="12" r="10"></circle>
-                  <path d="M15 9l-6 6"></path>
-                  <path d="M9 9l6 6"></path>
-                </svg>
-                Reset All
-              </button>
-            </div>
-          </div>
-
-          {/* Coordinates & Analytics */}
-        
-        </div>
-
-        {/* Activity Parameters Section */}
-        {showActivityParams && (
-          <div className="lg:col-span-3 mt-6 bg-gradient-to-br from-blue-50/90 to-indigo-50/90 backdrop-blur-sm rounded-xl border border-blue-200/70 p-6 shadow-lg shadow-blue-200/30">
-            <div className="flex items-center space-x-2 mb-6">
-              <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-              <h3 className="text-lg font-semibold text-gray-800">Traffic Overspeeding Distancewise Parameters</h3>
-            </div>
-            
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Real Distance (meters)
-              </label>
-              <input 
-                type="number" 
-                value={realDistance}
-                onChange={(e) => setRealDistance(parseFloat(e.target.value))}
-                className="w-full px-3 py-2 bg-white text-gray-800 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                min="0" 
-                step="0.1"
-              />
-            </div>
-            
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Calibration
-              </label>
-              <input 
-                type="number" 
-                value={calibration}
-                onChange={(e) => setCalibration(parseFloat(e.target.value))}
-                className="w-full px-3 py-2 bg-white text-gray-800 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                min="0" 
-                step="0.1"
-              />
-            </div>
-            
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Frame to Track
-              </label>
-              <input 
-                type="number" 
-                value={frameToTrack}
-                onChange={(e) => setFrameToTrack(parseInt(e.target.value, 10))}
-                className="w-full px-3 py-2 bg-white text-gray-800 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                min="1" 
-                step="1"
-              />
-            </div>
-            
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Speed Limits
-              </label>
-              <div className="border border-gray-300 rounded-lg p-4 bg-gray-50 mb-3">
-                {speedLimits.map((limit, index) => (
-                  <div key={index} className="flex justify-between items-center py-2 border-b border-gray-200 last:border-b-0">
-                    <span className="text-gray-700">{limit.vehicleType}: {limit.speed} km/h</span>
-                    <button 
-                      onClick={() => setSpeedLimits(speedLimits.filter((_, i) => i !== index))}
-                      className="px-3 py-1 bg-red-100 hover:bg-red-200 text-red-700 rounded-lg text-xs font-medium transition-colors border border-red-200"
-                    >
-                      Remove
-                    </button>
-                  </div>
-                ))}
-                {speedLimits.length === 0 && (
-                  <div className="text-gray-500 italic text-sm">No speed limits added</div>
-                )}
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+              {/* Current Zone Type Indicator */}
+              <div className="lg:col-span-1">
+                <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg flex items-center gap-2">
+                  <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                  <span className="text-sm font-medium text-blue-700">
+                    Current Mode: <span className="font-semibold text-blue-800">
+                      {currentZoneType === 'rectangle' ? 'Rectangle Zone' : 
+                        currentZoneType === 'rectangle-with-lanes' ? 'Rectangle Zone with Lanes' :
+                        currentZoneType === 'polygon' ? 'Polygon Zone' :
+                        currentZoneType === 'polygon-with-lanes' ? 'Polygon Zone with Lanes' : 'Unknown'}
+                    </span>
+                  </span>
+                </div>
               </div>
-              <div className="flex gap-3">
-                <div className="flex-1">
-                  <label className="block text-xs font-medium text-gray-600 mb-1">
-                    Vehicle Type
-                  </label>
-                  <input 
-                    type="text" 
-                    value={newVehicleType}
-                    onChange={(e) => setNewVehicleType(e.target.value)}
-                    placeholder="e.g. car, truck"
-                    title="Enter vehicle type"
-                    aria-label="Enter vehicle type"
-                    className="w-full px-3 py-2 bg-white text-gray-800 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                  />
-                </div>
-                <div className="flex-1">
-                  <label className="block text-xs font-medium text-gray-600 mb-1">
-                    Speed Limit
-                  </label>
-                  <input 
-                    type="number" 
-                    value={newSpeedValue}
-                    onChange={(e) => setNewSpeedValue(e.target.value)}
-                    placeholder="km/h"
-                    title="Enter speed limit in km/h"
-                    aria-label="Enter speed limit in km/h"
-                    className="w-full px-3 py-2 bg-white text-gray-800 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                    min="1"
-                  />
-                </div>
-                <div className="flex items-end">
+              
+              {/* Drawing Tools */}
+              <div className="lg:col-span-3">
+                <div className="flex flex-wrap gap-3">
                   <button 
-                    onClick={handleAddSpeedLimit}
-                    className="px-4 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg border border-blue-200 transition-all duration-200 hover:shadow-lg hover:shadow-blue-200/50 font-medium"
+                    onClick={handleDrawZone}
+                    className="px-4 py-2 bg-gradient-to-r from-blue-600/20 to-blue-500/20 hover:from-blue-600/30 hover:to-blue-500/30 text-blue-400 rounded-lg border border-blue-500/30 transition-all duration-200 hover:shadow-lg hover:shadow-blue-500/10 font-medium flex items-center gap-2"
                   >
-                    Add
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="3" y="3" width="18" height="18" rx="2"></rect>
+                    </svg>
+                    Draw Zone
+                  </button>
+                  
+                  <button 
+                    onClick={handleDrawLane}
+                    className="px-4 py-2 bg-white hover:bg-gray-50 text-gray-700 rounded-lg border border-gray-300 transition-all duration-200 font-medium flex items-center gap-2"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <line x1="5" y1="12" x2="19" y2="12"></line>
+                    </svg>
+                    Draw Lane
+                  </button>
+                  
+                  <button 
+                    onClick={handleUndo}
+                    className="px-4 py-2 bg-white hover:bg-gray-50 text-gray-700 rounded-lg border border-gray-300 transition-all duration-200 font-medium flex items-center gap-2"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M9 14L4 9l5-5"></path>
+                      <path d="M4 9h16a2 2 0 0 1 2 2v4"></path>
+                    </svg>
+                    Undo
+                  </button>
+                  
+                  <button 
+                    onClick={handleRedo}
+                    className="px-4 py-2 bg-white hover:bg-gray-50 text-gray-700 rounded-lg border border-gray-300 transition-all duration-200 font-medium flex items-center gap-2"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M14 9l5 5-5 5"></path>
+                      <path d="M20 14H4a2 2 0 0 1-2-2V8"></path>
+                    </svg>
+                    Redo
+                  </button>
+                  
+                  <button 
+                    onClick={handleClearAll}
+                    className="px-4 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded-lg border border-red-500/30 transition-all duration-200 hover:shadow-lg hover:shadow-red-500/10 font-medium flex items-center gap-2"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <circle cx="12" cy="12" r="10"></circle>
+                      <path d="M15 9l-6 6"></path>
+                      <path d="M9 9l6 6"></path>
+                    </svg>
+                    Reset All
                   </button>
                 </div>
               </div>
             </div>
-            
-            <div className="mt-6 text-right">
-              <button 
-                onClick={handleSaveActivityParams}
-                className="px-6 py-3 bg-gradient-to-r from-green-600/20 to-green-500/20 hover:from-green-600/30 hover:to-green-500/30 text-green-400 rounded-lg border border-green-500/30 transition-all duration-200 hover:shadow-lg hover:shadow-green-500/10 font-medium"
-              >
-                Save All Activities
-              </button>
+          </div>
+        </div>
+
+        {/* Dynamic Activity Parameters - Full Width */}
+        {selectedActivity && (
+          <div className="mb-6">
+            <div className="bg-white/90 backdrop-blur-sm rounded-xl border border-blue-200/70 p-6 shadow-lg shadow-blue-200/30">
+              <ErrorBoundary>
+                <DynamicActivityForm
+                  selectedActivity={selectedActivity}
+                  initialValues={activities[selectedActivity]?.parameters || {}}
+                  onChange={setActivityParameters}
+                />
+              </ErrorBoundary>
+              
+              {/* Save Button */}
+              <div className="mt-4 flex justify-end">
+                <button
+                  onClick={handleSaveActivityParameters}
+                  disabled={isSaving || !selectedActivity}
+                  className={`px-6 py-2 rounded-lg font-medium flex items-center gap-2 transition-all duration-200 ${
+                    isSaving || !selectedActivity
+                      ? 'bg-gray-100 text-gray-400 cursor-not-allowed opacity-60'
+                      : 'bg-gradient-to-r from-green-50 to-green-100 hover:from-green-100 hover:to-green-200 text-green-700 border border-green-200 hover:shadow-lg hover:shadow-green-200/50'
+                  }`}
+                >
+                  {isSaving ? (
+                    <>
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="animate-spin">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <path d="M12 6v6l4 2"></path>
+                      </svg>
+                      Saving...
+                    </>
+                  ) : (
+                    <>
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                        <polyline points="17,21 17,13 7,13 7,21"></polyline>
+                        <polyline points="7,3 7,8 15,8"></polyline>
+                      </svg>
+                      Save Parameters
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
           </div>
         )}
-      </div>
-      {/* new  coordinates & analytics */}
-      <div className="bg-gradient-to-br from-blue-50/90 to-indigo-50/90 backdrop-blur-sm rounded-xl border border-blue-200/70 p-6 shadow-lg shadow-blue-200/30 mt-2 ">
+
+        {/* Coordinates & Analytics - Full Width */}
+        <div className="mb-6">
+          <div className="bg-gradient-to-br from-blue-50/90 to-indigo-50/90 backdrop-blur-sm rounded-xl border border-blue-200/70 p-6 shadow-lg shadow-blue-200/30">
             <div className="flex items-center space-x-2 mb-6">
               <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
               <h5 className="text-lg font-semibold text-gray-800">Coordinates & Analytics</h5>
@@ -1038,6 +1132,132 @@ const Dashboard: React.FC = () => {
             </div>
             </div>
           </div>
+        </div>
+
+        {/* Activity Parameters Section */}
+        {showActivityParams && (
+          <div className="mb-6">
+            <div className="bg-gradient-to-br from-blue-50/90 to-indigo-50/90 backdrop-blur-sm rounded-xl border border-blue-200/70 p-6 shadow-lg shadow-blue-200/30">
+              <div className="flex items-center space-x-2 mb-6">
+                <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                <h3 className="text-lg font-semibold text-gray-800">Traffic Overspeeding Distancewise Parameters</h3>
+              </div>
+              
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Real Distance (meters)
+                </label>
+                <input 
+                  type="number" 
+                  value={realDistance}
+                  onChange={(e) => setRealDistance(parseFloat(e.target.value))}
+                  className="w-full px-3 py-2 bg-white text-gray-800 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                  min="0" 
+                  step="0.1"
+                />
+              </div>
+              
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Calibration
+                </label>
+                <input 
+                  type="number" 
+                  value={calibration}
+                  onChange={(e) => setCalibration(parseFloat(e.target.value))}
+                  className="w-full px-3 py-2 bg-white text-gray-800 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                  min="0" 
+                  step="0.1"
+                />
+              </div>
+              
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Frame to Track
+                </label>
+                <input 
+                  type="number" 
+                  value={frameToTrack}
+                  onChange={(e) => setFrameToTrack(parseInt(e.target.value, 10))}
+                  className="w-full px-3 py-2 bg-white text-gray-800 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                  min="1" 
+                  step="1"
+                />
+              </div>
+              
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Speed Limits
+                </label>
+                <div className="border border-gray-300 rounded-lg p-4 bg-gray-50 mb-3">
+                  {speedLimits.map((limit, index) => (
+                    <div key={index} className="flex justify-between items-center py-2 border-b border-gray-200 last:border-b-0">
+                      <span className="text-gray-700">{limit.vehicleType}: {limit.speed} km/h</span>
+                      <button 
+                        onClick={() => setSpeedLimits(speedLimits.filter((_, i) => i !== index))}
+                        className="px-3 py-1 bg-red-100 hover:bg-red-200 text-red-700 rounded-lg text-xs font-medium transition-colors border border-red-200"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ))}
+                  {speedLimits.length === 0 && (
+                    <div className="text-gray-500 italic text-sm">No speed limits added</div>
+                  )}
+                </div>
+                <div className="flex gap-3">
+                  <div className="flex-1">
+                    <label className="block text-xs font-medium text-gray-600 mb-1">
+                      Vehicle Type
+                    </label>
+                    <input 
+                      type="text" 
+                      value={newVehicleType}
+                      onChange={(e) => setNewVehicleType(e.target.value)}
+                      placeholder="e.g. car, truck"
+                      title="Enter vehicle type"
+                      aria-label="Enter vehicle type"
+                      className="w-full px-3 py-2 bg-white text-gray-800 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <label className="block text-xs font-medium text-gray-600 mb-1">
+                      Speed Limit
+                    </label>
+                    <input 
+                      type="number" 
+                      value={newSpeedValue}
+                      onChange={(e) => setNewSpeedValue(e.target.value)}
+                      placeholder="km/h"
+                      title="Enter speed limit in km/h"
+                      aria-label="Enter speed limit in km/h"
+                      className="w-full px-3 py-2 bg-white text-gray-800 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                      min="1"
+                    />
+                  </div>
+                  <div className="flex items-end">
+                    <button 
+                      onClick={handleAddSpeedLimit}
+                      className="px-4 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg border border-blue-200 transition-all duration-200 hover:shadow-lg hover:shadow-blue-200/50 font-medium"
+                    >
+                      Add
+                    </button>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="mt-6 text-right">
+                <button 
+                  onClick={handleSaveActivityParams}
+                  className="px-6 py-3 bg-gradient-to-r from-green-600/20 to-green-500/20 hover:from-green-600/30 hover:to-green-500/30 text-green-400 rounded-lg border border-green-500/30 transition-all duration-200 hover:shadow-lg hover:shadow-green-500/10 font-medium"
+                >
+                  Save All Activities
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* Zone Type Selection Modal */}
       {showZoneTypeModal && (
@@ -1147,8 +1367,7 @@ const Dashboard: React.FC = () => {
         onClose={() => setShowJsonEditorModal(false)}
         onAddActivities={handleAddFromJsonEditor}
       />
-    </div>
-    </div>
+    </>
   );
 };
 

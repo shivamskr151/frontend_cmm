@@ -32,8 +32,12 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
 
   const initializeUserData = () => {
     try {
+      console.log('UserContext: Initializing user data...');
       const clientData = loginApi.getClientData();
       const authenticated = loginApi.isAuthenticated();
+      
+      console.log('UserContext: clientData =', clientData);
+      console.log('UserContext: authenticated =', authenticated);
       
       setClient(clientData);
       setIsAuthenticated(authenticated);

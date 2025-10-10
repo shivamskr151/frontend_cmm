@@ -28,29 +28,48 @@ function MoniterPage() {
   const [showCreatePresetModal, setShowCreatePresetModal] = useState(false);
   const [useCurrentPosition, setUseCurrentPosition] = useState(false);
   const [SectionName, setSectionName] = useState('Joystick');
-  const [selectedCamera, setSelectedCamera] = useState('');
   const [showCameraDropdown, setShowCameraDropdown] = useState(false);
   const [showCameraModal, setShowCameraModal] = useState(false);
   // Use shared camera context instead of local state
-  const { cameras, loadCameras } = useCameras();
+  const { cameras, loadCameras, selectedCamera, setSelectedCamera, getSelectedCameraData } = useCameras();
   const dropdownRef = useRef<HTMLDivElement>(null);
 
 
   // Camera loading is now handled by the shared CameraContext
 
 
-  const handleCameraSelect = (cameraId: string) => {
+  const handleCameraSelect = useCallback((cameraId: string) => {
     setSelectedCamera(cameraId);
     setShowCameraDropdown(false);
     setShowCameraModal(false);
-  };
+  }, [setSelectedCamera]);
 
   // Removed handleCameraButtonClick as it's no longer needed
 
   // Load cameras on component mount
   useEffect(() => {
     loadCameras();
-  }, []);
+  }, [loadCameras]);
+
+  // Auto-load camera data when camera is restored from storage
+  useEffect(() => {
+    if (selectedCamera && cameras.length > 0) {
+      const cameraData = getSelectedCameraData();
+      if (cameraData) {
+        console.log('🔄 Auto-loading data for restored camera in MoniterPage:', cameraData);
+        // Here you can add any camera-specific data loading logic
+        // For example, loading camera presets, patrol patterns, etc.
+        
+        // Example: Load camera presets
+        // loadCameraPresets(cameraData.id);
+        
+        // Example: Load camera patrol patterns
+        // loadCameraPatrolPatterns(cameraData.id);
+        
+        console.log('✅ Camera data auto-loaded successfully in MoniterPage');
+      }
+    }
+  }, [selectedCamera, cameras, getSelectedCameraData]);
 
   // Close dropdown when clicking outside
   useEffect(() => {

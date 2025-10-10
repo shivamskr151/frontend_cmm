@@ -1,16 +1,17 @@
+
 {
   "activities_data": {
     "ppe": {
       "status": "ACTIVE",
       "parameters": {
         "frame_accuracy": 0,
-        "subcategory_mapping": {
-          "head": "Helmet",
-          "face": "Mask",
-          "no-vest": "Vest",
-          "hands": "Gloves",
-          "foot": "Shoes"
-        },
+        "subcategory_mapping": [
+          "Helmet",
+          "Mask",
+          "Vest",
+          "Gloves",
+          "Shoes"
+        ],
         "time_window": [
           {
             "time_start_end": [
@@ -1066,3 +1067,4 @@
     }
   }
 }
+

@@ -16,7 +16,9 @@ const Login: React.FC = () => {
 
   // Redirect if already authenticated
   useEffect(() => {
+    console.log('Login: useEffect - isAuthenticated =', isAuthenticated, 'userLoading =', userLoading);
     if (isAuthenticated && !userLoading) {
+      console.log('Login: User is authenticated, redirecting to Dashboard');
       navigate('/');
     }
   }, [isAuthenticated, userLoading, navigate]);

@@ -3,11 +3,13 @@ import React, { useState, useEffect } from 'react';
 interface AddConfigDropdownProps {
   onOpenJsonEditor: () => void;
   onOpenAddActivity: () => void;
+  disabled?: boolean;
 }
 
 export const AddConfigDropdown: React.FC<AddConfigDropdownProps> = ({
   onOpenJsonEditor,
-  onOpenAddActivity
+  onOpenAddActivity,
+  disabled = false
 }) => {
   const [isOpen, setIsOpen] = useState(false);
 
@@ -44,8 +46,13 @@ export const AddConfigDropdown: React.FC<AddConfigDropdownProps> = ({
   return (
     <div className="relative" data-dropdown="add-config">
       <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="px-3 py-1.5 bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 rounded-lg border border-blue-500/30 transition-all duration-200 hover:shadow-lg hover:shadow-blue-500/10 font-medium flex items-center gap-2 text-sm"
+        onClick={() => !disabled && setIsOpen(!isOpen)}
+        disabled={disabled}
+        className={`px-3 py-1.5 rounded-lg border transition-all duration-200 font-medium flex items-center gap-2 text-sm ${
+          disabled 
+            ? 'bg-gray-200/50 text-gray-400 border-gray-300/50 cursor-not-allowed' 
+            : 'bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 border-blue-500/30 hover:shadow-lg hover:shadow-blue-500/10'
+        }`}
       >
         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <line x1="12" y1="5" x2="12" y2="19"></line>

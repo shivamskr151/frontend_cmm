@@ -1,190 +1,769 @@
-type Point = { x: number; y: number };
+/**
+ * Rectangle Zone with Lanes Drawer - Handles drawing rectangle zones with lanes
+ */
+interface Point {
+  x: number;
+  y: number;
+}
 
-interface Zone {
+interface Rectangle {
   x1: number;
   y1: number;
   x2: number;
   y2: number;
-  colorIndex: number;
-  lanes: Lane[];
 }
 
 interface Lane {
   start: Point;
   end: Point;
-  colorIndex: number;
+  color: string;
+}
+
+interface Zone {
+  rectangle: Rectangle;
+  lanes: Lane[];
+  color: string;
+}
+
+interface HistoryState {
+  zones: Zone[];
+  activeZoneIndex: number;
 }
 
 export class ZoneDrawer {
   private canvas: HTMLCanvasElement;
-  private ctx: CanvasRenderingContext2D;
-
-  private isDrawingBox = false;
-  private isDrawingLine = false;
-  private currentBox: { x1: number; y1: number; x2: number; y2: number } | null = null;
-  private currentLine: { start: Point; end: Point } | null = null;
-
-  private zones: Zone[] = [];
-  private activeZoneIndex: number | null = null;
-
-  private undoStack: Zone[][] = [];
-  private redoStack: Zone[][] = [];
-
-  private colors: string[] = ["#FF5733", "#33FF57", "#3357FF", "#F333FF", "#33FFF5"];
-  private drawMode: "zone" | "lane" = "zone";
-
+  private ctx: CanvasRenderingContext2D | null;
   private image: HTMLImageElement | null = null;
 
-  constructor(canvas: HTMLCanvasElement) {
-    this.canvas = canvas;
-    this.ctx = canvas.getContext("2d")!;
+  private originalImageWidth = 0;
+  private originalImageHeight = 0;
+  private scaleX = 1;
+  private scaleY = 1;
+  private offsetX = 0;
+  private offsetY = 0;
+
+  // Drawing state
+  private drawMode: 'zone' | 'lane' = 'zone';
+  private isDrawingRectangle = false;
+  private isDrawingLane = false;
+  private currentRectangle: Rectangle | null = null;
+  private currentLane: Lane | null = null;
+  private zones: Zone[] = [];
+  private activeZoneIndex = -1;
+  private activeLaneIndex = -1;
+
+  // Visual settings
+  private zoneColors = ['#ff6b35', '#4ecdc4', '#45b7d1', '#96ceb4', '#feca57', '#ff9ff3', '#54a0ff', '#5f27cd'];
+  private laneColors = ['#00ff00', '#00ffff', '#ffff00', '#ff00ff', '#ff8000', '#8000ff', '#ff0080', '#00ff80'];
+  private fillOpacity = 0.2;
+  private borderWidth = 2;
+  private laneWidth = 2;
+
+  // History for undo/redo functionality
+  private history: HistoryState[] = [];
+  private historyIndex = -1;
+  private maxHistorySize = 50;
+
+  // Action lock
+  private actionLock = false;
+  private lockTimeout = 300;
+
+  // Callbacks
+  public onZoneCreated?: (zone: Zone) => void;
+  public onLaneCreated?: (lane: Lane, zoneIndex: number) => void;
+
+  constructor(canvasId: string | HTMLCanvasElement, imageElement: HTMLImageElement | null = null) {
+    if (typeof canvasId === "string") {
+      const el = document.getElementById(canvasId);
+      if (!(el instanceof HTMLCanvasElement)) {
+        throw new Error(`Canvas not found: ${canvasId}`);
+      }
+      this.canvas = el;
+    } else if (canvasId instanceof HTMLCanvasElement) {
+      this.canvas = canvasId;
+    } else {
+      throw new Error("Invalid canvas parameter: must be a canvas ID or HTMLCanvasElement");
+    }
+
+    this.ctx = this.canvas.getContext("2d");
+    if (!this.ctx) {
+      throw new Error("Failed to get 2D context from canvas");
+    }
+
+    if (imageElement) {
+      this.updateImage(imageElement);
+    }
+
+    this.setupEventListeners();
+    this.setupResizeObserver();
+    this.saveToHistory();
+  }
+
+  private setupEventListeners() {
+    this.canvas.addEventListener("mousedown", this.handleMouseDown.bind(this));
+    this.canvas.addEventListener("mousemove", this.handleMouseMove.bind(this));
+    this.canvas.addEventListener("mouseup", this.handleMouseUp.bind(this));
+
+    // Touch support
+    this.canvas.addEventListener("touchstart", (e: TouchEvent) => {
+      e.preventDefault();
+      const touch = e.touches[0];
+      const mouseEvent = new MouseEvent("mousedown", {
+        clientX: touch.clientX,
+        clientY: touch.clientY,
+      });
+      this.canvas.dispatchEvent(mouseEvent);
+    });
+
+    this.canvas.addEventListener("touchmove", (e: TouchEvent) => {
+      e.preventDefault();
+      const touch = e.touches[0];
+      const mouseEvent = new MouseEvent("mousemove", {
+        clientX: touch.clientX,
+        clientY: touch.clientY,
+      });
+      this.canvas.dispatchEvent(mouseEvent);
+    });
+
+    this.canvas.addEventListener("touchend", (e: TouchEvent) => {
+      e.preventDefault();
+      const mouseEvent = new MouseEvent("mouseup", {});
+      this.canvas.dispatchEvent(mouseEvent);
+    });
+
+    // Keyboard shortcuts
+    document.addEventListener("keydown", (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key === "z") {
+        e.preventDefault();
+        this.undo();
+      }
+      if ((e.ctrlKey || e.metaKey) && ((e.shiftKey && e.key === "z") || e.key === "y")) {
+        e.preventDefault();
+        this.redo();
+      }
+    });
+  }
+
+  private setupResizeObserver() {
+    if (window.ResizeObserver) {
+      const resizeObserver = new ResizeObserver((entries) => {
+        for (const entry of entries) {
+          if (entry.target === this.canvas.parentElement) {
     this.resizeCanvas();
+          }
+        }
+      });
+
+      if (this.canvas.parentElement) {
+        resizeObserver.observe(this.canvas.parentElement);
+      }
+    } else {
     window.addEventListener("resize", () => this.resizeCanvas());
-    this.initEvents();
+    }
   }
 
   private resizeCanvas() {
-    const parent = this.canvas.parentElement;
-    if (!parent) return;
-    this.canvas.width = parent.clientWidth;
-    this.canvas.height = parent.clientHeight;
+    if (!this.image) return;
+
+    const container = this.canvas.parentElement;
+    if (!container) return;
+
+    const containerWidth = container.clientWidth;
+    const containerHeight = container.clientHeight;
+    const imageRatio = this.originalImageWidth / this.originalImageHeight;
+    const containerRatio = containerWidth / containerHeight;
+
+    let newWidth = containerWidth;
+    let newHeight = containerHeight;
+    let offsetX = 0;
+    let offsetY = 0;
+
+    if (containerRatio > imageRatio) {
+      // Container is wider than image
+      newHeight = containerHeight;
+      newWidth = containerHeight * imageRatio;
+      offsetX = (containerWidth - newWidth) / 2;
+    } else {
+      // Container is taller than image
+      newWidth = containerWidth;
+      newHeight = containerWidth / imageRatio;
+      offsetY = (containerHeight - newHeight) / 2;
+    }
+
+    // Update canvas size to match container
+    this.canvas.width = containerWidth;
+    this.canvas.height = containerHeight;
+
+    // Calculate scale factors
+    this.scaleX = newWidth / this.originalImageWidth;
+    this.scaleY = newHeight / this.originalImageHeight;
+    this.offsetX = offsetX;
+    this.offsetY = offsetY;
+
     this.redraw();
   }
 
-  private initEvents() {
-    this.canvas.addEventListener("mousedown", (e) => this.onMouseDown(e));
-    this.canvas.addEventListener("mousemove", (e) => this.onMouseMove(e));
-    this.canvas.addEventListener("mouseup", () => this.onMouseUp());
+  private handleMouseDown(e: MouseEvent) {
+    const rect = this.canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+
+    // Convert to image coordinates
+    const imageCoords = this.screenToImageCoords(x, y);
+    const imageX = imageCoords.x;
+    const imageY = imageCoords.y;
+
+    console.log('Mouse down - Current mode:', this.drawMode, 'at', imageX, imageY);
+
+    if (this.drawMode === 'zone') {
+      // Check if clicking on an existing zone
+      const zoneIndex = this.findZoneAt(imageX, imageY);
+      if (zoneIndex !== -1) {
+        this.activeZoneIndex = zoneIndex;
+        this.activeLaneIndex = -1;
+        this.redraw();
+        return;
+      }
+
+      // Start drawing a new rectangle zone
+      this.isDrawingRectangle = true;
+      this.currentRectangle = { x1: imageX, y1: imageY, x2: imageX, y2: imageY };
+      this.activeZoneIndex = -1;
+      this.activeLaneIndex = -1;
+      this.redraw();
+    } else if (this.drawMode === 'lane') {
+      // In lane mode, don't allow zone selection or dragging
+      // Only handle lane-related operations
+      
+      // Check if clicking on an existing lane
+      const laneIndex = this.findLaneAt(imageX, imageY);
+      if (laneIndex !== -1) {
+        this.activeLaneIndex = laneIndex;
+        this.redraw();
+        return;
+      }
+
+      // Find the zone that contains this point, or use the active zone
+      let targetZoneIndex = this.activeZoneIndex;
+      if (targetZoneIndex === -1) {
+        targetZoneIndex = this.findZoneAt(imageX, imageY);
+        console.log('Lane mode: Found zone at click point:', targetZoneIndex);
+      } else {
+        console.log('Lane mode: Using active zone:', targetZoneIndex);
+      }
+
+      // If we found a zone (either active or containing the point), start drawing a lane
+      if (targetZoneIndex !== -1) {
+        console.log('Lane mode: Starting lane drawing in zone:', targetZoneIndex);
+        this.activeZoneIndex = targetZoneIndex;
+        this.isDrawingLane = true;
+        this.currentLane = {
+          start: { x: imageX, y: imageY },
+          end: { x: imageX, y: imageY },
+          color: this.laneColors[this.zones[targetZoneIndex].lanes.length % this.laneColors.length]
+        };
+        this.activeLaneIndex = -1;
+        console.log('Lane mode: Lane drawing started, currentLane:', this.currentLane);
+        this.redraw();
+      } else {
+        console.log('Lane mode: No zone found at click point, cannot draw lane');
+        console.log('Available zones:', this.zones.map((zone, index) => ({
+          index,
+          rectangle: zone.rectangle
+        })));
+      }
+    }
   }
 
-  private getMousePos(event: MouseEvent): Point {
+  private handleMouseMove(e: MouseEvent) {
     const rect = this.canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+
+    // Convert to image coordinates
+    const imageCoords = this.screenToImageCoords(x, y);
+    const imageX = imageCoords.x;
+    const imageY = imageCoords.y;
+
+    if (this.isDrawingRectangle && this.currentRectangle) {
+      this.currentRectangle.x2 = imageX;
+      this.currentRectangle.y2 = imageY;
+      this.redraw();
+    } else if (this.isDrawingLane && this.currentLane) {
+      console.log('Lane drawing: mouse move to', imageX, imageY);
+      this.currentLane.end = { x: imageX, y: imageY };
+      this.redraw();
+    }
+  }
+
+  private handleMouseUp() {
+    if (this.isDrawingRectangle && this.currentRectangle) {
+      const normalizedRect = this.normalizeRectangle(this.currentRectangle);
+
+      // Only create zone if it has minimum size
+      if (
+        Math.abs(normalizedRect.x2 - normalizedRect.x1) > 10 &&
+        Math.abs(normalizedRect.y2 - normalizedRect.y1) > 10
+      ) {
+        const newZone: Zone = {
+          rectangle: normalizedRect,
+          lanes: [],
+          color: this.zoneColors[this.zones.length % this.zoneColors.length]
+        };
+        this.zones.push(newZone);
+      this.activeZoneIndex = this.zones.length - 1;
+        this.activeLaneIndex = -1;
+        this.onZoneCreated?.(newZone);
+        this.saveToHistory();
+      }
+
+      this.isDrawingRectangle = false;
+      this.currentRectangle = null;
+      this.redraw();
+    } else if (this.isDrawingLane && this.currentLane && this.activeZoneIndex !== -1) {
+      console.log('Lane drawing: mouse up, finishing lane');
+      // Only create lane if it has minimum length
+      const length = Math.sqrt(
+        Math.pow(this.currentLane.end.x - this.currentLane.start.x, 2) +
+        Math.pow(this.currentLane.end.y - this.currentLane.start.y, 2)
+      );
+
+      console.log('Lane length:', length);
+      if (length > 10) {
+        console.log('Adding lane to zone:', this.activeZoneIndex);
+        this.zones[this.activeZoneIndex].lanes.push(this.currentLane);
+        this.activeLaneIndex = this.zones[this.activeZoneIndex].lanes.length - 1;
+        console.log('Lane added, calling callback');
+        this.onLaneCreated?.(this.currentLane, this.activeZoneIndex);
+        this.saveToHistory();
+        console.log('Lane creation completed');
+      } else {
+        console.log('Lane too short, not creating');
+      }
+
+      this.isDrawingLane = false;
+      this.currentLane = null;
+      this.redraw();
+    } else if (this.isDrawingLane) {
+      console.log('Lane drawing: mouse up but conditions not met');
+      console.log('isDrawingLane:', this.isDrawingLane);
+      console.log('currentLane:', this.currentLane);
+      console.log('activeZoneIndex:', this.activeZoneIndex);
+      this.isDrawingLane = false;
+      this.currentLane = null;
+      this.redraw();
+    }
+  }
+
+  private normalizeRectangle(rect: Rectangle): Rectangle {
     return {
-      x: ((event.clientX - rect.left) / rect.width) * this.canvas.width,
-      y: ((event.clientY - rect.top) / rect.height) * this.canvas.height,
+      x1: Math.min(rect.x1, rect.x2),
+      y1: Math.min(rect.y1, rect.y2),
+      x2: Math.max(rect.x1, rect.x2),
+      y2: Math.max(rect.y1, rect.y2),
     };
   }
 
-  public setDrawMode(mode: "zone" | "lane") {
-    this.drawMode = mode;
+  private findZoneAt(x: number, y: number): number {
+    console.log('findZoneAt: searching for point', x, y);
+    for (let i = this.zones.length - 1; i >= 0; i--) {
+      const zone = this.zones[i];
+      const rect = zone.rectangle;
+      console.log(`Zone ${i}:`, rect);
+      console.log(`Point ${x},${y} in zone ${i}:`, x >= rect.x1 && x <= rect.x2 && y >= rect.y1 && y <= rect.y2);
+      if (x >= rect.x1 && x <= rect.x2 && y >= rect.y1 && y <= rect.y2) {
+        console.log(`Found zone ${i} containing point ${x},${y}`);
+        return i;
+      }
+    }
+    console.log('No zone found containing point', x, y);
+    return -1;
   }
 
-  private onMouseDown(e: MouseEvent) {
-    const pos = this.getMousePos(e);
-    if (this.drawMode === "zone") {
-      this.isDrawingBox = true;
-      this.currentBox = { x1: pos.x, y1: pos.y, x2: pos.x, y2: pos.y };
-    } else if (this.drawMode === "lane" && this.activeZoneIndex !== null) {
-      this.isDrawingLine = true;
-      this.currentLine = { start: pos, end: pos };
+  private findLaneAt(x: number, y: number): number {
+    if (this.activeZoneIndex === -1) return -1;
+    
+    const zone = this.zones[this.activeZoneIndex];
+    for (let i = zone.lanes.length - 1; i >= 0; i--) {
+      const lane = zone.lanes[i];
+      const distance = this.pointToLineDistance(x, y, lane.start, lane.end);
+      if (distance < 10) {
+        return i;
+      }
+    }
+    return -1;
+  }
+
+  private pointToLineDistance(px: number, py: number, start: Point, end: Point): number {
+    const A = px - start.x;
+    const B = py - start.y;
+    const C = end.x - start.x;
+    const D = end.y - start.y;
+
+    const dot = A * C + B * D;
+    const lenSq = C * C + D * D;
+    
+    if (lenSq === 0) return Math.sqrt(A * A + B * B);
+    
+    const param = dot / lenSq;
+    
+    let xx, yy;
+    if (param < 0) {
+      xx = start.x;
+      yy = start.y;
+    } else if (param > 1) {
+      xx = end.x;
+      yy = end.y;
+    } else {
+      xx = start.x + param * C;
+      yy = start.y + param * D;
+    }
+
+    const dx = px - xx;
+    const dy = py - yy;
+    return Math.sqrt(dx * dx + dy * dy);
+  }
+
+  private redraw() {
+    if (!this.ctx) return;
+    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+
+    // Draw image if available
+    if (this.image && this.image.complete && this.image.naturalWidth > 0) {
+      try {
+        this.ctx.drawImage(
+          this.image,
+          this.offsetX,
+          this.offsetY,
+          this.originalImageWidth * this.scaleX,
+          this.originalImageHeight * this.scaleY
+        );
+      } catch (error) {
+        console.error("Error drawing image:", error);
+        // Draw placeholder background
+        this.ctx.fillStyle = "#f0f0f0";
+        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+      }
+    } else {
+      // Draw background if no image
+      this.ctx.fillStyle = "#f0f0f0";
+      this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+    }
+
+    // Draw completed zones
+    this.zones.forEach((zone, zoneIndex) => {
+      const isActiveZone = zoneIndex === this.activeZoneIndex;
+      this.drawZone(zone, isActiveZone);
+    });
+
+    // Draw current rectangle being created
+    if (this.isDrawingRectangle && this.currentRectangle) {
+      this.drawRectangle(this.currentRectangle, false);
+    }
+
+    // Draw current lane being created
+    if (this.isDrawingLane && this.currentLane) {
+      this.drawLane(this.currentLane, true);
     }
   }
 
-  private onMouseMove(e: MouseEvent) {
-    const pos = this.getMousePos(e);
-    if (this.isDrawingBox && this.currentBox) {
-      this.currentBox.x2 = pos.x;
-      this.currentBox.y2 = pos.y;
-      this.redraw();
-    } else if (this.isDrawingLine && this.currentLine) {
-      this.currentLine.end = pos;
-      this.redraw();
+  private drawZone(zone: Zone, isActive: boolean) {
+    if (!this.ctx) return;
+
+    // Draw rectangle
+    this.drawRectangle(zone.rectangle, isActive, zone.color);
+
+    // Draw lanes
+    zone.lanes.forEach((lane, laneIndex) => {
+      const isActiveLane = isActive && laneIndex === this.activeLaneIndex;
+      this.drawLane(lane, isActiveLane);
+    });
+  }
+
+  private drawRectangle(rectangle: Rectangle, isActive: boolean, color?: string) {
+    if (!this.ctx) return;
+
+    const scaled = this.scaleRectangleToScreen(rectangle);
+    const rectColor = color || (isActive ? '#ff4757' : '#ff6b35');
+
+    // Draw fill
+    this.ctx.fillStyle = `${rectColor}${Math.floor(this.fillOpacity * 255)
+      .toString(16)
+      .padStart(2, "0")}`;
+    this.ctx.fillRect(scaled.x1, scaled.y1, scaled.x2 - scaled.x1, scaled.y2 - scaled.y1);
+
+    // Draw border
+    this.ctx.strokeStyle = isActive ? '#ff4757' : rectColor;
+    this.ctx.lineWidth = this.borderWidth;
+    this.ctx.strokeRect(scaled.x1, scaled.y1, scaled.x2 - scaled.x1, scaled.y2 - scaled.y1);
+  }
+
+  private drawLane(lane: Lane, isActive: boolean) {
+    if (!this.ctx) return;
+
+    const start = this.scalePointToScreen(lane.start);
+    const end = this.scalePointToScreen(lane.end);
+
+    // Draw the lane line
+    this.ctx.beginPath();
+    this.ctx.moveTo(start.x, start.y);
+    this.ctx.lineTo(end.x, end.y);
+    this.ctx.strokeStyle = isActive ? '#ff0000' : lane.color;
+    this.ctx.lineWidth = isActive ? 3 : this.laneWidth;
+    this.ctx.lineCap = 'round';
+    this.ctx.stroke();
+
+    // Only draw endpoints if the lane is being actively drawn or selected
+    if (isActive) {
+      // Draw small circles at endpoints for active lanes
+      this.ctx.beginPath();
+      this.ctx.arc(start.x, start.y, 3, 0, Math.PI * 2);
+      this.ctx.fillStyle = '#ff0000';
+      this.ctx.fill();
+
+      this.ctx.beginPath();
+      this.ctx.arc(end.x, end.y, 3, 0, Math.PI * 2);
+      this.ctx.fillStyle = '#ff0000';
+      this.ctx.fill();
     }
   }
 
-  private onMouseUp() {
-    if (this.isDrawingBox && this.currentBox) {
-      const colorIndex = this.zones.length % this.colors.length;
-      this.zones.push({ ...this.currentBox, colorIndex, lanes: [] });
-      this.pushUndo();
-      this.currentBox = null;
-      this.isDrawingBox = false;
-      this.activeZoneIndex = this.zones.length - 1;
-      this.redraw();
-    } else if (this.isDrawingLine && this.currentLine && this.activeZoneIndex !== null) {
-      const zone = this.zones[this.activeZoneIndex];
-      const colorIndex = zone.lanes.length % this.colors.length;
-      zone.lanes.push({ ...this.currentLine, colorIndex });
-      this.pushUndo();
-      this.currentLine = null;
-      this.isDrawingLine = false;
-      this.redraw();
+  private scaleRectangleToScreen(rectangle: Rectangle): Rectangle {
+    return {
+      x1: rectangle.x1 * this.scaleX + this.offsetX,
+      y1: rectangle.y1 * this.scaleY + this.offsetY,
+      x2: rectangle.x2 * this.scaleX + this.offsetX,
+      y2: rectangle.y2 * this.scaleY + this.offsetY,
+    };
+  }
+
+  private scalePointToScreen(point: Point): Point {
+    return {
+      x: point.x * this.scaleX + this.offsetX,
+      y: point.y * this.scaleY + this.offsetY,
+    };
+  }
+
+  // Convert screen coordinates to image coordinates
+  private screenToImageCoords(x: number, y: number): Point {
+    return {
+      x: (x - this.offsetX) / this.scaleX,
+      y: (y - this.offsetY) / this.scaleY,
+    };
+  }
+
+  // History management
+  private saveToHistory() {
+    if (this.actionLock) return;
+    const state: HistoryState = {
+      zones: JSON.parse(JSON.stringify(this.zones)),
+      activeZoneIndex: this.activeZoneIndex,
+    };
+    this.history = this.history.slice(0, this.historyIndex + 1);
+    this.history.push(state);
+    this.historyIndex++;
+    if (this.history.length > this.maxHistorySize) {
+      this.history.shift();
+      this.historyIndex--;
     }
   }
 
-  private pushUndo() {
-    this.undoStack.push(JSON.parse(JSON.stringify(this.zones)));
-    this.redoStack = [];
+  private setActionLock() {
+    this.actionLock = true;
+    setTimeout(() => {
+      this.actionLock = false;
+    }, this.lockTimeout);
   }
 
   public undo() {
-    if (this.undoStack.length === 0) return;
-    this.redoStack.push(JSON.parse(JSON.stringify(this.zones)));
-    this.zones = this.undoStack.pop()!;
-    this.redraw();
+    if (!this.canUndo() || this.actionLock) return;
+    this.setActionLock();
+    if (this.historyIndex > 0) {
+      this.historyIndex--;
+      this.restoreState(this.history[this.historyIndex]);
+    }
   }
 
   public redo() {
-    if (this.redoStack.length === 0) return;
-    this.undoStack.push(JSON.parse(JSON.stringify(this.zones)));
-    this.zones = this.redoStack.pop()!;
+    if (!this.canRedo() || this.actionLock) return;
+    this.setActionLock();
+    if (this.historyIndex < this.history.length - 1) {
+      this.historyIndex++;
+      this.restoreState(this.history[this.historyIndex]);
+    }
+  }
+
+  private restoreState(state: HistoryState) {
+    this.zones = JSON.parse(JSON.stringify(state.zones));
+    this.activeZoneIndex = state.activeZoneIndex;
+    this.redraw();
+  }
+
+  private canUndo(): boolean {
+    return this.historyIndex > 0;
+  }
+
+  private canRedo(): boolean {
+    return this.historyIndex < this.history.length - 1;
+  }
+
+  // Public methods
+  public setDrawMode(mode: 'zone' | 'lane') {
+    console.log('Setting draw mode from', this.drawMode, 'to', mode);
+    this.drawMode = mode;
+    this.isDrawingRectangle = false;
+    this.isDrawingLane = false;
+    this.currentRectangle = null;
+    this.currentLane = null;
+    
+    // If switching to lane mode and no zone is selected, select the last zone
+    if (mode === 'lane' && this.activeZoneIndex === -1 && this.zones.length > 0) {
+      this.activeZoneIndex = this.zones.length - 1;
+      console.log('Auto-selected zone for lane drawing:', this.activeZoneIndex);
+    }
+    
+    console.log('Draw mode set to:', this.drawMode, 'Active zone:', this.activeZoneIndex);
+    this.redraw();
+  }
+
+  public getDrawMode(): 'zone' | 'lane' {
+    return this.drawMode;
+  }
+
+  public getActiveZoneIndex(): number {
+    return this.activeZoneIndex;
+  }
+
+  public hasZones(): boolean {
+    return this.zones.length > 0;
+  }
+
+  public setActiveZone(index: number) {
+    if (index >= -1 && index < this.zones.length) {
+      this.activeZoneIndex = index;
+      this.activeLaneIndex = -1;
+      this.redraw();
+    }
+  }
+
+  // Image handling
+  public updateImage(img: HTMLImageElement) {
+    this.image = img;
+    this.originalImageWidth = img.naturalWidth;
+    this.originalImageHeight = img.naturalHeight;
+    this.resizeCanvas();
+  }
+
+  // Data management
+  public getZones(): Zone[] {
+    return JSON.parse(JSON.stringify(this.zones));
+  }
+
+  public setZones(zones: Zone[]) {
+    this.zones = JSON.parse(JSON.stringify(zones));
+    this.activeZoneIndex = -1;
+    this.activeLaneIndex = -1;
+    this.saveToHistory();
     this.redraw();
   }
 
   public resetZones() {
     this.zones = [];
-    this.activeZoneIndex = null;
-    this.undoStack = [];
-    this.redoStack = [];
+    this.activeZoneIndex = -1;
+    this.activeLaneIndex = -1;
+    this.isDrawingRectangle = false;
+    this.isDrawingLane = false;
+    this.currentRectangle = null;
+    this.currentLane = null;
+    this.saveToHistory();
     this.redraw();
   }
 
-  public updateImage(img: HTMLImageElement) {
-    this.image = img;
-    // Store image dimensions for reference
-    this.resizeCanvas();
+  public deleteActiveZone() {
+    if (this.activeZoneIndex !== -1) {
+      this.zones.splice(this.activeZoneIndex, 1);
+      this.activeZoneIndex = -1;
+      this.activeLaneIndex = -1;
+      this.saveToHistory();
+      this.redraw();
+      return true;
+    }
+    return false;
   }
 
-  private redraw() {
-    const ctx = this.ctx;
-    ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-    if (this.image) ctx.drawImage(this.image, 0, 0, this.canvas.width, this.canvas.height);
-
-    this.zones.forEach((zone) => {
-      ctx.strokeStyle = this.colors[zone.colorIndex];
-      ctx.lineWidth = 2;
-      ctx.strokeRect(zone.x1, zone.y1, zone.x2 - zone.x1, zone.y2 - zone.y1);
-
-      zone.lanes.forEach((lane) => {
-        ctx.strokeStyle = this.colors[lane.colorIndex];
-        ctx.beginPath();
-        ctx.moveTo(lane.start.x, lane.start.y);
-        ctx.lineTo(lane.end.x, lane.end.y);
-        ctx.stroke();
-      });
-    });
-
-    if (this.isDrawingBox && this.currentBox) {
-      ctx.strokeStyle = "#000000";
-      ctx.setLineDash([5, 5]);
-      ctx.strokeRect(this.currentBox.x1, this.currentBox.y1, this.currentBox.x2 - this.currentBox.x1, this.currentBox.y2 - this.currentBox.y1);
-      ctx.setLineDash([]);
+  public deleteActiveLane() {
+    if (this.activeZoneIndex !== -1 && this.activeLaneIndex !== -1) {
+      this.zones[this.activeZoneIndex].lanes.splice(this.activeLaneIndex, 1);
+      this.activeLaneIndex = -1;
+      this.saveToHistory();
+      this.redraw();
+      return true;
     }
+    return false;
+  }
 
-    if (this.isDrawingLine && this.currentLine) {
-      ctx.strokeStyle = "#000000";
-      ctx.beginPath();
-      ctx.moveTo(this.currentLine.start.x, this.currentLine.start.y);
-      ctx.lineTo(this.currentLine.end.x, this.currentLine.end.y);
-      ctx.stroke();
-    }
+  // Get normalized coordinates (0-1 range)
+  public getNormalizedData() {
+    if (!this.image) return { zones: [], lanes: [] };
+    
+    const normalizedZones = this.zones.map(zone => ({
+      rectangle: {
+        x1: zone.rectangle.x1 / this.originalImageWidth,
+        y1: zone.rectangle.y1 / this.originalImageHeight,
+        x2: zone.rectangle.x2 / this.originalImageWidth,
+        y2: zone.rectangle.y2 / this.originalImageHeight,
+      },
+      lanes: zone.lanes.map(lane => ({
+        start: {
+          x: lane.start.x / this.originalImageWidth,
+          y: lane.start.y / this.originalImageHeight,
+        },
+        end: {
+          x: lane.end.x / this.originalImageWidth,
+          y: lane.end.y / this.originalImageHeight,
+        },
+        color: lane.color
+      })),
+      color: zone.color
+    }));
+
+    return { zones: normalizedZones };
+  }
+
+  // Load normalized coordinates
+  public loadNormalizedData(data: { zones: Zone[] }) {
+    if (!this.image || !data.zones) return;
+    
+    this.zones = data.zones.map(zone => ({
+      rectangle: {
+        x1: zone.rectangle.x1 * this.originalImageWidth,
+        y1: zone.rectangle.y1 * this.originalImageHeight,
+        x2: zone.rectangle.x2 * this.originalImageWidth,
+        y2: zone.rectangle.y2 * this.originalImageHeight,
+      },
+      lanes: zone.lanes.map(lane => ({
+        start: {
+          x: lane.start.x * this.originalImageWidth,
+          y: lane.start.y * this.originalImageHeight,
+        },
+        end: {
+          x: lane.end.x * this.originalImageWidth,
+          y: lane.end.y * this.originalImageHeight,
+        },
+        color: lane.color
+      })),
+      color: zone.color
+    }));
+    
+    this.saveToHistory();
+    this.redraw();
   }
 
   public destroy() {
     // Clean up event listeners
-    this.canvas.removeEventListener('mousedown', this.onMouseDown.bind(this));
-    this.canvas.removeEventListener('mousemove', this.onMouseMove.bind(this));
-    this.canvas.removeEventListener('mouseup', this.onMouseUp.bind(this));
+    this.canvas.removeEventListener('mousedown', this.handleMouseDown.bind(this));
+    this.canvas.removeEventListener('mousemove', this.handleMouseMove.bind(this));
+    this.canvas.removeEventListener('mouseup', this.handleMouseUp.bind(this));
     
     // Clear canvas
     if (this.ctx) {

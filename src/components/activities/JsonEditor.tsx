@@ -130,6 +130,7 @@ export const JsonEditor: React.FC<JsonEditorProps> = ({
         </div>
         <div className="flex items-center gap-2">
           <button
+            type="button"
             onClick={generateData}
             disabled={isGenerating}
             className="px-2 py-1 text-xs bg-green-500/20 hover:bg-green-500/30 text-green-400 rounded border border-green-500/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
@@ -148,6 +149,7 @@ export const JsonEditor: React.FC<JsonEditorProps> = ({
             )}
           </button>
           <button
+            type="button"
             onClick={formatJson}
             disabled={!value.trim() || !isValid}
             className="px-2 py-1 text-xs bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 rounded border border-blue-500/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
@@ -156,6 +158,7 @@ export const JsonEditor: React.FC<JsonEditorProps> = ({
             Format
           </button>
           <button
+            type="button"
             onClick={clearEditor}
             className="px-2 py-1 text-xs bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded border border-red-500/30 transition-colors"
             title="Clear editor"

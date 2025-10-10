@@ -99,7 +99,6 @@ export const DynamicActivityForm: React.FC<DynamicActivityFormProps> = ({
   const renderField = (field: FieldConfig) => {
     try {
       const commonProps = {
-        key: field.id,
         field,
         value: values[field.id],
         onChange: (value: unknown) => handleFieldChange(field.id, value)
@@ -107,29 +106,29 @@ export const DynamicActivityForm: React.FC<DynamicActivityFormProps> = ({
 
     switch (field.type) {
       case 'number':
-        return <NumberField {...commonProps} />;
+        return <NumberField key={field.id} {...commonProps} />;
       case 'slider':
-        return <SliderField {...commonProps} />;
+        return <SliderField key={field.id} {...commonProps} />;
       case 'tags':
-        return <TagsField {...commonProps} />;
+        return <TagsField key={field.id} {...commonProps} />;
       case 'timeRange':
-        return <TimeRangeField {...commonProps} />;
+        return <TimeRangeField key={field.id} {...commonProps} />;
       case 'boolean':
-        return <BooleanField {...commonProps} />;
+        return <BooleanField key={field.id} {...commonProps} />;
       case 'coordinates':
-        return <CoordinatesField {...commonProps} />;
+        return <CoordinatesField key={field.id} {...commonProps} />;
       case 'speedLimits':
-        return <SpeedLimitsField {...commonProps} />;
+        return <SpeedLimitsField key={field.id} {...commonProps} />;
       case 'scheduledTime':
-        return <ScheduledTimeField {...commonProps} />;
+        return <ScheduledTimeField key={field.id} {...commonProps} />;
       case 'timeWindow':
-        return <TimeWindowField {...commonProps} />;
+        return <TimeWindowField key={field.id} {...commonProps} />;
       case 'mapping':
-        return <MappingField {...commonProps} />;
+        return <MappingField key={field.id} {...commonProps} />;
       case 'array':
-        return <ArrayField {...commonProps} />;
+        return <ArrayField key={field.id} {...commonProps} />;
       case 'object':
-        return <ObjectField {...commonProps} />;
+        return <ObjectField key={field.id} {...commonProps} />;
       default:
         return (
           <div key={field.id} className="text-red-500">

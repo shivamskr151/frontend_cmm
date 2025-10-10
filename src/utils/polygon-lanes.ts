@@ -1,18 +1,28 @@
 /**
- * Polygon Zone Drawer - Handles drawing custom polygon zones
+ * Polygon Zone Drawer with Lanes - Handles drawing polygon zones with lanes within them
+ * Extends the functionality of PolygonZoneDrawer to include lane drawing capabilities
  */
 interface Point {
   x: number;
   y: number;
 }
 
-interface HistoryState {
-  polygons: Point[][];
-  activePolygonIndex: number;
-  activePointIndex: number;
+interface Lane {
+  x1: number;
+  y1: number;
+  x2: number;
+  y2: number;
+  polygonIndex: number;
 }
 
-export class PolygonZoneDrawer {
+interface HistoryState {
+  polygons: Point[][];
+  lanes: Lane[];
+  activePolygonIndex: number;
+  activeLaneIndex: number;
+}
+
+export class PolygonZoneDrawerWithLanes {
   private canvas: HTMLCanvasElement;
   private ctx: CanvasRenderingContext2D | null;
   private image: HTMLImageElement | null = null;
@@ -32,6 +42,14 @@ export class PolygonZoneDrawer {
   private activePointIndex = -1;
   private isDraggingPoint = false;
   private isNearFirstPoint = false;
+
+  // Lane drawing state
+  private isDrawingLane = false;
+  private currentLane: Lane | null = null;
+  private lanes: Lane[] = [];
+  private activeLaneIndex = -1;
+  private drawMode: 'polygon' | 'lane' = 'polygon';
+  private laneColor = '#00cc00';
 
   // Visual settings
   private polygonColor = "#007bff";
@@ -53,8 +71,9 @@ export class PolygonZoneDrawer {
   private lockTimeout = 300;
   private actionLockTimer: number | null = null;
 
-  // Callback
+  // Callbacks
   public onPolygonCreated?: (polygon: Point[]) => void;
+  public onLaneCreated?: (lane: Lane) => void;
 
   constructor(canvasId: string | HTMLCanvasElement, imageElement: HTMLImageElement | null = null) {
     if (typeof canvasId === "string") {
@@ -87,6 +106,7 @@ export class PolygonZoneDrawer {
     this.canvas.addEventListener("mousedown", this.handleMouseDown.bind(this));
     this.canvas.addEventListener("mousemove", this.handleMouseMove.bind(this));
     this.canvas.addEventListener("mouseup", this.handleMouseUp.bind(this));
+    this.canvas.addEventListener("dblclick", this.handleDoubleClick.bind(this));
 
     // Touch support
     this.canvas.addEventListener("touchstart", (e: TouchEvent) => {
@@ -126,7 +146,7 @@ export class PolygonZoneDrawer {
         this.redo();
       }
       if (e.key === "Escape") {
-        this.cancelCurrentPolygon();
+        this.cancelCurrentDrawing();
       }
     });
   }
@@ -200,8 +220,16 @@ export class PolygonZoneDrawer {
     const imageX = imageCoords.x;
     const imageY = imageCoords.y;
 
+    if (this.drawMode === 'polygon') {
+      this.handlePolygonMouseDown(imageX, imageY);
+    } else if (this.drawMode === 'lane') {
+      this.handleLaneMouseDown(imageX, imageY);
+    }
+  }
+
+  private handlePolygonMouseDown(x: number, y: number) {
     // Check if clicking on an existing point
-    const pointIndex = this.findPointAt(imageX, imageY);
+    const pointIndex = this.findPointAt(x, y);
     if (pointIndex.polygonIndex !== -1) {
       this.activePolygonIndex = pointIndex.polygonIndex;
       this.activePointIndex = pointIndex.pointIndex;
@@ -209,19 +237,45 @@ export class PolygonZoneDrawer {
       this.redraw();
       return;
     }
-
+    
     // Check if clicking inside an existing polygon
-    const polygonIndex = this.findPolygonAt(imageX, imageY);
+    const polygonIndex = this.findPolygonAt(x, y);
     if (polygonIndex !== -1) {
       this.setActivePolygon(polygonIndex);
       return;
     }
-
+    
     // Start drawing a new polygon
     if (!this.isDrawingPolygon) {
-      this.startNewPolygon(imageX, imageY);
+      this.startNewPolygon(x, y);
     } else {
-      this.addPointToCurrentPolygon(imageX, imageY);
+      this.addPointToCurrentPolygon(x, y);
+    }
+  }
+
+  private handleLaneMouseDown(x: number, y: number) {
+    // Only allow lane drawing if there's an active polygon
+    if (this.activePolygonIndex === -1) {
+      return;
+    }
+    
+    const activePolygon = this.polygons[this.activePolygonIndex];
+    if (!this.isPointInPolygon(x, y, activePolygon)) {
+      return;
+    }
+    
+    // Check if clicking on an existing lane
+    const laneIndex = this.findLaneAt(x, y);
+    if (laneIndex !== -1) {
+      this.setActiveLane(laneIndex);
+      return;
+    }
+    
+    // Start drawing a new lane
+    if (!this.isDrawingLane) {
+      this.startNewLane(x, y);
+    } else {
+      this.completeCurrentLane(x, y);
     }
   }
 
@@ -235,28 +289,64 @@ export class PolygonZoneDrawer {
     const imageX = imageCoords.x;
     const imageY = imageCoords.y;
 
+    if (this.drawMode === 'polygon') {
+      this.handlePolygonMouseMove(imageX, imageY);
+    } else if (this.drawMode === 'lane') {
+      this.handleLaneMouseMove(imageX, imageY);
+    }
+  }
+
+  private handlePolygonMouseMove(x: number, y: number) {
     // Handle point dragging
     if (this.isDraggingPoint && this.activePolygonIndex !== -1 && this.activePointIndex !== -1) {
       const polygon = this.polygons[this.activePolygonIndex];
-      polygon[this.activePointIndex] = { x: imageX, y: imageY };
+      polygon[this.activePointIndex] = { x, y };
       this.redraw();
       return;
     }
-
+    
     // Check if mouse is near the first point of current polygon
+    this.isNearFirstPoint = false;
     if (this.isDrawingPolygon && this.currentPolygon.length >= 2) {
       const firstPoint = this.currentPolygon[0];
       const distance = Math.sqrt(
-        Math.pow(imageX - firstPoint.x, 2) + Math.pow(imageY - firstPoint.y, 2)
+        Math.pow(x - firstPoint.x, 2) + Math.pow(y - firstPoint.y, 2)
       );
-      this.isNearFirstPoint = distance < (15 / this.scaleX); // Adjust for scale
+      this.isNearFirstPoint = distance < 15;
     }
-
+    
     this.redraw();
+  }
+
+  private handleLaneMouseMove(x: number, y: number) {
+    if (this.isDrawingLane && this.currentLane && this.activePolygonIndex !== -1) {
+      const activePolygon = this.polygons[this.activePolygonIndex];
+      
+      // Constrain the end point to be within the polygon
+      let constrainedX = x;
+      let constrainedY = y;
+      
+      // Simple constraint: if point is outside polygon, find the closest point on polygon boundary
+      if (!this.isPointInPolygon(x, y, activePolygon)) {
+        const constrainedPoint = this.getClosestPointOnPolygonBoundary(x, y, activePolygon);
+        constrainedX = constrainedPoint.x;
+        constrainedY = constrainedPoint.y;
+      }
+      
+      this.currentLane.x2 = constrainedX;
+      this.currentLane.y2 = constrainedY;
+      this.redraw();
+    }
   }
 
   private handleMouseUp() {
     this.isDraggingPoint = false;
+  }
+
+  private handleDoubleClick() {
+    if (this.isDrawingPolygon && this.currentPolygon.length >= 3) {
+      this.completeCurrentPolygon();
+    }
   }
 
   private startNewPolygon(x: number, y: number) {
@@ -277,7 +367,7 @@ export class PolygonZoneDrawer {
         );
         
         // If the new point is close to the first point, complete the polygon
-        if (distance < 15) { // 15 pixel tolerance for connecting to first point
+        if (distance < 15) {
           this.completeCurrentPolygon();
           return;
         }
@@ -314,9 +404,69 @@ export class PolygonZoneDrawer {
     }, 100);
   }
 
-  private cancelCurrentPolygon() {
-    this.isDrawingPolygon = false;
-    this.currentPolygon = [];
+  private startNewLane(x: number, y: number) {
+    if (this.activePolygonIndex === -1) return;
+    
+    this.isDrawingLane = true;
+    this.currentLane = {
+      x1: x,
+      y1: y,
+      x2: x,
+      y2: y,
+      polygonIndex: this.activePolygonIndex
+    };
+    this.redraw();
+  }
+
+  private completeCurrentLane(x: number, y: number) {
+    if (!this.isDrawingLane || !this.currentLane) return;
+    
+    const activePolygon = this.polygons[this.activePolygonIndex];
+    let constrainedX = x;
+    let constrainedY = y;
+    
+    // Constrain the end point to be within the polygon
+    if (!this.isPointInPolygon(x, y, activePolygon)) {
+      const constrainedPoint = this.getClosestPointOnPolygonBoundary(x, y, activePolygon);
+      constrainedX = constrainedPoint.x;
+      constrainedY = constrainedPoint.y;
+    }
+    
+    // Ensure the lane has some minimum length
+    const length = Math.sqrt(
+      Math.pow(constrainedX - this.currentLane.x1, 2) + 
+      Math.pow(constrainedY - this.currentLane.y1, 2)
+    );
+    
+    if (length > 5) {
+      this.currentLane.x2 = constrainedX;
+      this.currentLane.y2 = constrainedY;
+      
+      // Add lane to the array
+      this.lanes.push({ ...this.currentLane });
+      
+      // Trigger callback
+      if (this.onLaneCreated) {
+        this.onLaneCreated(this.currentLane);
+      }
+      
+      this.saveToHistory();
+    }
+    
+    this.isDrawingLane = false;
+    this.currentLane = null;
+    this.redraw();
+  }
+
+  private cancelCurrentDrawing() {
+    if (this.isDrawingPolygon) {
+      this.isDrawingPolygon = false;
+      this.currentPolygon = [];
+    }
+    if (this.isDrawingLane) {
+      this.isDrawingLane = false;
+      this.currentLane = null;
+    }
     this.redraw();
   }
 
@@ -343,6 +493,16 @@ export class PolygonZoneDrawer {
     return -1;
   }
 
+  private findLaneAt(x: number, y: number, tolerance = 10): number {
+    for (let i = 0; i < this.lanes.length; i++) {
+      const lane = this.lanes[i];
+      if (this.isPointNearLine(x, y, lane, tolerance)) {
+        return i;
+      }
+    }
+    return -1;
+  }
+
   private isPointInPolygon(x: number, y: number, polygon: Point[]): boolean {
     let inside = false;
     for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
@@ -358,10 +518,97 @@ export class PolygonZoneDrawer {
     return inside;
   }
 
+  private isPointNearLine(x: number, y: number, line: Lane, tolerance: number): boolean {
+    const A = x - line.x1;
+    const B = y - line.y1;
+    const C = line.x2 - line.x1;
+    const D = line.y2 - line.y1;
+    
+    const dot = A * C + B * D;
+    const lenSq = C * C + D * D;
+    
+    if (lenSq === 0) return false;
+    
+    const param = dot / lenSq;
+    
+    let xx, yy;
+    
+    if (param < 0) {
+      xx = line.x1;
+      yy = line.y1;
+    } else if (param > 1) {
+      xx = line.x2;
+      yy = line.y2;
+    } else {
+      xx = line.x1 + param * C;
+      yy = line.y1 + param * D;
+    }
+    
+    const dx = x - xx;
+    const dy = y - yy;
+    const distance = Math.sqrt(dx * dx + dy * dy);
+    
+    return distance <= tolerance;
+  }
+
+  private getClosestPointOnPolygonBoundary(x: number, y: number, polygon: Point[]): Point {
+    let closestPoint = { x: polygon[0].x, y: polygon[0].y };
+    let minDistance = Math.sqrt(Math.pow(x - polygon[0].x, 2) + Math.pow(y - polygon[0].y, 2));
+    
+    for (let i = 0; i < polygon.length; i++) {
+      const p1 = polygon[i];
+      const p2 = polygon[(i + 1) % polygon.length];
+      
+      const closestOnSegment = this.getClosestPointOnLineSegment(x, y, p1, p2);
+      const distance = Math.sqrt(Math.pow(x - closestOnSegment.x, 2) + Math.pow(y - closestOnSegment.y, 2));
+      
+      if (distance < minDistance) {
+        minDistance = distance;
+        closestPoint = closestOnSegment;
+      }
+    }
+    
+    return closestPoint;
+  }
+
+  private getClosestPointOnLineSegment(x: number, y: number, p1: Point, p2: Point): Point {
+    const A = x - p1.x;
+    const B = y - p1.y;
+    const C = p2.x - p1.x;
+    const D = p2.y - p1.y;
+    
+    const dot = A * C + B * D;
+    const lenSq = C * C + D * D;
+    
+    if (lenSq === 0) return { x: p1.x, y: p1.y };
+    
+    const param = dot / lenSq;
+    
+    if (param < 0) {
+      return { x: p1.x, y: p1.y };
+    } else if (param > 1) {
+      return { x: p2.x, y: p2.y };
+    } else {
+      return {
+        x: p1.x + param * C,
+        y: p1.y + param * D
+      };
+    }
+  }
+
   private setActivePolygon(index: number): boolean {
     if (index >= -1 && index < this.polygons.length) {
       this.activePolygonIndex = index;
       this.activePointIndex = -1;
+      this.redraw();
+      return true;
+    }
+    return false;
+  }
+
+  private setActiveLane(index: number): boolean {
+    if (index >= -1 && index < this.lanes.length) {
+      this.activeLaneIndex = index;
       this.redraw();
       return true;
     }
@@ -396,28 +643,39 @@ export class PolygonZoneDrawer {
       this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
     }
     
-    // Draw completed polygons
+    // Draw all polygons
     this.polygons.forEach((polygon, index) => {
       const isActive = index === this.activePolygonIndex;
       this.drawPolygon(polygon, isActive);
     });
-    
-    // Draw current polygon being created
+
+    // Draw all lanes
+    this.lanes.forEach((lane, index) => {
+      const isActive = index === this.activeLaneIndex;
+      this.drawLane(lane, isActive);
+    });
+
+    // Draw current polygon if drawing
     if (this.isDrawingPolygon && this.currentPolygon.length > 0) {
       this.drawCurrentPolygon();
+    }
+
+    // Draw current lane if drawing
+    if (this.isDrawingLane && this.currentLane) {
+      this.drawCurrentLane();
     }
   }
 
   private drawPolygon(polygon: Point[], isActive = false) {
     if (polygon.length < 3) return;
-    
+
     const screenPolygon = polygon.map(point => ({
       x: point.x * this.scaleX + this.offsetX,
       y: point.y * this.scaleY + this.offsetY
     }));
 
     const color = isActive ? this.activePolygonColor : this.polygonColor;
-    
+
     // Draw polygon fill
     this.ctx!.fillStyle = color + '20'; // 20 = 12% opacity
     this.ctx!.beginPath();
@@ -427,23 +685,38 @@ export class PolygonZoneDrawer {
     }
     this.ctx!.closePath();
     this.ctx!.fill();
-    
+
     // Draw polygon border
     this.ctx!.strokeStyle = color;
     this.ctx!.lineWidth = this.lineWidth;
-    this.ctx!.beginPath();
-    this.ctx!.moveTo(screenPolygon[0].x, screenPolygon[0].y);
-    for (let i = 1; i < screenPolygon.length; i++) {
-      this.ctx!.lineTo(screenPolygon[i].x, screenPolygon[i].y);
-    }
-    this.ctx!.closePath();
     this.ctx!.stroke();
-    
+
     // Draw points
     screenPolygon.forEach((point, pointIndex) => {
       const isActivePoint = isActive && pointIndex === this.activePointIndex;
       this.drawPoint(point.x, point.y, isActivePoint);
     });
+  }
+
+  private drawLane(lane: Lane, isActive = false) {
+    const screenLane = {
+      x1: lane.x1 * this.scaleX + this.offsetX,
+      y1: lane.y1 * this.scaleY + this.offsetY,
+      x2: lane.x2 * this.scaleX + this.offsetX,
+      y2: lane.y2 * this.scaleY + this.offsetY
+    };
+
+    // Draw lane line
+    this.ctx!.strokeStyle = isActive ? this.activePolygonColor : this.laneColor;
+    this.ctx!.lineWidth = isActive ? 3 : 2;
+    this.ctx!.beginPath();
+    this.ctx!.moveTo(screenLane.x1, screenLane.y1);
+    this.ctx!.lineTo(screenLane.x2, screenLane.y2);
+    this.ctx!.stroke();
+
+    // Draw endpoints
+    this.drawPoint(screenLane.x1, screenLane.y1, isActive);
+    this.drawPoint(screenLane.x2, screenLane.y2, isActive);
   }
 
   private drawCurrentPolygon() {
@@ -499,6 +772,30 @@ export class PolygonZoneDrawer {
     });
   }
 
+  private drawCurrentLane() {
+    if (!this.currentLane) return;
+    
+    const screenLane = {
+      x1: this.currentLane.x1 * this.scaleX + this.offsetX,
+      y1: this.currentLane.y1 * this.scaleY + this.offsetY,
+      x2: this.currentLane.x2 * this.scaleX + this.offsetX,
+      y2: this.currentLane.y2 * this.scaleY + this.offsetY
+    };
+    
+    // Draw lane line
+    this.ctx!.strokeStyle = this.laneColor;
+    this.ctx!.lineWidth = 2;
+    this.ctx!.setLineDash([5, 5]);
+    this.ctx!.beginPath();
+    this.ctx!.moveTo(screenLane.x1, screenLane.y1);
+    this.ctx!.lineTo(screenLane.x2, screenLane.y2);
+    this.ctx!.stroke();
+    this.ctx!.setLineDash([]);
+    
+    // Draw start point
+    this.drawPoint(screenLane.x1, screenLane.y1, false);
+  }
+
   private drawPoint(x: number, y: number, isActive = false) {
     const radius = this.pointRadius;
     const fillColor = isActive ? this.activePointColor : this.pointColor;
@@ -532,8 +829,9 @@ export class PolygonZoneDrawer {
     
     const state: HistoryState = {
       polygons: JSON.parse(JSON.stringify(this.polygons)),
+      lanes: JSON.parse(JSON.stringify(this.lanes)),
       activePolygonIndex: this.activePolygonIndex,
-      activePointIndex: this.activePointIndex
+      activeLaneIndex: this.activeLaneIndex
     };
     
     // Remove any states after current index
@@ -581,8 +879,9 @@ export class PolygonZoneDrawer {
   private loadStateFromHistory() {
     const state = this.history[this.historyIndex];
     this.polygons = JSON.parse(JSON.stringify(state.polygons));
+    this.lanes = JSON.parse(JSON.stringify(state.lanes));
     this.activePolygonIndex = state.activePolygonIndex;
-    this.activePointIndex = state.activePointIndex;
+    this.activeLaneIndex = state.activeLaneIndex;
     this.redraw();
   }
 
@@ -603,17 +902,34 @@ export class PolygonZoneDrawer {
   }
 
   // Public methods
-  public startDrawing() {
-    console.log('Starting polygon drawing mode');
+  public setDrawMode(mode: 'polygon' | 'lane') {
+    console.log('Setting draw mode from', this.drawMode, 'to', mode);
+    this.drawMode = mode;
     this.isDrawingPolygon = false;
+    this.isDrawingLane = false;
     this.currentPolygon = [];
-    this.activePolygonIndex = -1;
-    this.activePointIndex = -1;
+    this.currentLane = null;
+    
+    // If switching to lane mode and no zone is selected, select the last zone
+    if (mode === 'lane' && this.activePolygonIndex === -1 && this.polygons.length > 0) {
+      this.activePolygonIndex = this.polygons.length - 1;
+      console.log('Auto-selected polygon for lane drawing:', this.activePolygonIndex);
+    }
+    
+    console.log('Draw mode set to:', this.drawMode, 'Active polygon:', this.activePolygonIndex);
     this.redraw();
+  }
+
+  public getDrawMode(): 'polygon' | 'lane' {
+    return this.drawMode;
   }
 
   public getPolygons(): Point[][] {
     return JSON.parse(JSON.stringify(this.polygons));
+  }
+
+  public getLanes(): Lane[] {
+    return JSON.parse(JSON.stringify(this.lanes));
   }
 
   public setPolygons(polygons: Point[][]) {
@@ -624,18 +940,38 @@ export class PolygonZoneDrawer {
     this.redraw();
   }
 
-  public clearAllPolygons() {
+  public setLanes(lanes: Lane[]) {
+    this.lanes = JSON.parse(JSON.stringify(lanes));
+    this.activeLaneIndex = -1;
+    this.saveToHistory();
+    this.redraw();
+  }
+
+  public resetZones() {
     this.polygons = [];
+    this.lanes = [];
     this.currentPolygon = [];
+    this.currentLane = null;
     this.isDrawingPolygon = false;
+    this.isDrawingLane = false;
     this.activePolygonIndex = -1;
-    this.activePointIndex = -1;
+    this.activeLaneIndex = -1;
     this.saveToHistory();
     this.redraw();
   }
 
   public deleteActivePolygon() {
     if (this.activePolygonIndex !== -1) {
+      // Remove all lanes associated with this polygon
+      this.lanes = this.lanes.filter(lane => lane.polygonIndex !== this.activePolygonIndex);
+      
+      // Update polygon indices for remaining lanes
+      this.lanes.forEach(lane => {
+        if (lane.polygonIndex > this.activePolygonIndex) {
+          lane.polygonIndex--;
+        }
+      });
+      
       this.polygons.splice(this.activePolygonIndex, 1);
       this.activePolygonIndex = -1;
       this.activePointIndex = -1;
@@ -644,6 +980,25 @@ export class PolygonZoneDrawer {
       return true;
     }
     return false;
+  }
+
+  public deleteActiveLane() {
+    if (this.activeLaneIndex !== -1) {
+      this.lanes.splice(this.activeLaneIndex, 1);
+      this.activeLaneIndex = -1;
+      this.saveToHistory();
+      this.redraw();
+      return true;
+    }
+    return false;
+  }
+
+  public hasZones(): boolean {
+    return this.polygons.length > 0;
+  }
+
+  public hasLanes(): boolean {
+    return this.lanes.length > 0;
   }
 
   // Get normalized coordinates (0-1 range)
@@ -656,6 +1011,18 @@ export class PolygonZoneDrawer {
         y: point.y / this.originalImageHeight
       }))
     );
+  }
+
+  public getNormalizedLanes() {
+    if (!this.image) return [];
+    
+    return this.lanes.map(lane => ({
+      x1: lane.x1 / this.originalImageWidth,
+      y1: lane.y1 / this.originalImageHeight,
+      x2: lane.x2 / this.originalImageWidth,
+      y2: lane.y2 / this.originalImageHeight,
+      polygonIndex: lane.polygonIndex
+    }));
   }
 
   // Load normalized coordinates
@@ -673,11 +1040,27 @@ export class PolygonZoneDrawer {
     this.redraw();
   }
 
+  public loadNormalizedLanes(normalizedLanes: Lane[]) {
+    if (!this.image || !normalizedLanes) return;
+    
+    this.lanes = normalizedLanes.map(lane => ({
+      x1: lane.x1 * this.originalImageWidth,
+      y1: lane.y1 * this.originalImageHeight,
+      x2: lane.x2 * this.originalImageWidth,
+      y2: lane.y2 * this.originalImageHeight,
+      polygonIndex: lane.polygonIndex
+    }));
+    
+    this.saveToHistory();
+    this.redraw();
+  }
+
   public destroy() {
     // Clean up event listeners
     this.canvas.removeEventListener('mousedown', this.handleMouseDown.bind(this));
     this.canvas.removeEventListener('mousemove', this.handleMouseMove.bind(this));
     this.canvas.removeEventListener('mouseup', this.handleMouseUp.bind(this));
+    this.canvas.removeEventListener('dblclick', this.handleDoubleClick.bind(this));
     
     // Clear canvas
     if (this.ctx) {

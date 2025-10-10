@@ -209,12 +209,8 @@ class CameraApiService {
    * Get fallback camera data when API fails
    */
   private getFallbackCameras(): Camera[] {
-    return [
-      { id: 'fallback_1', name: 'Camera 1 - Main Entrance', appName: 'Main Entrance Cam', status: 'unknown' },
-      { id: 'fallback_2', name: 'Camera 2 - Parking Lot', appName: 'Parking Lot Cam', status: 'unknown' },
-      { id: 'fallback_3', name: 'Camera 3 - Office Area', appName: 'Office Area Cam', status: 'unknown' },
-      { id: 'fallback_4', name: 'Camera 4 - Reception', appName: 'Reception Cam', status: 'unknown' },
-    ];
+    // Return empty array instead of hardcoded cameras
+    return [];
   }
 
   /**
