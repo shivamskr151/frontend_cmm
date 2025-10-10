@@ -65,11 +65,11 @@ export const AddConfigDropdown: React.FC<AddConfigDropdownProps> = ({
       </button>
       
       {isOpen && (
-        <div className="absolute right-0 top-full mt-2 w-48 bg-slate-800/90 backdrop-blur-sm rounded-lg border border-slate-700/50 shadow-xl z-50">
+        <div className="absolute right-0 top-full mt-2 w-48 bg-white/95 backdrop-blur-sm rounded-lg border border-gray-200 shadow-xl z-50">
           <div className="py-2">
             <button
               onClick={handleJsonEditorClick}
-              className="w-full px-4 py-2 text-left text-slate-300 hover:bg-slate-700/50 hover:text-white transition-colors flex items-center gap-3"
+              className="w-full px-4 py-2 text-left text-gray-700 hover:bg-gray-100 hover:text-gray-900 transition-colors flex items-center gap-3"
             >
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
@@ -82,7 +82,7 @@ export const AddConfigDropdown: React.FC<AddConfigDropdownProps> = ({
             </button>
             <button
               onClick={handleAddActivityClick}
-              className="w-full px-4 py-2 text-left text-slate-300 hover:bg-slate-700/50 hover:text-white transition-colors flex items-center gap-3"
+              className="w-full px-4 py-2 text-left text-gray-700 hover:bg-gray-100 hover:text-gray-900 transition-colors flex items-center gap-3"
             >
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"></path>

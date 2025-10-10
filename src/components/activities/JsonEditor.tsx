@@ -33,7 +33,7 @@ export const JsonEditor: React.FC<JsonEditorProps> = ({
     configureMonacoEditor();
     
     // Set theme
-    monaco.editor.setTheme('custom-dark');
+    monaco.editor.setTheme('custom-light');
 
     // Add JSON validation
     const validateJson = () => {
@@ -105,11 +105,11 @@ export const JsonEditor: React.FC<JsonEditorProps> = ({
   return (
     <div className="relative">
       {/* Editor Toolbar */}
-      <div className="flex items-center justify-between mb-2 p-2 bg-slate-700/30 rounded-t-lg border-b border-slate-600/30">
+      <div className="flex items-center justify-between mb-2 p-2 bg-gray-100 rounded-t-lg border-b border-gray-300">
         <div className="flex items-center gap-2">
-          <span className="text-sm font-medium text-slate-300">JSON Editor</span>
+          <span className="text-sm font-medium text-gray-700">JSON Editor</span>
           {!isValid && (
-            <span className="text-xs text-red-400 flex items-center gap-1">
+            <span className="text-xs text-red-600 flex items-center gap-1">
               <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <circle cx="12" cy="12" r="10"></circle>
                 <line x1="15" y1="9" x2="9" y2="15"></line>
@@ -119,7 +119,7 @@ export const JsonEditor: React.FC<JsonEditorProps> = ({
             </span>
           )}
           {isValid && value.trim() && (
-            <span className="text-xs text-green-400 flex items-center gap-1">
+            <span className="text-xs text-green-600 flex items-center gap-1">
               <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <circle cx="12" cy="12" r="10"></circle>
                 <path d="M9 12l2 2 4-4"></path>
@@ -133,7 +133,7 @@ export const JsonEditor: React.FC<JsonEditorProps> = ({
             type="button"
             onClick={generateData}
             disabled={isGenerating}
-            className="px-2 py-1 text-xs bg-green-500/20 hover:bg-green-500/30 text-green-400 rounded border border-green-500/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+            className="px-2 py-1 text-xs bg-green-100 hover:bg-green-200 text-green-700 rounded border border-green-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
             title="Generate sample data"
           >
             {isGenerating ? (
@@ -152,7 +152,7 @@ export const JsonEditor: React.FC<JsonEditorProps> = ({
             type="button"
             onClick={formatJson}
             disabled={!value.trim() || !isValid}
-            className="px-2 py-1 text-xs bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 rounded border border-blue-500/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-2 py-1 text-xs bg-blue-100 hover:bg-blue-200 text-blue-700 rounded border border-blue-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             title="Format JSON"
           >
             Format
@@ -160,7 +160,7 @@ export const JsonEditor: React.FC<JsonEditorProps> = ({
           <button
             type="button"
             onClick={clearEditor}
-            className="px-2 py-1 text-xs bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded border border-red-500/30 transition-colors"
+            className="px-2 py-1 text-xs bg-red-100 hover:bg-red-200 text-red-700 rounded border border-red-300 transition-colors"
             title="Clear editor"
           >
             Clear
@@ -169,7 +169,7 @@ export const JsonEditor: React.FC<JsonEditorProps> = ({
       </div>
 
       {/* Monaco Editor */}
-      <div className="border border-slate-600/50 rounded-b-lg overflow-hidden">
+      <div className="border border-gray-300 rounded-b-lg overflow-hidden">
         <Editor
           height={height}
           defaultLanguage="json"
@@ -177,7 +177,7 @@ export const JsonEditor: React.FC<JsonEditorProps> = ({
           onMount={handleEditorDidMount}
           options={{
             readOnly,
-            theme: 'custom-dark',
+            theme: 'custom-light',
             selectOnLineNumbers: true,
             renderLineHighlight: 'line',
             cursorStyle: 'line',
@@ -215,16 +215,16 @@ export const JsonEditor: React.FC<JsonEditorProps> = ({
 
       {/* Error Display */}
       {!isValid && errors.length > 0 && (
-        <div className="mt-2 p-2 bg-red-500/10 border border-red-500/30 rounded text-sm">
+        <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded text-sm">
           <div className="flex items-start gap-2">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-red-400 mt-0.5 flex-shrink-0">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-red-600 mt-0.5 flex-shrink-0">
               <circle cx="12" cy="12" r="10"></circle>
               <line x1="15" y1="9" x2="9" y2="15"></line>
               <line x1="9" y1="9" x2="15" y2="15"></line>
             </svg>
             <div>
-              <p className="text-red-400 font-medium">JSON Validation Error:</p>
-              <p className="text-red-300 text-xs mt-1">{errors[0]}</p>
+              <p className="text-red-600 font-medium">JSON Validation Error:</p>
+              <p className="text-red-700 text-xs mt-1">{errors[0]}</p>
             </div>
           </div>
         </div>

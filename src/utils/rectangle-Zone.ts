@@ -295,27 +295,7 @@ export class RectangleZoneDrawer {
     if (!this.ctx) return;
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
-    // Draw image if available
-    if (this.image && this.image.complete && this.image.naturalWidth > 0) {
-      try {
-        this.ctx.drawImage(
-          this.image,
-          this.offsetX,
-          this.offsetY,
-          this.originalImageWidth * this.scaleX,
-          this.originalImageHeight * this.scaleY
-        );
-      } catch (error) {
-        console.error("Error drawing image:", error);
-        // Draw placeholder background
-        this.ctx.fillStyle = "#f0f0f0";
-        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
-      }
-    } else {
-      // Draw background if no image
-      this.ctx.fillStyle = "#f0f0f0";
-      this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
-    }
+    // Clear canvas with transparent background - image is handled by the img element
 
     // Draw completed rectangles
     this.rectangles.forEach((rectangle, index) => {

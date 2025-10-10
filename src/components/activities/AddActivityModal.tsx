@@ -60,12 +60,12 @@ export const AddActivityModal: React.FC<AddActivityModalProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[9999]">
-      <div className="bg-slate-800/90 backdrop-blur-sm rounded-xl p-6 max-w-md w-[90%] border border-slate-700/50 shadow-2xl">
+      <div className="bg-white/95 backdrop-blur-sm rounded-xl p-6 max-w-md w-[90%] border border-gray-200 shadow-2xl">
         <div className="flex items-center justify-between mb-6">
-          <h5 className="text-lg font-semibold text-white">Create New Activity</h5>
+          <h5 className="text-lg font-semibold text-gray-900">Create New Activity</h5>
           <button
             onClick={handleClose}
-            className="p-1 hover:bg-slate-700/50 rounded transition-colors"
+            className="p-1 hover:bg-gray-100 rounded transition-colors text-gray-600 hover:text-gray-800"
             title="Close modal"
             aria-label="Close modal"
           >
@@ -79,14 +79,14 @@ export const AddActivityModal: React.FC<AddActivityModalProps> = ({
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Activity Name */}
           <div>
-            <label className="block text-sm font-medium text-slate-300 mb-2">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
               Activity Name*
             </label>
             <input
               type="text"
               value={formData.name}
               onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-              className="w-full px-3 py-2 bg-slate-700/50 text-white rounded-lg border border-slate-600/50 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400 transition-colors"
+              className="w-full px-3 py-2 bg-white text-gray-900 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
               placeholder="Enter activity name"
               required
             />
@@ -94,13 +94,13 @@ export const AddActivityModal: React.FC<AddActivityModalProps> = ({
 
           {/* Status */}
           <div>
-            <label className="block text-sm font-medium text-slate-300 mb-2">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
               Status*
             </label>
             <select
               value={formData.status}
               onChange={(e) => setFormData(prev => ({ ...prev, status: e.target.value as 'ACTIVE' | 'INACTIVE' }))}
-              className="w-full px-3 py-2 bg-slate-700/50 text-white rounded-lg border border-slate-600/50 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400 transition-colors"
+              className="w-full px-3 py-2 bg-white text-gray-900 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
               title="Select activity status"
               aria-label="Select activity status"
             >
@@ -111,8 +111,8 @@ export const AddActivityModal: React.FC<AddActivityModalProps> = ({
 
           {/* Activity Data (JSON) */}
           <div>
-            <label className="block text-sm font-medium text-slate-300 mb-2">
-              Activity Data (JSON) <span className="text-slate-400 text-xs">(Optional)</span>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Activity Data (JSON) <span className="text-gray-500 text-xs">(Optional)</span>
             </label>
             <JsonEditor
               value={formData.data}
@@ -128,7 +128,7 @@ export const AddActivityModal: React.FC<AddActivityModalProps> = ({
             <button
               type="button"
               onClick={handleClose}
-              className="px-4 py-2 bg-white text-gray-700 rounded-lg border border-gray-300 hover:bg-gray-50 transition-colors font-medium"
+              className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg border border-gray-300 hover:bg-gray-200 transition-colors font-medium"
               disabled={isLoading}
             >
               Cancel

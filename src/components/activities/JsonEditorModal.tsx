@@ -60,12 +60,12 @@ export const JsonEditorModal: React.FC<JsonEditorModalProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[9999]">
-      <div className="bg-slate-800/90 backdrop-blur-sm rounded-xl p-6 max-w-2xl w-[90%] border border-slate-700/50 shadow-2xl">
+      <div className="bg-white/95 backdrop-blur-sm rounded-xl p-6 max-w-2xl w-[90%] border border-gray-200 shadow-2xl">
         <div className="flex items-center justify-between mb-6">
-          <h5 className="text-lg font-semibold text-white">JSON Editor</h5>
+          <h5 className="text-lg font-semibold text-gray-900">JSON Editor</h5>
           <button
             onClick={handleClose}
-            className="p-1 hover:bg-slate-700/50 rounded transition-colors"
+            className="p-1 hover:bg-gray-100 rounded transition-colors text-gray-600 hover:text-gray-800"
             title="Close modal"
             aria-label="Close modal"
           >
@@ -87,21 +87,21 @@ export const JsonEditorModal: React.FC<JsonEditorModalProps> = ({
             />
           </div>
 
-          <div className="bg-slate-700/30 rounded-lg p-3 mb-4">
-            <p className="text-sm text-slate-300 mb-2">
+          <div className="bg-gray-50 rounded-lg p-3 mb-4 border border-gray-200">
+            <p className="text-sm text-gray-700 mb-2">
               <strong>Format:</strong> Enter JSON object with activity names as keys. Each activity should have:
             </p>
-            <ul className="text-xs text-slate-400 ml-4 space-y-1">
-              <li>• <code className="text-blue-300">"status"</code>: "ACTIVE" or "INACTIVE"</li>
-              <li>• <code className="text-blue-300">"parameters"</code>: Object with activity-specific settings</li>
-              <li>• <code className="text-blue-300">"zones"</code>: (Optional) Zone coordinates</li>
-              <li>• <code className="text-blue-300">"lanes"</code>: (Optional) Lane coordinates</li>
+            <ul className="text-xs text-gray-600 ml-4 space-y-1">
+              <li>• <code className="text-blue-600 bg-blue-50 px-1 rounded">"status"</code>: "ACTIVE" or "INACTIVE"</li>
+              <li>• <code className="text-blue-600 bg-blue-50 px-1 rounded">"parameters"</code>: Object with activity-specific settings</li>
+              <li>• <code className="text-blue-600 bg-blue-50 px-1 rounded">"zones"</code>: (Optional) Zone coordinates</li>
+              <li>• <code className="text-blue-600 bg-blue-50 px-1 rounded">"lanes"</code>: (Optional) Lane coordinates</li>
             </ul>
             <details className="mt-3">
-              <summary className="text-xs text-blue-400 cursor-pointer hover:text-blue-300">
-                Show example format
+              <summary className="text-xs text-blue-600 cursor-pointer hover:text-blue-800 font-medium">
+                ► Show example format
               </summary>
-              <pre className="text-xs text-slate-400 mt-2 p-2 bg-slate-800/50 rounded overflow-x-auto">
+              <pre className="text-xs text-gray-600 mt-2 p-2 bg-gray-100 rounded overflow-x-auto border">
 {`{
   "my_activity": {
     "status": "ACTIVE",
@@ -116,7 +116,7 @@ export const JsonEditorModal: React.FC<JsonEditorModalProps> = ({
 }`}
               </pre>
             </details>
-            <p className="text-xs text-slate-400 mt-2">
+            <p className="text-xs text-gray-600 mt-2">
               You can paste the full activities configuration or just the activities_data section.
             </p>
           </div>
@@ -126,7 +126,7 @@ export const JsonEditorModal: React.FC<JsonEditorModalProps> = ({
             <button
               type="button"
               onClick={handleClose}
-              className="px-4 py-2 bg-white text-gray-700 rounded-lg border border-gray-300 hover:bg-gray-50 transition-colors font-medium"
+              className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg border border-gray-300 hover:bg-gray-200 transition-colors font-medium"
               disabled={isLoading}
             >
               Cancel

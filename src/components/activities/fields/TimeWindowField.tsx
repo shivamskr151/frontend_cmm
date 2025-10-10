@@ -18,25 +18,28 @@ export const TimeWindowField: React.FC<TimeWindowFieldProps> = ({
   value = [],
   onChange
 }) => {
-  // Ensure value is always an array
-  const normalizedValue = Array.isArray(value) ? value : [];
-  const addTimeWindow = () => {
-    const newTimeWindow: TimeWindow = {
-      time_start_end: [['07:00', '19:00']],
-      days: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
-      timezone: 'Asia/Kolkata'
-    };
-    onChange([...normalizedValue, newTimeWindow]);
-  };
+  // Ensure value is always an array with at least one time window
+  const normalizedValue = Array.isArray(value) && value.length > 0 ? value : [{
+    time_start_end: [['08:00', '18:00']],
+    days: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
+    timezone: 'Asia/Kolkata'
+  }];
+
+  // Ensure we always have exactly one time window
+  React.useEffect(() => {
+    if (normalizedValue.length === 0) {
+      const defaultTimeWindow: TimeWindow = {
+        time_start_end: [['08:00', '18:00']],
+        days: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
+        timezone: 'Asia/Kolkata'
+      };
+      onChange([defaultTimeWindow]);
+    }
+  }, [normalizedValue.length, onChange]);
 
   const updateTimeWindow = (index: number, updatedWindow: TimeWindow) => {
     const newWindows = [...normalizedValue];
     newWindows[index] = updatedWindow;
-    onChange(newWindows);
-  };
-
-  const removeTimeWindow = (index: number) => {
-    const newWindows = normalizedValue.filter((_, i) => i !== index);
     onChange(newWindows);
   };
 
@@ -96,34 +99,14 @@ export const TimeWindowField: React.FC<TimeWindowFieldProps> = ({
           {field.label}
           {field.required && <span className="text-red-500 ml-1">*</span>}
         </label>
-        <button
-          type="button"
-          onClick={addTimeWindow}
-          className="px-3 py-1 text-sm bg-green-500 text-white rounded-md hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-colors"
-        >
-          + Add Time Window
-        </button>
       </div>
 
-      {normalizedValue.length === 0 ? (
-        <div className="text-center py-4 text-gray-500 border-2 border-dashed border-gray-300 rounded-md">
-          <p className="text-sm">No time windows configured</p>
-          <p className="text-xs">Click "Add Time Window" to get started</p>
-        </div>
-      ) : (
-        <div className="space-y-4">
-          {normalizedValue.map((timeWindow, windowIndex) => (
-            <div key={windowIndex} className="p-4 bg-gray-50 rounded-lg border border-gray-200">
-              <div className="flex justify-between items-center mb-4">
-                <h4 className="text-sm font-medium text-gray-700">Time Window {windowIndex + 1}</h4>
-                <button
-                  type="button"
-                  onClick={() => removeTimeWindow(windowIndex)}
-                  className="text-red-500 hover:text-red-700 focus:outline-none"
-                >
-                  ×
-                </button>
-              </div>
+      <div className="space-y-4">
+        {normalizedValue.map((timeWindow, windowIndex) => (
+          <div key={windowIndex} className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+            <div className="flex justify-between items-center mb-4">
+              <h4 className="text-sm font-medium text-gray-700">Time Window</h4>
+            </div>
 
               {/* Time Ranges */}
               <div className="mb-4">
@@ -136,6 +119,7 @@ export const TimeWindowField: React.FC<TimeWindowFieldProps> = ({
                         value={range[0]}
                         onChange={(e) => updateTimeRange(windowIndex, rangeIndex, 'start', e.target.value)}
                         className="px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        aria-label={`Start time for range ${rangeIndex + 1}`}
                       />
                       <span className="text-gray-500">to</span>
                       <input
@@ -143,6 +127,7 @@ export const TimeWindowField: React.FC<TimeWindowFieldProps> = ({
                         value={range[1]}
                         onChange={(e) => updateTimeRange(windowIndex, rangeIndex, 'end', e.target.value)}
                         className="px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        aria-label={`End time for range ${rangeIndex + 1}`}
                       />
                       <button
                         type="button"
@@ -186,7 +171,6 @@ export const TimeWindowField: React.FC<TimeWindowFieldProps> = ({
             </div>
           ))}
         </div>
-      )}
 
       {field.description && (
         <p className="text-xs text-gray-500">{field.description}</p>

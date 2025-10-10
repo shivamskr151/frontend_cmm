@@ -64,6 +64,30 @@ export const configureMonacoEditor = () => {
     }
   });
 
+  // Configure white theme
+  monaco.editor.defineTheme('custom-light', {
+    base: 'vs',
+    inherit: true,
+    rules: [
+      { token: 'string.key.json', foreground: '0451a5' },
+      { token: 'string.value.json', foreground: '0a7a0a' },
+      { token: 'number.json', foreground: '098658' },
+      { token: 'keyword.json', foreground: '0000ff' },
+    ],
+    colors: {
+      'editor.background': '#ffffff',
+      'editor.foreground': '#000000',
+      'editorLineNumber.foreground': '#237893',
+      'editorLineNumber.activeForeground': '#0b216f',
+      'editor.selectionBackground': '#add6ff',
+      'editor.inactiveSelectionBackground': '#e5ebf1',
+      'editorCursor.foreground': '#000000',
+      'editorWhitespace.foreground': '#bfbfbf',
+      'editorIndentGuide.background': '#d3d3d3',
+      'editorIndentGuide.activeBackground': '#939393',
+    }
+  });
+
   // Note: setDefaultOptions doesn't exist in Monaco Editor
   // These options will be set per editor instance
 };
