@@ -700,38 +700,6 @@ const Dashboard: React.FC = () => {
         `}
       </style>
       
-      {isLoading && (
-      <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(255,255,255,0.8)',
-          backdropFilter: 'blur(4px)',
-        display: 'flex',
-        alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 9999
-        }}>
-          <div style={{
-            backgroundColor: 'white',
-            padding: '24px',
-            borderRadius: '12px',
-            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
-                display: 'flex',
-                alignItems: 'center',
-            gap: '12px',
-            border: '1px solid rgba(0, 0, 0, 0.1)'
-          }}>
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ animation: 'spin 1s linear infinite' }}>
-              <circle cx="12" cy="12" r="10"></circle>
-              <path d="M12 6v6l4 2"></path>
-            </svg>
-            <span style={{ color: '#374151', fontWeight: '500' }}>Loading...</span>
-            </div>
-              </div>
-            )}
       {/* Navbar */}
     
   
