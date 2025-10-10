@@ -847,6 +847,78 @@ const Dashboard: React.FC = () => {
                 <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
                 <h3 className="text-lg font-semibold text-gray-800">Latest Snapshot</h3>
               </div>
+              
+              {/* Zone Drawing Tools - Centered */}
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2 px-3 py-1 bg-blue-50 border border-blue-200 rounded-lg">
+                  <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                  <span className="text-sm font-medium text-blue-700">
+                    Mode: <span className="font-semibold text-blue-800">
+                      {currentZoneType === 'rectangle' ? 'Rectangle Zone' : 
+                        currentZoneType === 'rectangle-with-lanes' ? 'Rectangle Zone with Lanes' :
+                        currentZoneType === 'polygon' ? 'Polygon Zone' :
+                        currentZoneType === 'polygon-with-lanes' ? 'Polygon Zone with Lanes' : 'Unknown'}
+                    </span>
+                  </span>
+                </div>
+                
+                <div className="flex gap-2">
+                  <button 
+                    onClick={handleDrawZone}
+                    className="px-3 py-1.5 bg-gradient-to-r from-blue-600/20 to-blue-500/20 hover:from-blue-600/30 hover:to-blue-500/30 text-blue-400 rounded-lg border border-blue-500/30 transition-all duration-200 hover:shadow-lg hover:shadow-blue-500/10 font-medium flex items-center gap-1.5 text-sm"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="3" y="3" width="18" height="18" rx="2"></rect>
+                    </svg>
+                    Draw Zone
+                  </button>
+                  
+                  <button 
+                    onClick={handleDrawLane}
+                    className="px-3 py-1.5 bg-white hover:bg-gray-50 text-gray-700 rounded-lg border border-gray-300 transition-all duration-200 font-medium flex items-center gap-1.5 text-sm"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <line x1="5" y1="12" x2="19" y2="12"></line>
+                    </svg>
+                    Draw Lane
+                  </button>
+                  
+                  <button 
+                    onClick={handleUndo}
+                    className="px-3 py-1.5 bg-white hover:bg-gray-50 text-gray-700 rounded-lg border border-gray-300 transition-all duration-200 font-medium flex items-center gap-1.5 text-sm"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M9 14L4 9l5-5"></path>
+                      <path d="M4 9h16a2 2 0 0 1 2 2v4"></path>
+                    </svg>
+                    Undo
+                  </button>
+                  
+                  <button 
+                    onClick={handleRedo}
+                    className="px-3 py-1.5 bg-white hover:bg-gray-50 text-gray-700 rounded-lg border border-gray-300 transition-all duration-200 font-medium flex items-center gap-1.5 text-sm"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M14 9l5 5-5 5"></path>
+                      <path d="M20 14H4a2 2 0 0 1-2-2V8"></path>
+                    </svg>
+                    Redo
+                  </button>
+                  
+                  <button 
+                    onClick={handleClearAll}
+                    className="px-3 py-1.5 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded-lg border border-red-500/30 transition-all duration-200 hover:shadow-lg hover:shadow-red-500/10 font-medium flex items-center gap-1.5 text-sm"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <circle cx="12" cy="12" r="10"></circle>
+                      <path d="M15 9l-6 6"></path>
+                      <path d="M9 9l6 6"></path>
+                    </svg>
+                    Reset
+                  </button>
+                </div>
+              </div>
+              
               <button 
                 onClick={handleTakeSnapshot}
                 disabled={!selectedCamera || isLoading}
@@ -895,91 +967,6 @@ const Dashboard: React.FC = () => {
           </div>
         </div>
 
-        {/* Zone Drawing Tools - Full Width */}
-        <div className="mb-6">
-          <div className="bg-white/90 backdrop-blur-sm rounded-xl border border-blue-200/70 p-6 shadow-lg shadow-blue-200/30">
-            <div className="flex items-center space-x-2 mb-4">
-              <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-              <h4 className="text-base font-semibold text-gray-800">Zone Drawing Tools</h4>
-            </div>
-            
-            <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-              {/* Current Zone Type Indicator */}
-              <div className="lg:col-span-1">
-                <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg flex items-center gap-2">
-                  <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                  <span className="text-sm font-medium text-blue-700">
-                    Current Mode: <span className="font-semibold text-blue-800">
-                      {currentZoneType === 'rectangle' ? 'Rectangle Zone' : 
-                        currentZoneType === 'rectangle-with-lanes' ? 'Rectangle Zone with Lanes' :
-                        currentZoneType === 'polygon' ? 'Polygon Zone' :
-                        currentZoneType === 'polygon-with-lanes' ? 'Polygon Zone with Lanes' : 'Unknown'}
-                    </span>
-                  </span>
-                </div>
-              </div>
-              
-              {/* Drawing Tools */}
-              <div className="lg:col-span-3">
-                <div className="flex flex-wrap gap-3">
-                  <button 
-                    onClick={handleDrawZone}
-                    className="px-4 py-2 bg-gradient-to-r from-blue-600/20 to-blue-500/20 hover:from-blue-600/30 hover:to-blue-500/30 text-blue-400 rounded-lg border border-blue-500/30 transition-all duration-200 hover:shadow-lg hover:shadow-blue-500/10 font-medium flex items-center gap-2"
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <rect x="3" y="3" width="18" height="18" rx="2"></rect>
-                    </svg>
-                    Draw Zone
-                  </button>
-                  
-                  <button 
-                    onClick={handleDrawLane}
-                    className="px-4 py-2 bg-white hover:bg-gray-50 text-gray-700 rounded-lg border border-gray-300 transition-all duration-200 font-medium flex items-center gap-2"
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <line x1="5" y1="12" x2="19" y2="12"></line>
-                    </svg>
-                    Draw Lane
-                  </button>
-                  
-                  <button 
-                    onClick={handleUndo}
-                    className="px-4 py-2 bg-white hover:bg-gray-50 text-gray-700 rounded-lg border border-gray-300 transition-all duration-200 font-medium flex items-center gap-2"
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M9 14L4 9l5-5"></path>
-                      <path d="M4 9h16a2 2 0 0 1 2 2v4"></path>
-                    </svg>
-                    Undo
-                  </button>
-                  
-                  <button 
-                    onClick={handleRedo}
-                    className="px-4 py-2 bg-white hover:bg-gray-50 text-gray-700 rounded-lg border border-gray-300 transition-all duration-200 font-medium flex items-center gap-2"
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M14 9l5 5-5 5"></path>
-                      <path d="M20 14H4a2 2 0 0 1-2-2V8"></path>
-                    </svg>
-                    Redo
-                  </button>
-                  
-                  <button 
-                    onClick={handleClearAll}
-                    className="px-4 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded-lg border border-red-500/30 transition-all duration-200 hover:shadow-lg hover:shadow-red-500/10 font-medium flex items-center gap-2"
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <circle cx="12" cy="12" r="10"></circle>
-                      <path d="M15 9l-6 6"></path>
-                      <path d="M9 9l6 6"></path>
-                    </svg>
-                    Reset All
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
 
         {/* Dynamic Activity Parameters - Full Width */}
         {selectedActivity && (
@@ -1035,7 +1022,7 @@ const Dashboard: React.FC = () => {
               <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
               <h5 className="text-lg font-semibold text-gray-800">Coordinates & Analytics</h5>
             </div>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
             {/* Zone Coordinates */}
             <div className="bg-white/90 rounded-xl p-5 mb-5 border border-blue-200/60">
               <div className="flex items-center justify-between mb-4">
@@ -1050,8 +1037,12 @@ const Dashboard: React.FC = () => {
                       : zoneCoordinates.zones;
                     copyToClipboard(JSON.stringify(dataToCopy));
                   }}
-                  className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-xs font-medium transition-colors border border-gray-300"
+                  className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-sm font-medium transition-all duration-200 hover:shadow-md hover:shadow-blue-500/25 flex items-center gap-2"
                 >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                  </svg>
                   Copy
                 </button>
               </div>
@@ -1078,8 +1069,12 @@ const Dashboard: React.FC = () => {
                   </div>
                   <button 
                     onClick={() => copyToClipboard(JSON.stringify(zoneCoordinates.lanes))}
-                    className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-xs font-medium transition-colors border border-gray-300"
+                    className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-sm font-medium transition-all duration-200 hover:shadow-md hover:shadow-blue-500/25 flex items-center gap-2"
                   >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                    </svg>
                     Copy
                   </button>
                 </div>

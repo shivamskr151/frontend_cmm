@@ -88,7 +88,7 @@ export const DynamicActivityForm: React.FC<DynamicActivityFormProps> = ({
       console.error('Error in DynamicActivityForm useEffect:', error);
       setError(`Error loading activity configuration: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
-  }, [selectedActivity]); // Removed initialValues and onChange from dependencies to prevent infinite loops
+  }, [selectedActivity, initialValues, onChange]); // Include all dependencies
 
   const handleFieldChange = (fieldId: string, value: unknown) => {
     const newValues = { ...values, [fieldId]: value };
@@ -197,16 +197,25 @@ export const DynamicActivityForm: React.FC<DynamicActivityFormProps> = ({
         </p>
       </div>
 
-      {Object.entries(categories).map(([categoryName, fields]) => (
-        <div key={categoryName} className="bg-white rounded-lg border border-gray-200 p-6">
-          <h4 className="text-md font-semibold text-gray-800 mb-4 border-b border-gray-200 pb-2">
-            {categoryName}
-          </h4>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {fields.map(renderField)}
+      {Object.entries(categories).map(([categoryName, fields]) => {
+        // Special handling for Time Settings to make it full width
+        const isTimeSettings = categoryName === 'Time Settings';
+        const displayName = categoryName === 'Time Settings' ? 'Time Window' : categoryName;
+        
+        return (
+          <div key={categoryName} className={`${isTimeSettings ? 'bg-gradient-to-br from-blue-50/90 to-indigo-50/90 backdrop-blur-sm border border-blue-200/70 shadow-lg shadow-blue-200/30' : 'bg-white border border-gray-200'} rounded-xl p-6`}>
+            <div className="flex items-center space-x-2 mb-6">
+              <div className={`w-2 h-2 ${isTimeSettings ? 'bg-blue-500' : 'bg-gray-400'} rounded-full`}></div>
+              <h4 className={`text-lg font-semibold ${isTimeSettings ? 'text-gray-800' : 'text-gray-800'} border-b ${isTimeSettings ? 'border-blue-200/60' : 'border-gray-200'} pb-2 w-full`}>
+                {displayName}
+              </h4>
+            </div>
+            <div className={`grid gap-6 ${isTimeSettings ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2 gap-4'}`}>
+              {fields.map(renderField)}
+            </div>
           </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 };
