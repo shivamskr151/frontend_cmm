@@ -55,8 +55,8 @@ const Navbar=()=> {
 
   // Redirect to login if not authenticated (except for /moniter route)
   useEffect(() => {
-    if (!isAuthenticated && location.pathname !== '/login' ) {
-      navigate('/login');
+    if (!isAuthenticated && location.pathname !== '/login'  && location.pathname !== '/moniter' ) {
+      navigate('/');
     }
   }, [isAuthenticated, location.pathname, navigate]);
 
@@ -66,43 +66,35 @@ const Navbar=()=> {
 
   return (
     <div className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-b border-gray-200/60 shadow-lg shadow-gray-200/20 transition-all duration-300">
-      <div className="mx-4 px-4 sm:px-6">
-        <div className="flex items-center justify-between h-16">
+      <div className="sm:mx-4 px-1 sm:px-4 lg:px-6">
+        <div className=" w-full flex items-center justify-between h-14 sm:h-16 ">
           {/* Logo and Title */}
           <div 
-            className="flex items-center gap-3 cursor-pointer group"
+            className="flex items-center gap-2 sm:gap-3 cursor-pointer group"
             onClick={() => navigate('/')}
           >
-            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center text-white font-bold text-sm shadow-lg shadow-blue-500/25 group-hover:shadow-xl group-hover:shadow-blue-500/35 transition-all duration-300 group-hover:scale-105">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg sm:rounded-xl flex items-center justify-center text-white font-bold text-[10px] sm:text-sm shadow-lg shadow-blue-500/25 group-hover:shadow-xl group-hover:shadow-blue-500/35 transition-all duration-300 group-hover:scale-105">
               CMM
             </div>
             <div className="hidden sm:block">
               <div className="flex items-center gap-2">
-                <h1 className="text-xl font-bold text-gray-800 leading-tight">
+                <h1 className="text-lg sm:text-xl font-bold text-gray-800 leading-tight">
                   Camera Management Module
                 </h1>
-               
               </div>
-              
             </div>
           </div>
 
-          {/* Desktop Navigation - Show only the alternative button */}
-          <nav className="hidden md:flex items-center">
-           
-          </nav>
-
-          {/* Profile Section */}
-          <div className="flex items-center space-x-4 relative" ref={dropdownRef}>
-            {/* Navigation Buttons - Hide when mobile menu is open */}
-            {!showMobileMenu && navigationItems.map((item) => (
+          {/* Desktop Navigation - Show navigation items */}
+          <nav className="hidden md:flex items-center space-x-2 ">
+            {navigationItems.map((item) => (
               <button
                 key={item.path}
                 onClick={() => {
                   navigate(item.path);
                   setShowMobileMenu(false);
                 }}
-                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-300 border border-transparent ${
+                className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-300 border border-transparent ${
                   isActiveTab(item.path)
                     ? 'bg-blue-50 text-blue-700 border-blue-200 shadow-md shadow-blue-100/50'
                     : 'text-gray-600 hover:text-gray-800 hover:bg-gray-50 hover:border-gray-200 hover:shadow-md hover:shadow-gray-100/50'
@@ -121,12 +113,18 @@ const Navbar=()=> {
                 >
                   <path d={item.icon}></path>
                 </svg>
-                {item.label}
+                <span className="hidden lg:inline">{item.label}</span>
+                <span className="lg:hidden">{item.label.split(' ')[0]}</span>
               </button>
             ))}
+          </nav>
+
+          {/* Profile Section */}
+          <div className="flex items-center  relative" ref={dropdownRef}>
+            {/* Mobile Menu Toggle Button */}
             <button
               onClick={() => setShowMobileMenu(!showMobileMenu)}
-              className="md:hidden p-2 rounded-lg text-gray-600 hover:text-gray-800 hover:bg-gray-100 transition-colors duration-200"
+              className="md:hidden p-2 rounded-lg text-gray-600 hover:text-gray-800 hover:bg-gray-100 transition-all duration-200 border border-transparent hover:border-gray-200"
               title="Toggle mobile menu"
               aria-label="Toggle mobile menu"
             >
@@ -140,18 +138,25 @@ const Navbar=()=> {
                 strokeWidth="2"
                 strokeLinecap="round"
                 strokeLinejoin="round"
+                className={`transition-transform duration-200 ${showMobileMenu ? 'rotate-90' : ''}`}
               >
-                <line x1="3" y1="6" x2="21" y2="6"></line>
-                <line x1="3" y1="12" x2="21" y2="12"></line>
-                <line x1="3" y1="18" x2="21" y2="18"></line>
+                {showMobileMenu ? (
+                  <path d="M18 6L6 18M6 6l12 12"></path>
+                ) : (
+                  <>
+                    <line x1="3" y1="6" x2="21" y2="6"></line>
+                    <line x1="3" y1="12" x2="21" y2="12"></line>
+                    <line x1="3" y1="18" x2="21" y2="18"></line>
+                  </>
+                )}
               </svg>
             </button>
 
-            {/* Profile Icon - Only show if authenticated */}
+            {/* Profile Icon - Only show if authenticated and on medium screens and up */}
             {isAuthenticated && (
               <button
                 onClick={() => setShowProfileDropdown(!showProfileDropdown)}
-                className="p-2 cursor-pointer transition-all duration-200 hover:bg-gray-50 rounded-lg"
+                className="hidden md:block p-2 cursor-pointer transition-all duration-200 hover:bg-gray-50 rounded-lg"
               >
                 <div className="relative">
                   <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center text-white text-xs font-semibold shadow-md shadow-blue-500/25">
@@ -162,11 +167,11 @@ const Navbar=()=> {
               </button>
             )}
 
-            {/* Login Button - Show if not authenticated */}
+            {/* Login Button - Show if not authenticated and on medium screens and up */}
             {!isAuthenticated && (
               <button
                 onClick={() => navigate('/login')}
-                className="flex items-center gap-2 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-all duration-200 text-sm font-medium shadow-md shadow-blue-500/25 hover:shadow-lg hover:shadow-blue-500/35"
+                className="hidden md:flex items-center gap-2 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-all duration-200 text-sm font-medium shadow-md shadow-blue-500/25 hover:shadow-lg hover:shadow-blue-500/35"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path>
@@ -177,9 +182,9 @@ const Navbar=()=> {
               </button>
             )}
 
-            {/* Profile Dropdown - Only show if authenticated */}
+            {/* Profile Dropdown - Only show if authenticated and on medium screens and up */}
             {isAuthenticated && showProfileDropdown && (
-              <div className="absolute top-full right-0 mt-2 w-64 bg-white/95 backdrop-blur-md border border-gray-200/60 rounded-xl shadow-2xl shadow-gray-200/20 z-50 overflow-hidden">
+              <div className="hidden md:block absolute top-full right-0 mt-2 w-64 bg-white/95 backdrop-blur-md border border-gray-200/60 rounded-xl shadow-2xl shadow-gray-200/20 z-50 overflow-hidden">
                 <div className="px-4 py-3 border-b border-gray-200/50 bg-gray-50/50">
                   <div className="text-base font-semibold text-gray-800 mb-1">
                     {client?.name || 'User'}
@@ -216,8 +221,9 @@ const Navbar=()=> {
 
         {/* Mobile Navigation Menu */}
         {showMobileMenu && (
-          <div className="md:hidden border-t border-gray-200/50 py-4 bg-gray-50/50 backdrop-blur-sm">
-            <div className="flex flex-col space-y-1">
+          <div className="md:hidden border-t border-gray-200/50 py-4 bg-white/95 backdrop-blur-sm shadow-lg shadow-gray-200/20">
+            <div className="flex flex-col space-y-2">
+              {/* Navigation Items */}
               {navigationItems.map((item) => (
                 <button
                   key={item.path}
@@ -225,16 +231,16 @@ const Navbar=()=> {
                     navigate(item.path);
                     setShowMobileMenu(false);
                   }}
-                  className={`flex items-center gap-3 px-4 py-3 text-left text-base font-medium rounded-lg transition-all duration-200 ${
+                  className={`flex items-center gap-3 px-4 py-3 text-left text-sm font-medium rounded-xl transition-all duration-200 border ${
                     isActiveTab(item.path)
-                      ? 'bg-blue-50 text-blue-700 border border-blue-200 shadow-md shadow-blue-100/50'
-                      : 'text-gray-600 hover:bg-gray-100 hover:text-gray-800'
+                      ? 'bg-blue-50 text-blue-700 border-blue-200 shadow-md shadow-blue-100/50'
+                      : 'text-gray-600 hover:bg-gray-50 hover:text-gray-800 border-transparent hover:border-gray-200'
                   }`}
                 >
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
-                    width="20"
-                    height="20"
+                    width="18"
+                    height="18"
                     viewBox="0 0 24 24"
                     fill="none"
                     stroke={isActiveTab(item.path) ? '#1d4ed8' : 'currentColor'}
@@ -244,9 +250,73 @@ const Navbar=()=> {
                   >
                     <path d={item.icon}></path>
                   </svg>
-                  {item.label}
+                  <span className="flex-1">{item.label}</span>
+                  {isActiveTab(item.path) && (
+                    <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                  )}
                 </button>
               ))}
+
+              {/* Divider */}
+              <div className="border-t border-gray-200/50 my-2"></div>
+
+              {/* Profile/Login Section */}
+              {isAuthenticated ? (
+                <>
+                  {/* User Info */}
+                  <div className="px-4 py-3 bg-gray-50/50 rounded-xl border border-gray-200/50">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center text-white text-xs font-semibold shadow-md shadow-blue-500/25">
+                        {client?.name?.charAt(0).toUpperCase() || 'U'}
+                      </div>
+                      <div className="flex-1">
+                        <div className="text-sm font-semibold text-gray-800">
+                          {client?.name || 'User'}
+                        </div>
+                        <div className="text-xs text-gray-600">
+                          {client?.email || 'No email'}
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          Role: {client?.role || 'USER'}
+                        </div>
+                      </div>
+                      <div className="w-2 h-2 bg-green-400 rounded-full"></div>
+                    </div>
+                  </div>
+
+                  {/* Logout Button */}
+                  <button
+                    onClick={() => {
+                      handleLogout();
+                      setShowMobileMenu(false);
+                    }}
+                    className="flex items-center gap-3 px-4 py-3 text-left text-sm font-medium text-red-600 hover:bg-red-50 hover:text-red-700 rounded-xl transition-all duration-200 border border-transparent hover:border-red-200"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                      <polyline points="16,17 21,12 16,7"></polyline>
+                      <line x1="21" y1="12" x2="9" y2="12"></line>
+                    </svg>
+                    <span className="flex-1">Sign Out</span>
+                  </button>
+                </>
+              ) : (
+                /* Login Button */
+                <button
+                  onClick={() => {
+                    navigate('/login');
+                    setShowMobileMenu(false);
+                  }}
+                  className="flex items-center gap-3 px-4 py-3 text-left text-sm font-medium bg-blue-50 text-blue-700 hover:bg-blue-100 hover:text-blue-800 rounded-xl transition-all duration-200 border border-blue-200 cursor-pointer"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path>
+                    <polyline points="10,17 15,12 10,7"></polyline>
+                    <line x1="15" y1="12" x2="3" y2="12"></line>
+                  </svg>
+                  <span className="flex-1">Login</span>
+                </button>
+              )}
             </div>
           </div>
         )}

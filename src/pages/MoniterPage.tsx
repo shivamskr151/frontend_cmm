@@ -30,6 +30,7 @@ function MoniterPage() {
   const [SectionName, setSectionName] = useState('Joystick');
   const [showCameraDropdown, setShowCameraDropdown] = useState(false);
   const [showCameraModal, setShowCameraModal] = useState(false);
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
   // Use shared camera context instead of local state
   const { cameras, loadCameras, selectedCamera, setSelectedCamera, getSelectedCameraData } = useCameras();
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -326,7 +327,7 @@ function MoniterPage() {
       mode: "static",
       position: { left: "50%", top: "50%" },
       color: "#3b82f6",
-      size: 120,
+      size: window.innerWidth < 640 ? 80 : window.innerWidth < 1024 ? 100 : 120,
     });
 
     manager.on("move", (_evt, data) => handleJoystickMove(data));
@@ -362,15 +363,15 @@ function MoniterPage() {
   // Render
   // ----------------------
   return (
-    <div className="min-h-screen fixed inset-0 bg-gradient-to-br from-blue-50 via-white to-indigo-50">
+    <div className="min-h-screen  bg-gradient-to-br from-blue-50 via-white to-indigo-50 ">
       {/* Main Content */}
-      <div className="pt-16 p-6">
-        <div className={`grid grid-cols-3 gap-6 min-h-[calc(100vh-140px)]`}>
+      <div className="pt-14 p-2 sm:p-4 lg:pt-16">
+        <div className={`grid grid-cols-1 lg:grid-cols-3  sm:gap-4 lg:gap-6 min-h-[calc(100vh-140px)]`}>
 
           {/* Video Stream Section */}
-          <div className="lg:col-span-2 space-y-2 pt-2   ">
+          <div className="lg:col-span-2 space-y-2 pt-2 order-1 lg:order-1">
             {/* Connection Status & Speed Controls */}
-            <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-gray-200/50 p-4 shadow-lg shadow-gray-200/20">
+            <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-gray-200/50 p-2 sm:p-4 shadow-lg shadow-gray-200/20">
              
            
                 <>
@@ -416,23 +417,23 @@ function MoniterPage() {
                   </div>
 
                   {/* Speed Controls */}
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-2 gap-2 sm:gap-4">
                     {Object.keys(speeds).map((label, idx) => (
                       <div key={idx} className="space-y-0.5">
                         <div className="flex items-center justify-between">
-                          <label className="text-xs font-medium text-gray-600 flex items-center gap-2">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <label className="text-xs font-medium text-gray-600 flex items-center gap-1">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                               <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"></path>
                             </svg>
-                            {label} Speed
+                            {label}
                           </label>
-                          <div className="px-2 bg-gray-100 rounded-lg text-xs font-mono text-gray-700 border border-gray-300">
+                          <div className="px-1.5 sm:px-2 bg-gray-100 rounded text-xs font-mono text-gray-700 border border-gray-300">
                             {speeds[label as keyof typeof speeds].toFixed(1)}
                           </div>
                         </div>
 
-                        {/* Enhanced Speed Bar */}
-                        <div className="relative">
+                        {/* Speed Bar - Hidden on small screens */}
+                        <div className="hidden sm:block relative">
                           <div className="h-2 bg-gray-200 rounded-full overflow-hidden border border-gray-300">
                             <div
                               className="h-full bg-gradient-to-r from-blue-500 via-blue-400 to-blue-300 rounded-full transition-all duration-300 shadow-sm"
@@ -454,7 +455,7 @@ function MoniterPage() {
 
             {/* Video Player - Only show when camera is selected */}
            
-              <div className="bg-white/80 backdrop-blur-sm h-[calc(92vh-140px)] rounded-xl border border-gray-200/50 shadow-2xl shadow-gray-200/20">
+              <div className="bg-white/80 backdrop-blur-sm h-[calc(50vh-80px)] sm:h-[calc(60vh-100px)] lg:h-[calc(92vh-140px)] rounded-xl border border-gray-200/50 shadow-2xl shadow-gray-200/20">
                 <div className="aspect-video h-full w-full bg-gray-100 relative overflow-hidden rounded-xl">
                   <video
                     src="https://www.w3schools.com/html/mov_bbb.mp4"
@@ -462,9 +463,9 @@ function MoniterPage() {
                     className="w-full h-full object-cover"
                   />
                   {/* Video Overlay Info */}
-                  <div className="absolute top-4 left-4 bg-white/90 backdrop-blur-sm rounded-lg px-3 py-2 border border-gray-300 z-10 shadow-lg">
-                    <div className="flex items-center gap-2 text-sm text-gray-700">
-                      <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
+                  <div className="absolute top-2 left-2 sm:top-4 sm:left-4 bg-white/90 backdrop-blur-sm rounded-lg px-2 py-1 sm:px-3 sm:py-2 border border-gray-300 z-10 shadow-lg">
+                    <div className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm text-gray-700">
+                      <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-red-500 rounded-full animate-pulse"></div>
                       <span>LIVE</span>
                       <span className="text-gray-500">•</span>
                       <span className="text-gray-500">1080p</span>
@@ -477,26 +478,28 @@ function MoniterPage() {
 
           {/* Control Panel - Only show when camera is selected */}
         
-            <div className="space-y-2 pt-2 overflow-visible">
+            <div className="space-y-2 pt-2 overflow-visible order-2 lg:order-2">
+
               {/* Section Toggle */}
               <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-gray-200/50 p-2 shadow-lg shadow-gray-200/20 overflow-visible">
-                <div className="flex items-center justify-between mb-4">
+                {/* Header and Camera Selection - Hidden on small screens */}
+                <div className="hidden sm:flex flex-row items-center justify-between mb-4 gap-2">
                   <div className="flex items-center space-x-2">
                     <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
                     <h3 className="text-sm font-semibold text-gray-700">PTZ Control Panel</h3>
                   </div>
                   
                   {/* Camera Selection Dropdown */}
-                  <div className="relative z-10" ref={dropdownRef}>
+                  <div className="relative z-10 w-auto" ref={dropdownRef}>
                     <button
                       onClick={() => setShowCameraModal(true)}
-                      className="px-3 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg border border-gray-300 text-xs transition-colors flex items-center gap-2"
+                      className="px-3 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg border border-gray-300 text-xs transition-colors flex items-center justify-start gap-2"
                     >
                       <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
                         <circle cx="12" cy="13" r="4"></circle>
                       </svg>
-                      {cameras.find(cam => cam.id === selectedCamera)?.appName || 'Select Camera'}
+                      <span className="truncate">{cameras.find(cam => cam.id === selectedCamera)?.appName || 'Select Camera'}</span>
                       <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <polyline points="6,9 12,15 18,9"></polyline>
                       </svg>
@@ -548,15 +551,72 @@ function MoniterPage() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-3 gap-2">
+                {/* Mobile Dropdown - Always visible on small screens */}
+                <div className="sm:hidden space-y-2">
+                  {/* Camera Selection Button */}
+                  <div className="flex items-center justify-between gap-3">
+                    <h3 className="text-xs font-semibold text-gray-700 flex items-center gap-1">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+                        <circle cx="12" cy="13" r="4"></circle>
+                      </svg>
+                      Camera
+                    </h3>
+                    <button
+                      onClick={() => setShowCameraModal(true)}
+                      className="flex-1 max-w-32 px-2 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-md text-xs transition-colors flex items-center justify-between gap-1 border border-gray-300"
+                    >
+                      <span className="truncate text-left">
+                        {cameras.find(cam => cam.id === selectedCamera)?.appName || 'Select Camera'}
+                      </span>
+                      <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="6,9 12,15 18,9"></polyline>
+                      </svg>
+                    </button>
+                  </div>
+
+                  {/* Control Type Selection */}
+                  <div className="flex items-center justify-between gap-3">
+                    <h3 className="text-xs font-semibold text-gray-700 flex items-center gap-1">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <circle cx="12" cy="12" r="3"></circle>
+                        <path d="M12 1v6m0 6v6m11-7h-6m-6 0H1"></path>
+                      </svg>
+                      Controls
+                    </h3>
+                    <div className="relative flex-1 max-w-32">
+                      <select
+                        value={SectionName}
+                        onChange={(e) => {
+                          setSectionName(e.target.value as 'Joystick' | 'Preset' | 'Patrol');
+                        }}
+                        className="w-full px-2 py-1.5 bg-white border border-gray-300 rounded-md text-xs text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 appearance-none cursor-pointer transition-colors"
+                      >
+                        <option value="Joystick">🎮 Joystick</option>
+                        <option value="Preset">📋 Preset</option>
+                        <option value="Patrol">🛡️ Patrol</option>
+                      </select>
+                      
+                      {/* Custom Dropdown Arrow */}
+                      <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="6,9 12,15 18,9"></polyline>
+                        </svg>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Desktop Section Toggle - Only show on larger screens */}
+                <div className="hidden sm:grid grid-cols-3 gap-2">
                   <button
                     onClick={() => setSectionName('Joystick')}
-                    className={`px-4 py-3 rounded-lg text-sm font-medium transition-all duration-300 flex items-center justify-center gap-2 ${SectionName === 'Joystick'
+                    className={`px-3 sm:px-4 py-2 sm:py-3 rounded-lg text-xs sm:text-sm font-medium transition-all duration-300 flex items-center justify-center gap-2 ${SectionName === 'Joystick'
                         ? 'bg-blue-100 text-blue-700 border border-blue-300 shadow-lg shadow-blue-200/50'
                         : 'bg-gray-100 text-gray-600 hover:bg-gray-200 hover:text-gray-800 border border-transparent hover:border-gray-300'
                       }`}
                   >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <circle cx="12" cy="12" r="3"></circle>
                       <path d="M12 1v6m0 6v6m11-7h-6m-6 0H1"></path>
                     </svg>
@@ -565,12 +625,12 @@ function MoniterPage() {
 
                   <button
                     onClick={() => setSectionName('Preset')}
-                    className={`px-4 py-3 rounded-lg text-sm font-medium transition-all duration-300 flex items-center justify-center gap-2 ${SectionName === 'Preset'
+                    className={`px-3 sm:px-4 py-2 sm:py-3 rounded-lg text-xs sm:text-sm font-medium transition-all duration-300 flex items-center justify-center gap-2 ${SectionName === 'Preset'
                         ? 'bg-blue-100 text-blue-700 border border-blue-300 shadow-lg shadow-blue-200/50'
                         : 'bg-gray-100 text-gray-600 hover:bg-gray-200 hover:text-gray-800 border border-transparent hover:border-gray-300'
                       }`}
                   >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M3 3h18v18H3zM9 9h6v6H9z"></path>
                     </svg>
                     Preset
@@ -578,12 +638,12 @@ function MoniterPage() {
 
                   <button
                     onClick={() => setSectionName('Patrol')}
-                    className={`px-4 py-3 rounded-lg text-sm font-medium transition-all duration-300 flex items-center justify-center gap-2 ${SectionName === 'Patrol'
+                    className={`px-3 sm:px-4 py-2 sm:py-3 rounded-lg text-xs sm:text-sm font-medium transition-all duration-300 flex items-center justify-center gap-2 ${SectionName === 'Patrol'
                         ? 'bg-blue-100 text-blue-700 border border-blue-300 shadow-lg shadow-blue-200/50'
                         : 'bg-gray-100 text-gray-600 hover:bg-gray-200 hover:text-gray-800 border border-transparent hover:border-gray-300'
                       }`}
                   >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"></path>
                     </svg>
                     Patrol
@@ -592,27 +652,27 @@ function MoniterPage() {
               </div>
 
               {/* PTZ Control */}
-              {SectionName == "Joystick" && <div className="bg-white/80 h-[calc(93vh-140px)] backdrop-blur-sm rounded-xl border border-gray-200/50 p-6 shadow-lg shadow-gray-200/20">
-                <div className="flex items-center space-x-2 mb-6">
+              {SectionName == "Joystick" && <div className="bg-white/80 h-[calc(50vh-80px)] md:h-[calc(81vh-80px)] backdrop-blur-sm rounded-xl border border-gray-200/50 p-3 sm:p-6 shadow-lg shadow-gray-200/20 overflow-y-auto">
+                <div className="flex items-center space-x-2 mb-4 sm:mb-6">
                   <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                  <h3 className="text-sm font-semibold text-gray-700">Joystick Control</h3>
+                  <h3 className="text-xs md:text-sm font-semibold text-gray-700">Joystick Control</h3>
                 </div>
 
                 {/* Joystick Container */}
-                <div className="flex justify-center mb-6">
-                  <div className="relative w-52 h-52 bg-gray-100 rounded-full border-2 border-gray-300 shadow-inner backdrop-blur-sm">
+                <div className="flex justify-center mb-4 sm:mb-6">
+                  <div className="relative w-40 h-40 sm:w-48 sm:h-48 lg:w-52 lg:h-52 bg-gray-100 rounded-full border-2 border-gray-300 shadow-inner backdrop-blur-sm">
                     <div ref={joystickRef} className="absolute inset-0 rounded-full"></div>
 
                     {/* Center indicator */}
                     <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                      <div className="w-4 h-4 bg-gray-300 rounded-full border border-gray-400"></div>
+                      <div className="w-3 h-3 sm:w-4 sm:h-4 bg-gray-300 rounded-full border border-gray-400"></div>
                     </div>
 
                     {/* Direction indicators */}
-                    <div className="absolute top-3 left-1/2 transform -translate-x-1/2 text-gray-600 text-sm font-medium">↑</div>
-                    <div className="absolute bottom-3 left-1/2 transform -translate-x-1/2 text-gray-600 text-sm font-medium">↓</div>
-                    <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-600 text-sm font-medium">←</div>
-                    <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-600 text-sm font-medium">→</div>
+                    <div className="absolute top-2 sm:top-3 left-1/2 transform -translate-x-1/2 text-gray-600 text-xs sm:text-sm font-medium">↑</div>
+                    <div className="absolute bottom-2 sm:bottom-3 left-1/2 transform -translate-x-1/2 text-gray-600 text-xs sm:text-sm font-medium">↓</div>
+                    <div className="absolute left-2 sm:left-3 top-1/2 transform -translate-y-1/2 text-gray-600 text-xs sm:text-sm font-medium">←</div>
+                    <div className="absolute right-2 sm:right-3 top-1/2 transform -translate-y-1/2 text-gray-600 text-xs sm:text-sm font-medium">→</div>
 
                     {/* Grid lines */}
                     <div className="absolute inset-0 pointer-events-none">
@@ -623,17 +683,17 @@ function MoniterPage() {
                 </div>
 
                 {/* Zoom Control */}
-                <div className="space-y-4">
-                  <div className="bg-gray-100 rounded-lg p-4 border border-gray-300">
+                <div className="space-y-3 sm:space-y-4">
+                  <div className="bg-gray-100 rounded-lg p-3 sm:p-4 border border-gray-300">
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-xs font-medium text-gray-600 flex items-center gap-2">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <span className="text-xs  text-gray-600 flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                           <circle cx="11" cy="11" r="8"></circle>
                           <path d="M21 21l-4.35-4.35"></path>
                         </svg>
                         Zoom Level
                       </span>
-                      <div className="px-2 bg-gray-200 rounded-lg text-sm font-mono text-gray-700 border border-gray-400">
+                      <div className="px-1 bg-gray-200 rounded-lg text-xs sm:text-sm font-mono text-gray-700 border border-gray-400">
                         {zoomLevel}%
                       </div>
                     </div>
@@ -646,7 +706,7 @@ function MoniterPage() {
                         max="100"
                         value={zoomLevel}
                         onChange={(e) => handleZoomChange(parseInt(e.target.value))}
-                        className="w-full h-2 bg-gray-300 rounded-lg appearance-none cursor-pointer slider border border-gray-400"
+                        className="w-full h-1 md:h-2 bg-gray-300 rounded-lg appearance-none cursor-pointer slider border border-gray-400"
                         title="Zoom level control"
                         aria-label="Camera zoom level"
                         aria-valuemin={0}
@@ -658,7 +718,7 @@ function MoniterPage() {
                       />
 
                       {/* Zoom Labels */}
-                      <div className="flex justify-between text-xs text-gray-500 ">
+                      <div className="flex justify-between text-xs text-gray-500">
                         <span>0%</span>
                         <span>25%</span>
                         <span>50%</span>
@@ -669,28 +729,28 @@ function MoniterPage() {
                   </div>
 
                   {/* Quick Zoom Buttons */}
-                  <div className="grid grid-cols-4 gap-2">
+                  <div className="grid grid-cols-4 sm:grid-cols-4 gap-2">
                     <button
                       onClick={() => handleZoomChange(0)}
-                      className="px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium transition-all duration-200 border border-gray-300 hover:border-gray-400"
+                      className="px-1 sm:px-3 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-[10px] sm:text-sm font-medium transition-all duration-200 border border-gray-300 hover:border-gray-400"
                     >
                       Reset
                     </button>
                     <button
                       onClick={() => handleZoomChange(25)}
-                      className="px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium transition-all duration-200 border border-gray-300 hover:border-gray-400"
+                      className="px-1 sm:px-3 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-[10px] sm:text-sm font-medium transition-all duration-200 border border-gray-300 hover:border-gray-400"
                     >
                       25%
                     </button>
                     <button
                       onClick={() => handleZoomChange(50)}
-                      className="px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium transition-all duration-200 border border-gray-300 hover:border-gray-400"
+                      className="px-1 sm:px-3 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-[10px] sm:text-sm font-medium transition-all duration-200 border border-gray-300 hover:border-gray-400"
                     >
                       50%
                     </button>
                     <button
                       onClick={() => handleZoomChange(100)}
-                      className="px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium transition-all duration-200 border border-gray-300 hover:border-gray-400"
+                      className="px-1 sm:px-3 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-[10px] sm:text-sm font-medium transition-all duration-200 border border-gray-300 hover:border-gray-400"
                     >
                       100%
                     </button>
@@ -700,17 +760,17 @@ function MoniterPage() {
 
 
               {/* Preset Controls */}
-              {SectionName == "Preset" && <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-gray-200/50 overflow-hidden shadow-lg shadow-gray-200/20 flex flex-col h-[calc(93vh-140px)]">
-                <div className="flex items-center space-x-2 p-4 border-b border-gray-300">
+              {SectionName == "Preset" && <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-gray-200/50 overflow-hidden shadow-lg shadow-gray-200/20 flex flex-col h-[calc(80vh-80px)] sm:h-[calc(60vh-100px)] md:h-[calc(70vh-120px)] lg:h-[calc(81vh-80px)]">
+                <div className="flex items-center space-x-2 p-3 sm:p-4 border-b border-gray-300">
                   <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
                   <h3 className="text-sm font-semibold text-gray-700">Preset Management</h3>
                 </div>
 
                 {/* Content */}
-                <div className="p-4 space-y-4 flex-1 overflow-y-auto">
+                <div className="p-3 sm:p-4 space-y-2 sm:space-y-4 flex-1  overflow-y-auto">
                   {/* Add New Preset Form */}
                   <div className="bg-gray-100 rounded-lg p-3 border border-gray-300">
-                    <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center justify-between ">
                       <h4 className="text-xs font-semibold text-gray-600 flex items-center gap-2">
                         <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                           <path d="M12 5v14M5 12h14"></path>
@@ -863,7 +923,7 @@ function MoniterPage() {
 
                     {/* Bulk Actions - Show when presets are selected */}
                     {selectedPresets.length > 0 && (
-                      <div className="mb-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                      <div className="mb-4 p-3 bg-blue-50 rounded-lg">
                         <div className="flex items-center justify-between">
                           <span className="text-sm text-blue-700">
                             {selectedPresets.length} preset{selectedPresets.length > 1 ? 's' : ''} selected
@@ -885,11 +945,11 @@ function MoniterPage() {
                       </div>
                     )}
 
-                    <div className="grid grid-cols-2 gap-2 h-[calc(74vh-200px)] overflow-y-auto custom-scrollbar">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 h-full  lg:h-[calc(74vh-200px)] overflow-y-auto custom-scrollbar">
                       {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((preset) => (
                         <div
                           key={preset}
-                          className={`group relative px-3 py-2 bg-gradient-to-br from-gray-100 to-gray-200 hover:from-gray-200 hover:to-gray-300 text-gray-700 rounded-lg border border-gray-300 transition-all duration-200 hover:shadow-md hover:scale-[1.02] active:scale-[0.98] ${
+                          className={`group relative px-2 sm:px-3 py-2 bg-gradient-to-br from-gray-100 to-gray-200 hover:from-gray-200 hover:to-gray-300 text-gray-700 rounded-lg border border-gray-300 transition-all duration-200 hover:shadow-md hover:scale-[1.02] active:scale-[0.98] ${
                             selectedPresets.includes(preset) ? 'bg-blue-50' : ''
                           }`}
                         >
@@ -904,15 +964,15 @@ function MoniterPage() {
                             
                             {/* Preset Info */}
                             <div className="flex-1 flex items-center justify-between">
-                              <div className="text-left">
+                              <div className="text-left ">
                                 <div className="text-xs font-medium">P{preset}</div>
                                 <div className="text-xs text-gray-500">0.5, 0.3</div>
                               </div>
                               <div className="flex items-center gap-1">
-                                <div className="w-1.5 h-1.5 bg-green-500 rounded-full opacity-60 group-hover:opacity-100 transition-opacity"></div>
+                               
                                 
                                 {/* Action Buttons */}
-                                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <div className="flex items-center gap-1 transition-opacity">
                                   <button
                                     onClick={() => handleEditPreset({ id: preset, name: `P${preset}`, pan: 0.5, tilt: 0.3, zoom: 50 })}
                                     className="p-1 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded transition-all duration-200"
@@ -950,8 +1010,8 @@ function MoniterPage() {
 
 
               {/* Patrol Controls */}
-              {SectionName == "Patrol" && <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-gray-200/50 overflow-hidden shadow-lg shadow-gray-200/20 h-[calc(93vh-140px)]">
-                <div className="flex items-center justify-between p-2 border-b border-gray-300">
+              {SectionName == "Patrol" && <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-gray-200/50 overflow-hidden shadow-lg shadow-gray-200/20 h-[calc(80vh-80px)] lg:h-[calc(82vh-80px)]">
+                <div className="flex  sm:flex-row items-start sm:items-center justify-between p-2 border-b border-gray-300 gap-2">
                   <div className="flex items-center space-x-2">
                     <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
                     <h3 className="text-sm font-semibold text-gray-700">Patrol System</h3>
@@ -971,57 +1031,13 @@ function MoniterPage() {
                 </div>
 
                 {/* Content */}
-                <div className="p-6 space-y-6">
-                  {/* Status Panel */}
-                  {/* <div className="bg-gray-100 rounded-lg  border border-gray-300">
-                    <div className="flex items-center justify-between ">
-                      <span className="text-xs font-medium text-gray-600 flex items-center gap-2">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <circle cx="12" cy="12" r="10"></circle>
-                          <path d="M12 6v6l4 2"></path>
-                        </svg>
-                        System Status
-                      </span>
-                      <div className="flex items-center space-x-2">
-                        <div className={`w-2 h-2 rounded-full ${patrolStatus === 'running' ? 'bg-green-500 animate-pulse' :
-                          patrolStatus === 'paused' ? 'bg-yellow-500' : 'bg-gray-500'
-                          }`}></div>
-                        <span className="text-xs text-gray-600">
-                          {patrolStatus === 'running' ? 'Patrol Active' :
-                            patrolStatus === 'paused' ? 'Patrol Paused' : 'System Ready'}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Enhanced Progress Bar */}
-                    {/* {patrolStatus !== 'idle' && (
-                      <div className="space-y-3">
-                        <div className="flex justify-between text-sm text-gray-500">
-                          <span>Step {currentPatrolStep + 1} of 4</span>
-                          <span>{patrolProgress}% Complete</span>
-                        </div>
-                        <div className="h-3 bg-gray-300 rounded-full overflow-hidden border border-gray-400">
-                          <div
-                            className="h-full bg-gradient-to-r from-blue-500 via-blue-400 to-blue-300 rounded-full transition-all duration-500 shadow-sm"
-                            style={{ width: `${patrolProgress}%` }}
-                          ></div>
-                        </div>
-                      </div>
-                    )}
-                  </div>  */}
-
-                  {/* Patrol Patterns */}
-                  <div>
-                    <div className="flex items-center justify-between mb-4">
-                      <h4 className="text-sm font-semibold text-gray-600 flex items-center gap-2">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"></path>
-                        </svg>
-                        Available Patterns
-                      </h4>
+                <div className="flex flex-col h-[calc(100%-40px)]">
+                  {/* Patrol Patterns Section */}
+                  <div className="flex-1 py-0.5 px-0.5  overflow-hidden">
+                    <div className="flex items-center justify-end ">
                       
                       {/* Select All Checkbox */}
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2  p-3">
                         <input
                           type="checkbox"
                           checked={selectedPatrolPatterns.length === patrolPatterns.length && patrolPatterns.length > 0}
@@ -1032,52 +1048,17 @@ function MoniterPage() {
                       </div>
                     </div>
 
-                    {/* Bulk Actions - Show when patterns are selected */}
-                    {/* {selectedPatrolPatterns.length > 0 && (
-                      <div className="mb-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm text-blue-700">
-                            {selectedPatrolPatterns.length} pattern{selectedPatrolPatterns.length > 1 ? 's' : ''} selected
-                          </span>
-                          <div className="flex items-center gap-2">
-                            <button
-                              onClick={() => {
-                                const firstSelected = patrolPatterns.find(p => selectedPatrolPatterns.includes(p.id));
-                                if (firstSelected) handleEditPatrolPattern(firstSelected);
-                              }}
-                              className="px-3 py-1 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded text-xs font-medium transition-all duration-200 border border-blue-300 flex items-center gap-1"
-                            >
-                              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-                              </svg>
-                              Edit
-                            </button>
-                            <button
-                              onClick={handleDeleteSelectedPatrolPatterns}
-                              className="px-3 py-1 bg-red-100 hover:bg-red-200 text-red-700 rounded text-xs font-medium transition-all duration-200 border border-red-300 flex items-center gap-1"
-                            >
-                              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <polyline points="3,6 5,6 21,6"></polyline>
-                                <path d="M19,6v14a2,2 0 0,1 -2,2H7a2,2 0 0,1 -2,-2V6m3,0V4a2,2 0 0,1 2,-2h4a2,2 0 0,1 2,2v2"></path>
-                              </svg>
-                              Delete
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    )} */}
-
-                    <div className="space-y-3 max-h-80 overflow-y-auto custom-scrollbar">
+                    <div className="space-y-2 h-[calc(100%-60px)] overflow-y-auto custom-scrollbar">
                       {patrolPatterns.slice(0, 12).map((pattern) => (
                         <div
                           key={pattern.id}
-                          className={`w-full p-4 bg-gradient-to-r from-gray-100 to-gray-200 hover:from-gray-200 hover:to-gray-300 text-gray-700 rounded-lg border border-gray-300 transition-all duration-200 hover:shadow-md group ${
+                          className={`w-full   bg-gradient-to-r from-gray-100 to-gray-200 hover:from-gray-200 hover:to-gray-300 text-gray-700 rounded-lg border border-gray-300 transition-all duration-200 hover:shadow-md group ${
                             selectedPatrolPatterns.includes(pattern.id) ? ' bg-blue-50' : ''
                           }`}
                         >
-                          <div className="flex items-center gap-3">
+                          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3 p-2 ">
                             {/* Checkbox */}
+                            <div className="flex gap-2 justify-center items-center ">
                             <input
                               type="checkbox"
                               checked={selectedPatrolPatterns.includes(pattern.id)}
@@ -1086,37 +1067,35 @@ function MoniterPage() {
                             />
                             
                             {/* Pattern Info */}
-                            <div className="flex-1 flex justify-between items-center">
+                            <div className="flex-1 flex  sm:flex-row justify-between items-start sm:items-center w-full">
                               <div className="text-left">
                                 <div className="text-sm font-medium">{pattern.name}</div>
                                 <div className="text-xs text-gray-500">
                                   Pan: {pattern.pan} • Tilt: {pattern.tilt} • Zoom: {pattern.zoom}%
                                 </div>
                               </div>
-                              <div className="flex items-center space-x-2">
-                                <div className="w-2 h-2 bg-blue-500 rounded-full opacity-60 group-hover:opacity-100 transition-opacity"></div>
-                                <span className="text-xs text-gray-500">{pattern.zoom}%</span>
-                              </div>
+                              
+                            </div>
                             </div>
 
                             {/* Action Buttons */}
-                            <div className="flex items-center gap-1">
+                            <div className="flex items-center gap-1 w-full sm:w-auto justify-end sm:justify-start">
                               <button
                                 onClick={() => startPatrol(pattern.id)}
                                 disabled={patrolStatus === 'running'}
-                                className="p-2 bg-green-100 hover:bg-green-200 disabled:bg-gray-100 disabled:cursor-not-allowed text-green-700 disabled:text-gray-400 rounded transition-all duration-200"
+                                className="p-1.5 sm:p-2 bg-green-100 hover:bg-green-200 disabled:bg-gray-100 disabled:cursor-not-allowed text-green-700 disabled:text-gray-400 rounded transition-all duration-200"
                                 title="Start Patrol"
                               >
-                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                   <polygon points="5,3 19,12 5,21"></polygon>
                                 </svg>
                               </button>
                               <button
                                 onClick={() => handleEditPatrolPattern(pattern)}
-                                className="p-2 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded transition-all duration-200"
+                                className="p-1.5 sm:p-2 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded transition-all duration-200"
                                 title="Edit Pattern"
                               >
-                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                   <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
                                   <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
                                 </svg>
@@ -1128,10 +1107,10 @@ function MoniterPage() {
                                     // Here you would typically make an API call to delete the pattern
                                   }
                                 }}
-                                className="p-2 bg-red-100 hover:bg-red-200 text-red-700 rounded transition-all duration-200"
+                                className="p-1.5 sm:p-2 bg-red-100 hover:bg-red-200 text-red-700 rounded transition-all duration-200"
                                 title="Delete Pattern"
                               >
-                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                   <polyline points="3,6 5,6 21,6"></polyline>
                                   <path d="M19,6v14a2,2 0 0,1 -2,2H7a2,2 0 0,1 -2,-2V6m3,0V4a2,2 0 0,1 2,-2h4a2,2 0 0,1 2,2v2"></path>
                                 </svg>
@@ -1143,62 +1122,64 @@ function MoniterPage() {
                     </div>
                   </div>
 
-                  {/* Control Buttons */}
-                  <div className="grid grid-cols-2 gap-3">
-                    {patrolStatus === 'idle' ? (
-                      <button
-                        onClick={() => startPatrol(1)}
-                        className="px-4 py-3 bg-gradient-to-r from-green-100 to-green-200 hover:from-green-200 hover:to-green-300 text-green-700 rounded-lg border border-green-300 transition-all duration-200 hover:shadow-lg hover:shadow-green-200/50 text-sm font-medium flex items-center justify-center gap-2"
-                      >
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <polygon points="5,3 19,12 5,21"></polygon>
-                        </svg>
-                        Start Patrol
-                      </button>
-                    ) : patrolStatus === 'running' ? (
-                      <>
+                  {/* Control Buttons - Always visible at bottom */}
+                  <div className="p-2 border-t border-gray-200/50 bg-gray-50/30 ">
+                    <div className="grid grid-cols-1 sm:grid-cols-2  w-full">
+                      {patrolStatus === 'idle' ? (
                         <button
-                          onClick={pausePatrol}
-                          className="px-4 py-3 bg-gradient-to-r from-yellow-100 to-yellow-200 hover:from-yellow-200 hover:to-yellow-300 text-yellow-700 rounded-lg border border-yellow-300 transition-all duration-200 hover:shadow-lg hover:shadow-yellow-200/50 text-sm font-medium flex items-center justify-center gap-2"
+                          onClick={() => startPatrol(1)}
+                          className="px-3 sm:px-4 py-2 sm:py-3 bg-gradient-to-r from-green-100 to-green-200 hover:from-green-200 hover:to-green-300 text-green-700 rounded-lg border border-green-300 transition-all duration-200 hover:shadow-lg hover:shadow-green-200/50 text-xs sm:text-sm font-medium flex items-center justify-center gap-2"
                         >
-                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <rect x="6" y="4" width="4" height="16"></rect>
-                            <rect x="14" y="4" width="4" height="16"></rect>
-                          </svg>
-                          Pause
-                        </button>
-                        <button
-                          onClick={stopPatrol}
-                          className="px-4 py-3 bg-gradient-to-r from-red-100 to-red-200 hover:from-red-200 hover:to-red-300 text-red-700 rounded-lg border border-red-300 transition-all duration-200 hover:shadow-lg hover:shadow-red-200/50 text-sm font-medium flex items-center justify-center gap-2"
-                        >
-                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <rect x="6" y="6" width="12" height="12"></rect>
-                          </svg>
-                          Stop
-                        </button>
-                      </>
-                    ) : (
-                      <>
-                        <button
-                          onClick={resumePatrol}
-                          className="px-4 py-3 bg-gradient-to-r from-green-100 to-green-200 hover:from-green-200 hover:to-green-300 text-green-700 rounded-lg border border-green-300 transition-all duration-200 hover:shadow-lg hover:shadow-green-200/50 text-sm font-medium flex items-center justify-center gap-2"
-                        >
-                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                             <polygon points="5,3 19,12 5,21"></polygon>
                           </svg>
-                          Resume
+                          Start Patrol
                         </button>
-                        <button
-                          onClick={stopPatrol}
-                          className="px-4 py-3 bg-gradient-to-r from-red-100 to-red-200 hover:from-red-200 hover:to-red-300 text-red-700 rounded-lg border border-red-300 transition-all duration-200 hover:shadow-lg hover:shadow-red-200/50 text-sm font-medium flex items-center justify-center gap-2"
-                        >
-                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <rect x="6" y="6" width="12" height="12"></rect>
-                          </svg>
-                          Stop
-                        </button>
-                      </>
-                    )}
+                      ) : patrolStatus === 'running' ? (
+                        <>
+                          <button
+                            onClick={pausePatrol}
+                            className="px-3 sm:px-4 py-2 sm:py-3 bg-gradient-to-r from-yellow-100 to-yellow-200 hover:from-yellow-200 hover:to-yellow-300 text-yellow-700 rounded-lg border border-yellow-300 transition-all duration-200 hover:shadow-lg hover:shadow-yellow-200/50 text-xs sm:text-sm font-medium flex items-center justify-center gap-2"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <rect x="6" y="4" width="4" height="16"></rect>
+                              <rect x="14" y="4" width="4" height="16"></rect>
+                            </svg>
+                            Pause
+                          </button>
+                          <button
+                            onClick={stopPatrol}
+                            className="px-3 sm:px-4 py-2 sm:py-3 bg-gradient-to-r from-red-100 to-red-200 hover:from-red-200 hover:to-red-300 text-red-700 rounded-lg border border-red-300 transition-all duration-200 hover:shadow-lg hover:shadow-red-200/50 text-xs sm:text-sm font-medium flex items-center justify-center gap-2"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <rect x="6" y="6" width="12" height="12"></rect>
+                            </svg>
+                            Stop
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <button
+                            onClick={resumePatrol}
+                            className="px-3 sm:px-4 py-2 sm:py-3 bg-gradient-to-r from-green-100 to-green-200 hover:from-green-200 hover:to-green-300 text-green-700 rounded-lg border border-green-300 transition-all duration-200 hover:shadow-lg hover:shadow-green-200/50 text-xs sm:text-sm font-medium flex items-center justify-center gap-2"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <polygon points="5,3 19,12 5,21"></polygon>
+                            </svg>
+                            Resume
+                          </button>
+                          <button
+                            onClick={stopPatrol}
+                            className="px-3 sm:px-4 py-2 sm:py-3 bg-gradient-to-r from-red-100 to-red-200 hover:from-red-200 hover:to-red-300 text-red-700 rounded-lg border border-red-300 transition-all duration-200 hover:shadow-lg hover:shadow-red-200/50 text-xs sm:text-sm font-medium flex items-center justify-center gap-2"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <rect x="6" y="6" width="12" height="12"></rect>
+                            </svg>
+                            Stop
+                          </button>
+                        </>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>}
@@ -1209,20 +1190,20 @@ function MoniterPage() {
 
       {/* Camera Selection Modal */}
       {showCameraModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[10000]">
-          <div className="bg-white/95 backdrop-blur-sm rounded-xl border border-gray-200/50 shadow-2xl w-96 max-h-[85vh] overflow-hidden">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[10000] p-4">
+          <div className="bg-white/95 backdrop-blur-sm rounded-xl border border-gray-200/50 shadow-2xl w-full max-w-md sm:max-w-lg lg:max-w-96 max-h-[85vh] overflow-hidden">
             {/* Modal Header */}
-            <div className="flex items-center justify-between p-6 border-b border-gray-300">
+            <div className="flex items-center justify-between p-4 sm:p-6 border-b border-gray-300">
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <div className="w-6 h-6 sm:w-8 sm:h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
                     <circle cx="12" cy="13" r="4"></circle>
                   </svg>
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-700">Select Camera</h3>
-                  <p className="text-sm text-gray-500">Choose a camera to switch to</p>
+                  <h3 className="text-base sm:text-lg font-semibold text-gray-700">Select Camera</h3>
+                  <p className="text-xs sm:text-sm text-gray-500">Choose a camera to switch to</p>
                 </div>
               </div>
               <button
@@ -1231,7 +1212,7 @@ function MoniterPage() {
                 title="Close camera selection modal"
                 aria-label="Close camera selection modal"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <line x1="18" y1="6" x2="6" y2="18"></line>
                   <line x1="6" y1="6" x2="18" y2="18"></line>
                 </svg>
@@ -1239,37 +1220,37 @@ function MoniterPage() {
             </div>
 
             {/* Modal Content */}
-            <div className="p-6 overflow-y-auto max-h-[60vh] custom-scrollbar">
-              <div className="space-y-3">
+            <div className="p-4 sm:p-6 overflow-y-auto max-h-[60vh] custom-scrollbar">
+              <div className="space-y-2 sm:space-y-3">
                 {cameras.map((camera) => (
                   <button
                     key={camera.id}
                     onClick={() => handleCameraSelect(camera.id)}
-                    className={`w-full p-4 rounded-lg border transition-all duration-200 flex items-center gap-4 ${
+                    className={`w-full p-3 sm:p-4 rounded-lg border transition-all duration-200 flex items-center gap-3 sm:gap-4 ${
                       camera.id === selectedCamera
                         ? 'bg-blue-100 border-blue-300 text-blue-700'
                         : 'bg-gray-100 border-gray-300 text-gray-600 hover:bg-gray-200 hover:text-gray-800 hover:border-gray-400'
                     }`}
                   >
-                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+                    <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center ${
                       camera.id === selectedCamera
                         ? 'bg-blue-200'
                         : 'bg-gray-200'
                     }`}>
-                      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
                         <circle cx="12" cy="13" r="4"></circle>
                       </svg>
                     </div>
                     <div className="flex-1 text-left">
-                      <div className="font-medium">{camera.appName || camera.name}</div>
-                      <div className="text-sm opacity-75">
+                      <div className="text-sm sm:text-base font-medium">{camera.appName || camera.name}</div>
+                      <div className="text-xs sm:text-sm opacity-75">
                         {camera.id === selectedCamera ? 'Currently Selected' : 'Available'}
                       </div>
                     </div>
                     {camera.id === selectedCamera && (
-                      <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                      <div className="w-5 h-5 sm:w-6 sm:h-6 bg-blue-500 rounded-full flex items-center justify-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                           <polyline points="20,6 9,17 4,12"></polyline>
                         </svg>
                       </div>
@@ -1280,10 +1261,10 @@ function MoniterPage() {
             </div>
 
             {/* Modal Footer */}
-            <div className="flex items-center justify-end gap-3 p-6 border-t border-gray-300">
+            <div className="flex items-center justify-end gap-3 p-4 sm:p-6 border-t border-gray-300">
               <button
                 onClick={() => setShowCameraModal(false)}
-                className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors"
+                className="px-3 sm:px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors text-sm"
               >
                 Cancel
               </button>
@@ -1294,20 +1275,20 @@ function MoniterPage() {
 
       {/* Edit Patrol Pattern Modal */}
       {showEditPatrolModal && editingPatrolPattern && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[10000]">
-          <div className="bg-white/95 backdrop-blur-sm rounded-xl border border-gray-200/50 shadow-2xl w-96 max-h-[85vh] overflow-hidden">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[10000] p-4">
+          <div className="bg-white/95 backdrop-blur-sm rounded-xl border border-gray-200/50 shadow-2xl w-full max-w-md sm:max-w-lg lg:max-w-96 max-h-[85vh] overflow-hidden">
             {/* Modal Header */}
-            <div className="flex items-center justify-between p-6 border-b border-gray-300">
+            <div className="flex items-center justify-between p-4 sm:p-6 border-b border-gray-300">
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <div className="w-6 h-6 sm:w-8 sm:h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
                     <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
                   </svg>
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-700">Edit Patrol Pattern</h3>
-                  <p className="text-sm text-gray-500">Modify pattern settings</p>
+                  <h3 className="text-base sm:text-lg font-semibold text-gray-700">Edit Patrol Pattern</h3>
+                  <p className="text-xs sm:text-sm text-gray-500">Modify pattern settings</p>
                 </div>
               </div>
               <button
@@ -1316,7 +1297,7 @@ function MoniterPage() {
                 title="Close edit modal"
                 aria-label="Close edit modal"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <line x1="18" y1="6" x2="6" y2="18"></line>
                   <line x1="6" y1="6" x2="18" y2="18"></line>
                 </svg>
@@ -1324,7 +1305,7 @@ function MoniterPage() {
             </div>
 
             {/* Modal Content */}
-            <div className="p-6 space-y-4">
+            <div className="p-4 sm:p-6 space-y-3 sm:space-y-4">
               <form onSubmit={(e) => {
                 e.preventDefault();
                 const formData = new FormData(e.target as HTMLFormElement);
@@ -1397,10 +1378,10 @@ function MoniterPage() {
             </div>
 
             {/* Modal Footer */}
-            <div className="flex items-center justify-end gap-3 p-6 border-t border-gray-300">
+            <div className="flex items-center justify-end gap-3 p-4 sm:p-6 border-t border-gray-300">
               <button
                 onClick={() => setShowEditPatrolModal(false)}
-                className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors"
+                className="px-3 sm:px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors text-sm"
               >
                 Cancel
               </button>
@@ -1419,7 +1400,7 @@ function MoniterPage() {
                     handleSavePatrolPattern(updatedPattern);
                   }
                 }}
-                className="px-4 py-2 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-lg transition-colors"
+                className="px-3 sm:px-4 py-2 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-lg transition-colors text-sm"
               >
                 Save Changes
               </button>
@@ -1430,19 +1411,19 @@ function MoniterPage() {
 
       {/* Edit Preset Modal */}
       {showEditPresetModal && editingPreset && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[10000]">
-          <div className="bg-white/95 backdrop-blur-sm rounded-xl border border-gray-200/50 shadow-2xl w-96 max-h-[85vh] overflow-hidden">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[10000] p-4">
+          <div className="bg-white/95 backdrop-blur-sm rounded-xl border border-gray-200/50 shadow-2xl w-full max-w-md sm:max-w-lg lg:max-w-96 max-h-[85vh] overflow-hidden">
             {/* Modal Header */}
-            <div className="flex items-center justify-between p-6 border-b border-gray-300">
+            <div className="flex items-center justify-between p-4 sm:p-6 border-b border-gray-300">
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <div className="w-6 h-6 sm:w-8 sm:h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M3 3h18v18H3zM9 9h6v6H9z"></path>
                   </svg>
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-700">Edit Preset</h3>
-                  <p className="text-sm text-gray-500">Modify preset settings</p>
+                  <h3 className="text-base sm:text-lg font-semibold text-gray-700">Edit Preset</h3>
+                  <p className="text-xs sm:text-sm text-gray-500">Modify preset settings</p>
                 </div>
               </div>
               <button
@@ -1451,7 +1432,7 @@ function MoniterPage() {
                 title="Close edit modal"
                 aria-label="Close edit modal"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <line x1="18" y1="6" x2="6" y2="18"></line>
                   <line x1="6" y1="6" x2="18" y2="18"></line>
                 </svg>
@@ -1459,7 +1440,7 @@ function MoniterPage() {
             </div>
 
             {/* Modal Content */}
-            <div className="p-6 space-y-4">
+            <div className="p-4 sm:p-6 space-y-3 sm:space-y-4">
               <form onSubmit={(e) => {
                 e.preventDefault();
                 const formData = new FormData(e.target as HTMLFormElement);
@@ -1532,10 +1513,10 @@ function MoniterPage() {
             </div>
 
             {/* Modal Footer */}
-            <div className="flex items-center justify-end gap-3 p-6 border-t border-gray-300">
+            <div className="flex items-center justify-end gap-3 p-4 sm:p-6 border-t border-gray-300">
               <button
                 onClick={() => setShowEditPresetModal(false)}
-                className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors"
+                className="px-3 sm:px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors text-sm"
               >
                 Cancel
               </button>
@@ -1554,7 +1535,7 @@ function MoniterPage() {
                     handleSavePreset(updatedPreset);
                   }
                 }}
-                className="px-4 py-2 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-lg transition-colors"
+                className="px-3 sm:px-4 py-2 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-lg transition-colors text-sm"
               >
                 Save Changes
               </button>
