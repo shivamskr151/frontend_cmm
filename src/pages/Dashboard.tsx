@@ -1034,7 +1034,7 @@ const Dashboard: React.FC = () => {
                   </div>
                   <div>
                     <h4 className="text-base sm:text-lg font-semibold text-gray-800">Select Zone Type</h4>
-                    <p className="text-sm text-gray-600">Choose how to define monitoring areas</p>
+                    
                   </div>
                 </div>
                 
@@ -1273,7 +1273,6 @@ const Dashboard: React.FC = () => {
                     </div>
                     <div>
                       <h6 className="text-gray-800 font-bold text-base sm:text-lg">Zone Coordinates</h6>
-                      <p className="text-xs sm:text-sm text-gray-600">Drawn monitoring areas</p>
                     </div>
                   </div>
                   <button 
@@ -1289,15 +1288,15 @@ const Dashboard: React.FC = () => {
                       <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
                       <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
                     </svg>
-                    Copy
+                    Copy All
                   </button>
                 </div>
                 
-                <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                  <div className="text-gray-700 font-mono text-xs sm:text-sm leading-relaxed overflow-x-auto max-h-48">
-                    {(() => {
-                      if (currentZoneType === 'polygon' || currentZoneType === 'polygon-with-lanes') {
-                        return zoneCoordinates.polygons.length > 0 ? JSON.stringify(zoneCoordinates.polygons, null, 2) : (
+                <div className="h-80 overflow-y-auto pr-2 space-y-4 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+                  {(() => {
+                    if (currentZoneType === 'polygon' || currentZoneType === 'polygon-with-lanes') {
+                      if (zoneCoordinates.polygons.length === 0) {
+                        return (
                           <div className="text-center py-8 text-gray-500">
                             <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="mx-auto mb-2 opacity-50">
                               <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"></polygon>
@@ -1308,8 +1307,33 @@ const Dashboard: React.FC = () => {
                             <p className="text-xs mt-1">Use the drawing tools above to create zones</p>
                           </div>
                         );
-                      } else {
-                        return zoneCoordinates.zones.length > 0 ? JSON.stringify(zoneCoordinates.zones, null, 2) : (
+                      }
+                      
+                      return zoneCoordinates.polygons.map((polygon, index) => (
+                        <div key={index} className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                          <div className="flex items-center justify-between mb-3">
+                            <div className="flex items-center gap-2">
+                              <div className="w-6 h-6 bg-blue-500 text-white rounded-full flex items-center justify-center text-xs font-bold">
+                                {index + 1}
+                              </div>
+                              <h4 className="text-sm font-semibold text-gray-800">Zone {index + 1}</h4>
+                              <span className="text-xs text-gray-500">({polygon.length} points)</span>
+                            </div>
+                            <button 
+                              onClick={() => copyToClipboard(JSON.stringify(polygon))}
+                              className="px-3 py-1 bg-blue-500 hover:bg-blue-600 text-white rounded text-xs font-medium transition-colors"
+                            >
+                              Copy
+                            </button>
+                          </div>
+                          <div className="text-gray-700 font-mono text-xs leading-relaxed overflow-x-auto">
+                            {JSON.stringify(polygon, null, 2)}
+                          </div>
+                        </div>
+                      ));
+                    } else {
+                      if (zoneCoordinates.zones.length === 0) {
+                        return (
                           <div className="text-center py-8 text-gray-500">
                             <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="mx-auto mb-2 opacity-50">
                               <rect x="3" y="3" width="18" height="18" rx="2"></rect>
@@ -1319,8 +1343,31 @@ const Dashboard: React.FC = () => {
                           </div>
                         );
                       }
-                    })()}
-                  </div>
+                      
+                      return zoneCoordinates.zones.map((zone, index) => (
+                        <div key={index} className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                          <div className="flex items-center justify-between mb-3">
+                            <div className="flex items-center gap-2">
+                              <div className="w-6 h-6 bg-blue-500 text-white rounded-full flex items-center justify-center text-xs font-bold">
+                                {index + 1}
+                              </div>
+                              <h4 className="text-sm font-semibold text-gray-800">Zone {index + 1}</h4>
+                              <span className="text-xs text-gray-500">({zone.width.toFixed(0)} × {zone.height.toFixed(0)})</span>
+                            </div>
+                            <button 
+                              onClick={() => copyToClipboard(JSON.stringify(zone))}
+                              className="px-3 py-1 bg-blue-500 hover:bg-blue-600 text-white rounded text-xs font-medium transition-colors"
+                            >
+                              Copy
+                            </button>
+                          </div>
+                          <div className="text-gray-700 font-mono text-xs leading-relaxed overflow-x-auto">
+                            {JSON.stringify(zone, null, 2)}
+                          </div>
+                        </div>
+                      ));
+                    }
+                  })()}
                 </div>
               </div>
               
@@ -1336,7 +1383,6 @@ const Dashboard: React.FC = () => {
                       </div>
                       <div>
                         <h6 className="text-gray-800 font-bold text-base sm:text-lg">Lane Coordinates</h6>
-                        <p className="text-xs sm:text-sm text-gray-600">Traffic flow lanes</p>
                       </div>
                     </div>
                     <button 
@@ -1347,13 +1393,86 @@ const Dashboard: React.FC = () => {
                         <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
                         <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
                       </svg>
-                      Copy
+                      Copy All
                     </button>
                   </div>
                   
-                  <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                    <div className="text-gray-700 font-mono text-xs sm:text-sm leading-relaxed overflow-x-auto max-h-48">
-                      {zoneCoordinates.lanes.length > 0 ? JSON.stringify(zoneCoordinates.lanes, null, 2) : (
+                  <div className="h-80 overflow-y-auto pr-2 space-y-4 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+                    {(() => {
+                      // Get structured zone data from the zone drawer if available
+                      let zonesWithLanes: any[] = [];
+                      if (zoneDrawerRef.current && typeof (zoneDrawerRef.current as any).getZones === 'function') {
+                        zonesWithLanes = (zoneDrawerRef.current as any).getZones();
+                      }
+                      
+                      // If we have structured data, show lanes grouped by zones
+                      if (zonesWithLanes.length > 0) {
+                        return zonesWithLanes.map((zone, zoneIndex) => {
+                          if (zone.lanes && zone.lanes.length > 0) {
+                            return (
+                              <div key={zoneIndex} className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                                <div className="flex items-center justify-between mb-3">
+                                  <div className="flex items-center gap-2">
+                                    <div className="w-6 h-6 bg-green-500 text-white rounded-full flex items-center justify-center text-xs font-bold">
+                                      {zoneIndex + 1}
+                                    </div>
+                                    <h4 className="text-sm font-semibold text-gray-800">Zone {zoneIndex + 1} Lanes</h4>
+                                    <span className="text-xs text-gray-500">({zone.lanes.length} lanes)</span>
+                                  </div>
+                                  <button 
+                                    onClick={() => copyToClipboard(JSON.stringify(zone.lanes))}
+                                    className="px-3 py-1 bg-green-500 hover:bg-green-600 text-white rounded text-xs font-medium transition-colors"
+                                  >
+                                    Copy
+                                  </button>
+                                </div>
+                                <div className="space-y-2">
+                                  {zone.lanes.map((lane: any, laneIndex: number) => (
+                                    <div key={laneIndex} className="bg-white rounded p-3 border border-gray-100">
+                                      <div className="flex items-center justify-between mb-2">
+                                        <div className="flex items-center gap-2">
+                                          <div 
+                                            className="w-3 h-3 rounded-full border border-gray-300"
+                                            style={{ backgroundColor: lane.color }}
+                                            title={`Lane color: ${lane.color}`}
+                                          ></div>
+                                          <span className="text-xs font-medium text-gray-700">Lane {laneIndex + 1}</span>
+                                        </div>
+                                        <button 
+                                          onClick={() => copyToClipboard(JSON.stringify(lane))}
+                                          className="px-2 py-1 bg-gray-500 hover:bg-gray-600 text-white rounded text-xs transition-colors"
+                                        >
+                                          Copy
+                                        </button>
+                                      </div>
+                                      <div className="text-gray-600 font-mono text-xs">
+                                        <div>Start: ({lane.start.x.toFixed(1)}, {lane.start.y.toFixed(1)})</div>
+                                        <div>End: ({lane.end.x.toFixed(1)}, {lane.end.y.toFixed(1)})</div>
+                                        <div>Color: {lane.color}</div>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            );
+                          }
+                          return null;
+                        }).filter(Boolean);
+                      }
+                      
+                      // Fallback to flat lane display if no structured data
+                      if (zoneCoordinates.lanes.length > 0) {
+                        return (
+                          <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                            <div className="text-gray-700 font-mono text-xs sm:text-sm leading-relaxed overflow-x-auto">
+                              {JSON.stringify(zoneCoordinates.lanes, null, 2)}
+                            </div>
+                          </div>
+                        );
+                      }
+                      
+                      // No lanes message
+                      return (
                         <div className="text-center py-8 text-gray-500">
                           <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="mx-auto mb-2 opacity-50">
                             <line x1="5" y1="12" x2="19" y2="12"></line>
@@ -1361,8 +1480,8 @@ const Dashboard: React.FC = () => {
                           <p>No lanes drawn yet</p>
                           <p className="text-xs mt-1">Use the "Draw Lane" tool to create traffic lanes</p>
                         </div>
-                      )}
-                    </div>
+                      );
+                    })()}
                   </div>
                 </div>
               )}
@@ -1378,7 +1497,6 @@ const Dashboard: React.FC = () => {
                   </div>
                   <div className="flex-1">
                     <h6 className="text-gray-800 font-bold text-base sm:text-lg">Zone Statistics</h6>
-                    <p className="text-xs sm:text-sm text-gray-600">Current configuration summary</p>
                   </div>
                 </div>
                 
@@ -1386,7 +1504,7 @@ const Dashboard: React.FC = () => {
                   <div className="flex justify-between items-center p-4 bg-blue-50 rounded-lg border border-blue-200 min-h-[60px]">
                     <div className="flex flex-col">
                       <span className="text-sm font-medium text-blue-800">Zones Created</span>
-                      <span className="text-xs text-blue-600 mt-1">Monitoring areas</span>
+                      
                     </div>
                     <span className="text-2xl font-bold text-blue-900">
                       {currentZoneType === 'polygon' || currentZoneType === 'polygon-with-lanes' 
@@ -1399,7 +1517,7 @@ const Dashboard: React.FC = () => {
                     <div className="flex justify-between items-center p-4 bg-green-50 rounded-lg border border-green-200 min-h-[60px]">
                       <div className="flex flex-col">
                         <span className="text-sm font-medium text-green-800">Lanes Created</span>
-                        <span className="text-xs text-green-600 mt-1">Traffic flow lines</span>
+                        
                       </div>
                       <span className="text-2xl font-bold text-green-900">{zoneCoordinates.lanes.length}</span>
                     </div>
@@ -1408,7 +1526,7 @@ const Dashboard: React.FC = () => {
                   <div className={`flex justify-between items-center p-4 bg-gray-50 rounded-lg border border-gray-200 min-h-[60px] ${(currentZoneType === 'rectangle-with-lanes' || currentZoneType === 'polygon-with-lanes') ? 'sm:col-span-2' : 'sm:col-span-2'}`}>
                     <div className="flex flex-col">
                       <span className="text-sm font-medium text-gray-800">Zone Type</span>
-                      <span className="text-xs text-gray-600 mt-1">Current drawing mode</span>
+                      
                     </div>
                     <span className="text-lg font-bold text-gray-900 capitalize text-right">
                       {currentZoneType.replace('-', ' ')}
