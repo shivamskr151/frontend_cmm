@@ -94,8 +94,8 @@ const Navbar=()=> {
 
           {/* Profile Section */}
           <div className="flex items-center space-x-4 relative" ref={dropdownRef}>
-            {/* Navigation Buttons */}
-            {navigationItems.map((item) => (
+            {/* Navigation Buttons - Hide when mobile menu is open */}
+            {!showMobileMenu && navigationItems.map((item) => (
               <button
                 key={item.path}
                 onClick={() => {
