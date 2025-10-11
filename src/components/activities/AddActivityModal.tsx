@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import type { NewActivityFormData } from '../../types/activity';
 import { JsonEditor } from './JsonEditor';
 
@@ -20,6 +20,36 @@ export const AddActivityModal: React.FC<AddActivityModalProps> = ({
   });
   const [isLoading, setIsLoading] = useState(false);
   const [isValidJson, setIsValidJson] = useState(true);
+  const modalRef = useRef<HTMLDivElement>(null);
+
+  const handleClose = useCallback(() => {
+    setFormData({
+      name: '',
+      status: 'ACTIVE',
+      data: ''
+    });
+    onClose();
+  }, [onClose]);
+
+  // Click outside to close functionality
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (modalRef.current && !modalRef.current.contains(event.target as Node)) {
+        handleClose();
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      // Prevent body scroll when modal is open
+      document.body.style.overflow = 'hidden';
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.body.style.overflow = 'unset';
+    };
+  }, [isOpen, handleClose]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -47,20 +77,15 @@ export const AddActivityModal: React.FC<AddActivityModalProps> = ({
     }
   };
 
-  const handleClose = () => {
-    setFormData({
-      name: '',
-      status: 'ACTIVE',
-      data: ''
-    });
-    onClose();
-  };
 
   if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[9999]">
-      <div className="bg-white/95 backdrop-blur-sm rounded-xl p-6 max-w-md w-[90%] border border-gray-200 shadow-2xl">
+      <div 
+        ref={modalRef}
+        className="bg-white/95 backdrop-blur-sm rounded-xl p-6 max-w-md w-[90%] border border-gray-200 shadow-2xl"
+      >
         <div className="flex items-center justify-between mb-6">
           <h5 className="text-lg font-semibold text-gray-900">Create New Activity</h5>
           <button

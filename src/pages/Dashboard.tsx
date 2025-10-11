@@ -60,6 +60,13 @@ const Dashboard: React.FC = () => {
     addActivity,
     addActivitiesFromJson
   } = useActivities();
+
+  // Clear selected activity if it becomes inactive
+  useEffect(() => {
+    if (selectedActivity && activities[selectedActivity] && activities[selectedActivity].status !== 'ACTIVE') {
+      setSelectedActivity('');
+    }
+  }, [activities, selectedActivity]);
   
   const navigate = useNavigate();
   const zoneCanvasRef = useRef<HTMLCanvasElement>(null);
@@ -1006,11 +1013,16 @@ const Dashboard: React.FC = () => {
                         aria-label="Select a monitoring activity"
                       >
                         <option value="">Select an activity</option>
-                        {Object.keys(activities).map(activityName => (
-                          <option key={activityName} value={activityName}>
-                            {activityName.replace(/_/g, ' ').toUpperCase()}
-                          </option>
-                        ))}
+                        {Object.keys(activities)
+                          .filter(activityName => {
+                            const activity = activities[activityName];
+                            return activity && activity.status === 'ACTIVE';
+                          })
+                          .map(activityName => (
+                            <option key={activityName} value={activityName}>
+                              {activityName.replace(/_/g, ' ').toUpperCase()}
+                            </option>
+                          ))}
                       </select>
                     </div>
                   </div>
