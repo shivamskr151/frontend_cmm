@@ -223,14 +223,23 @@ const Dashboard: React.FC = () => {
       try {
         console.log('Initializing zone drawer for type:', typeToUse);
         
-        // Clean up existing drawer and reset coordinates to prevent duplicates
-        if (zoneDrawerRef.current) {
-          (zoneDrawerRef.current as any).destroy();
-          zoneDrawerRef.current = null;
+        // Only reinitialize if we're switching to a different zone type or if no drawer exists
+        if (currentZoneType !== typeToUse || !zoneDrawerRef.current) {
+          // Clean up existing drawer
+          if (zoneDrawerRef.current) {
+            (zoneDrawerRef.current as any).destroy();
+            zoneDrawerRef.current = null;
+          }
+          
+          // Reset zone coordinates only when switching zone types
+          if (currentZoneType !== typeToUse) {
+            setZoneCoordinates({ zones: [], lanes: [], polygons: [] });
+          }
+        } else {
+          // If we're reinitializing the same zone type and drawer exists, just return
+          console.log('Drawer already exists for zone type:', typeToUse, 'skipping reinitialization');
+          return;
         }
-        
-        // Reset zone coordinates to prevent duplicates from previous drawer
-        setZoneCoordinates({ zones: [], lanes: [], polygons: [] });
         
         // Create appropriate drawer based on zone type
         if (typeToUse === 'rectangle') {
@@ -652,17 +661,7 @@ const Dashboard: React.FC = () => {
           console.log('Dashboard: Active zone index:', activeZoneIndex);
         } else {
           console.error('Dashboard: Zone drawer does not support lanes. Current type:', zoneDrawerRef.current.constructor.name);
-          console.log('Dashboard: Reinitializing with correct drawer type...');
-          // Force reinitialize with the correct drawer type
-          initializeZoneDrawer('rectangle-with-lanes');
-          // Try again after a short delay
-          setTimeout(() => {
-            if (zoneDrawerRef.current && typeof (zoneDrawerRef.current as any).hasZones === 'function') {
-              handleDrawLane();
-            } else {
-              showMessage('Failed to initialize lane drawing. Please refresh the page.', 'Error', 'error');
-            }
-          }, 100);
+          showMessage('Current zone type does not support lane drawing. Please select "Rectangle Zone with Lanes" from the zone type dropdown.', 'Error', 'error');
         }
       } else if (currentZoneType === 'polygon-with-lanes') {
         console.log('Dashboard: Draw Lane clicked for polygon with lanes');
@@ -681,17 +680,7 @@ const Dashboard: React.FC = () => {
           (zoneDrawerRef.current as PolygonZoneDrawerWithLanes).setDrawMode('lane');
         } else {
           console.error('Dashboard: Zone drawer does not support lanes. Current type:', zoneDrawerRef.current.constructor.name);
-          console.log('Dashboard: Reinitializing with correct drawer type...');
-          // Force reinitialize with the correct drawer type
-          initializeZoneDrawer('polygon-with-lanes');
-          // Try again after a short delay
-          setTimeout(() => {
-            if (zoneDrawerRef.current && typeof (zoneDrawerRef.current as any).hasZones === 'function') {
-              handleDrawLane();
-            } else {
-              showMessage('Failed to initialize lane drawing. Please refresh the page.', 'Error', 'error');
-            }
-          }, 100);
+          showMessage('Current zone type does not support lane drawing. Please select "Polygon Zone with Lanes" from the zone type dropdown.', 'Error', 'error');
         }
       } else {
         showMessage('Lane drawing is only available for zone types with lanes. Rectangle Zone and Polygon Zone do not support lanes.', 'Warning', 'warning');

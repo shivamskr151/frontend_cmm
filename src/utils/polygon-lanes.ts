@@ -1071,12 +1071,12 @@ export class PolygonZoneDrawerWithLanes {
     if (!this.ctx) return;
 
     const start = {
-      x: lane.start.x * this.scaleX + this.offsetX,
-      y: lane.start.y * this.scaleY + this.offsetY
+      x: lane.x1 * this.scaleX + this.offsetX,
+      y: lane.y1 * this.scaleY + this.offsetY
     };
     const end = {
-      x: lane.end.x * this.scaleX + this.offsetX,
-      y: lane.end.y * this.scaleY + this.offsetY
+      x: lane.x2 * this.scaleX + this.offsetX,
+      y: lane.y2 * this.scaleY + this.offsetY
     };
 
     const midX = (start.x + end.x) / 2;
