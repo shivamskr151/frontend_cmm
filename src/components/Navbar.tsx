@@ -147,11 +147,11 @@ const Navbar=()=> {
               </svg>
             </button>
 
-            {/* Profile Dropdown Trigger - Only show if authenticated */}
+            {/* Profile Icon - Only show if authenticated */}
             {isAuthenticated && (
               <button
                 onClick={() => setShowProfileDropdown(!showProfileDropdown)}
-                className="flex items-center gap-2 px-3 py-2 cursor-pointer transition-all duration-200 text-sm font-medium text-gray-600 hover:text-gray-800 hover:bg-gray-50 rounded-lg"
+                className="p-2 cursor-pointer transition-all duration-200 hover:bg-gray-50 rounded-lg"
               >
                 <div className="relative">
                   <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center text-white text-xs font-semibold shadow-md shadow-blue-500/25">
@@ -159,30 +159,6 @@ const Navbar=()=> {
                   </div>
                   <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-400 border-2 border-white rounded-full"></div>
                 </div>
-                <div className="hidden sm:flex flex-col items-start">
-                  <span className="text-sm text-gray-700 font-medium">
-                    {client?.name || 'User'}
-                  </span>
-                  <span className="text-xs text-gray-500">
-                    {client?.role || 'USER'}
-                  </span>
-                </div>
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="16"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className={`transition-transform duration-200 ${
-                    showProfileDropdown ? 'rotate-180' : 'rotate-0'
-                  }`}
-                >
-                  <polyline points="6,9 12,15 18,9"></polyline>
-                </svg>
               </button>
             )}
 
