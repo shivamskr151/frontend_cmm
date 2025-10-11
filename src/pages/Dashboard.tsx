@@ -22,6 +22,67 @@ interface ZoneCoordinates {
   polygons: Array<Array<{ x: number; y: number }>>;
 }
 
+// Utility functions for calculating zone dimensions
+const calculateRectangleDimensions = (zone: { x: number; y: number; width: number; height: number }) => {
+  const area = zone.width * zone.height;
+  const perimeter = 2 * (zone.width + zone.height);
+  const diagonal = Math.sqrt(zone.width * zone.width + zone.height * zone.height);
+  const aspectRatio = zone.width / zone.height;
+  
+  return {
+    area: Math.round(area),
+    perimeter: Math.round(perimeter),
+    diagonal: Math.round(diagonal),
+    aspectRatio: aspectRatio.toFixed(2),
+    centerX: Math.round(zone.x + zone.width / 2),
+    centerY: Math.round(zone.y + zone.height / 2)
+  };
+};
+
+const calculatePolygonDimensions = (polygon: Array<{ x: number; y: number }>) => {
+  // Calculate area using the shoelace formula
+  let area = 0;
+  for (let i = 0; i < polygon.length; i++) {
+    const j = (i + 1) % polygon.length;
+    area += polygon[i].x * polygon[j].y;
+    area -= polygon[j].x * polygon[i].y;
+  }
+  area = Math.abs(area) / 2;
+  
+  // Calculate perimeter
+  let perimeter = 0;
+  for (let i = 0; i < polygon.length; i++) {
+    const j = (i + 1) % polygon.length;
+    const dx = polygon[j].x - polygon[i].x;
+    const dy = polygon[j].y - polygon[i].y;
+    perimeter += Math.sqrt(dx * dx + dy * dy);
+  }
+  
+  // Calculate bounding box
+  const xs = polygon.map(p => p.x);
+  const ys = polygon.map(p => p.y);
+  const minX = Math.min(...xs);
+  const maxX = Math.max(...xs);
+  const minY = Math.min(...ys);
+  const maxY = Math.max(...ys);
+  const boundingWidth = maxX - minX;
+  const boundingHeight = maxY - minY;
+  
+  // Calculate centroid
+  const centroidX = xs.reduce((sum, x) => sum + x, 0) / polygon.length;
+  const centroidY = ys.reduce((sum, y) => sum + y, 0) / polygon.length;
+  
+  return {
+    area: Math.round(area),
+    perimeter: Math.round(perimeter),
+    boundingWidth: Math.round(boundingWidth),
+    boundingHeight: Math.round(boundingHeight),
+    centroidX: Math.round(centroidX),
+    centroidY: Math.round(centroidY),
+    pointCount: polygon.length
+  };
+};
+
 const Dashboard: React.FC = () => {
   const [, setCameraName] = useState('Unknown');
   const [, setCameraStatus] = useState('Disconnected');
@@ -1298,28 +1359,81 @@ const Dashboard: React.FC = () => {
                         );
                       }
                       
-                      return zoneCoordinates.polygons.map((polygon, index) => (
-                        <div key={index} className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                          <div className="flex items-center justify-between mb-3">
-                            <div className="flex items-center gap-2">
-                              <div className="w-6 h-6 bg-blue-500 text-white rounded-full flex items-center justify-center text-xs font-bold">
-                                {index + 1}
+                      return zoneCoordinates.polygons.map((polygon, index) => {
+                        const dimensions = calculatePolygonDimensions(polygon);
+                        return (
+                          <div key={index} className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg p-4 border border-blue-200 shadow-sm">
+                            <div className="flex items-center justify-between mb-4">
+                              <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-indigo-500 text-white rounded-full flex items-center justify-center text-sm font-bold shadow-md">
+                                  {index + 1}
+                                </div>
+                                <div>
+                                  <h4 className="text-base font-semibold text-gray-800">Zone {index + 1}</h4>
+                                  <p className="text-sm text-gray-600">Polygon Zone • {dimensions.area} px² • {dimensions.perimeter} px perimeter</p>
+                                </div>
                               </div>
-                              <h4 className="text-sm font-semibold text-gray-800">Zone {index + 1}</h4>
-                              <span className="text-xs text-gray-500">({polygon.length} points)</span>
+                              <button 
+                                onClick={() => copyToClipboard(JSON.stringify(polygon))}
+                                className="px-4 py-2 bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white rounded-lg text-sm font-medium transition-all duration-200 hover:shadow-lg hover:shadow-blue-500/30 flex items-center gap-2"
+                              >
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                                </svg>
+                                Copy
+                              </button>
                             </div>
-                            <button 
-                              onClick={() => copyToClipboard(JSON.stringify(polygon))}
-                              className="px-3 py-1 bg-blue-500 hover:bg-blue-600 text-white rounded text-xs font-medium transition-colors"
-                            >
-                              Copy
-                            </button>
+                            
+                            {/* Dimensions Grid */}
+                            <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 text-sm mb-4">
+                              <div className="bg-white rounded-lg p-3 border border-gray-200">
+                                <div className="text-xs font-medium text-gray-600 mb-1">Area</div>
+                                <div className="text-gray-800 font-mono">{dimensions.area.toLocaleString()} px²</div>
+                              </div>
+                              <div className="bg-white rounded-lg p-3 border border-gray-200">
+                                <div className="text-xs font-medium text-gray-600 mb-1">Perimeter</div>
+                                <div className="text-gray-800 font-mono">{dimensions.perimeter.toLocaleString()} px</div>
+                              </div>
+                              <div className="bg-white rounded-lg p-3 border border-gray-200">
+                                <div className="text-xs font-medium text-gray-600 mb-1">Centroid</div>
+                                <div className="text-gray-800 font-mono">({dimensions.centroidX}, {dimensions.centroidY})</div>
+                              </div>
+                              <div className="bg-white rounded-lg p-3 border border-gray-200">
+                                <div className="text-xs font-medium text-gray-600 mb-1">Bounding Box</div>
+                                <div className="text-gray-800 font-mono">{dimensions.boundingWidth} × {dimensions.boundingHeight} px</div>
+                              </div>
+                              <div className="bg-white rounded-lg p-3 border border-gray-200">
+                                <div className="text-xs font-medium text-gray-600 mb-1">Points</div>
+                                <div className="text-gray-800 font-mono">{dimensions.pointCount} vertices</div>
+                              </div>
+                              <div className="bg-white rounded-lg p-3 border border-gray-200">
+                                <div className="text-xs font-medium text-gray-600 mb-1">Shape Type</div>
+                                <div className="text-gray-800 font-mono">
+                                  {dimensions.pointCount === 3 ? 'Triangle' :
+                                   dimensions.pointCount === 4 ? 'Quadrilateral' :
+                                   dimensions.pointCount === 5 ? 'Pentagon' :
+                                   dimensions.pointCount === 6 ? 'Hexagon' :
+                                   `${dimensions.pointCount}-gon`}
+                                </div>
+                              </div>
+                            </div>
+                            
+                            {/* Polygon Points */}
+                            <div className="bg-white rounded-lg p-4 border border-gray-200">
+                              <div className="text-xs font-medium text-gray-600 mb-3">Polygon Vertices</div>
+                              <div className="grid grid-cols-2 lg:grid-cols-3 gap-2 text-sm">
+                                {polygon.map((point, pointIndex) => (
+                                  <div key={pointIndex} className="bg-gray-50 rounded p-2 flex items-center justify-between">
+                                    <span className="text-gray-600">Point {pointIndex + 1}:</span>
+                                    <span className="font-mono text-gray-800">({point.x.toFixed(1)}, {point.y.toFixed(1)})</span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
                           </div>
-                          <div className="text-gray-700 font-mono text-xs leading-relaxed overflow-x-auto">
-                            {JSON.stringify(polygon, null, 2)}
-                          </div>
-                        </div>
-                      ));
+                        );
+                      });
                     } else {
                       if (zoneCoordinates.zones.length === 0) {
                         return (
@@ -1333,28 +1447,60 @@ const Dashboard: React.FC = () => {
                         );
                       }
                       
-                      return zoneCoordinates.zones.map((zone, index) => (
-                        <div key={index} className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                          <div className="flex items-center justify-between mb-3">
-                            <div className="flex items-center gap-2">
-                              <div className="w-6 h-6 bg-blue-500 text-white rounded-full flex items-center justify-center text-xs font-bold">
-                                {index + 1}
+                      return zoneCoordinates.zones.map((zone, index) => {
+                        const dimensions = calculateRectangleDimensions(zone);
+                        return (
+                          <div key={index} className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg p-4 border border-blue-200 shadow-sm">
+                            <div className="flex items-center justify-between mb-4">
+                              <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-indigo-500 text-white rounded-full flex items-center justify-center text-sm font-bold shadow-md">
+                                  {index + 1}
+                                </div>
+                                <div>
+                                  <h4 className="text-base font-semibold text-gray-800">Zone {index + 1}</h4>
+                                  <p className="text-sm text-gray-600">Rectangle Zone • {dimensions.area} px² • {dimensions.perimeter} px perimeter</p>
+                                </div>
                               </div>
-                              <h4 className="text-sm font-semibold text-gray-800">Zone {index + 1}</h4>
-                              <span className="text-xs text-gray-500">({zone.width.toFixed(0)} × {zone.height.toFixed(0)})</span>
+                              <button 
+                                onClick={() => copyToClipboard(JSON.stringify(zone))}
+                                className="px-4 py-2 bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white rounded-lg text-sm font-medium transition-all duration-200 hover:shadow-lg hover:shadow-blue-500/30 flex items-center gap-2"
+                              >
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                                </svg>
+                                Copy
+                              </button>
                             </div>
-                            <button 
-                              onClick={() => copyToClipboard(JSON.stringify(zone))}
-                              className="px-3 py-1 bg-blue-500 hover:bg-blue-600 text-white rounded text-xs font-medium transition-colors"
-                            >
-                              Copy
-                            </button>
+                            <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 text-sm">
+                              <div className="bg-white rounded-lg p-3 border border-gray-200">
+                                <div className="text-xs font-medium text-gray-600 mb-1">Position</div>
+                                <div className="text-gray-800 font-mono">({zone.x.toFixed(1)}, {zone.y.toFixed(1)})</div>
+                              </div>
+                              <div className="bg-white rounded-lg p-3 border border-gray-200">
+                                <div className="text-xs font-medium text-gray-600 mb-1">Dimensions</div>
+                                <div className="text-gray-800 font-mono">{zone.width.toFixed(0)} × {zone.height.toFixed(0)} px</div>
+                              </div>
+                              <div className="bg-white rounded-lg p-3 border border-gray-200">
+                                <div className="text-xs font-medium text-gray-600 mb-1">Center Point</div>
+                                <div className="text-gray-800 font-mono">({dimensions.centerX}, {dimensions.centerY})</div>
+                              </div>
+                              <div className="bg-white rounded-lg p-3 border border-gray-200">
+                                <div className="text-xs font-medium text-gray-600 mb-1">Area</div>
+                                <div className="text-gray-800 font-mono">{dimensions.area.toLocaleString()} px²</div>
+                              </div>
+                              <div className="bg-white rounded-lg p-3 border border-gray-200">
+                                <div className="text-xs font-medium text-gray-600 mb-1">Perimeter</div>
+                                <div className="text-gray-800 font-mono">{dimensions.perimeter.toLocaleString()} px</div>
+                              </div>
+                              <div className="bg-white rounded-lg p-3 border border-gray-200">
+                                <div className="text-xs font-medium text-gray-600 mb-1">Aspect Ratio</div>
+                                <div className="text-gray-800 font-mono">{dimensions.aspectRatio}:1</div>
+                              </div>
+                            </div>
                           </div>
-                          <div className="text-gray-700 font-mono text-xs leading-relaxed overflow-x-auto">
-                            {JSON.stringify(zone, null, 2)}
-                          </div>
-                        </div>
-                      ));
+                        );
+                      });
                     }
                   })()}
                 </div>
@@ -1390,49 +1536,94 @@ const Dashboard: React.FC = () => {
                     {(() => {
                       // Get structured zone data from the zone drawer if available
                       let zonesWithLanes: any[] = [];
-                      if (zoneDrawerRef.current && typeof (zoneDrawerRef.current as any).getZones === 'function') {
-                        zonesWithLanes = (zoneDrawerRef.current as any).getZones();
+                      
+                      // Check for different zone drawer types
+                      if (zoneDrawerRef.current) {
+                        if (typeof (zoneDrawerRef.current as any).getZones === 'function') {
+                          // Rectangle zones with lanes
+                          zonesWithLanes = (zoneDrawerRef.current as any).getZones();
+                        } else if (typeof (zoneDrawerRef.current as any).getZonesWithLanes === 'function') {
+                          // Polygon zones with lanes
+                          zonesWithLanes = (zoneDrawerRef.current as any).getZonesWithLanes();
+                        }
                       }
                       
                       // If we have structured data, show lanes grouped by zones
                       if (zonesWithLanes.length > 0) {
                         return zonesWithLanes.map((zone, zoneIndex) => {
-                          if (zone.lanes && zone.lanes.length > 0) {
+                          const lanes = zone.lanes || [];
+                          if (lanes.length > 0) {
                             return (
-                              <div key={zoneIndex} className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                                <div className="flex items-center justify-between mb-3">
-                                  <div className="flex items-center gap-2">
-                                    <div className="w-6 h-6 bg-green-500 text-white rounded-full flex items-center justify-center text-xs font-bold">
+                              <div key={zoneIndex} className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-lg p-4 border border-green-200 shadow-sm">
+                                <div className="flex items-center justify-between mb-4">
+                                  <div className="flex items-center gap-3">
+                                    <div className="w-8 h-8 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-full flex items-center justify-center text-sm font-bold shadow-md">
                                       {zoneIndex + 1}
                                     </div>
-                                    <h4 className="text-sm font-semibold text-gray-800">Zone {zoneIndex + 1} Lanes</h4>
-                                    <span className="text-xs text-gray-500">({zone.lanes.length} lanes)</span>
+                                    <div>
+                                      <h4 className="text-base font-semibold text-gray-800">Zone {zoneIndex + 1}</h4>
+                                      <p className="text-sm text-gray-600">{lanes.length} lane{lanes.length !== 1 ? 's' : ''}</p>
+                                    </div>
                                   </div>
                                   <button 
-                                    onClick={() => copyToClipboard(JSON.stringify(zone.lanes))}
-                                    className="px-3 py-1 bg-green-500 hover:bg-green-600 text-white rounded text-xs font-medium transition-colors"
+                                    onClick={() => copyToClipboard(JSON.stringify(lanes))}
+                                    className="px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white rounded-lg text-sm font-medium transition-all duration-200 hover:shadow-lg hover:shadow-green-500/30 flex items-center gap-2"
                                   >
-                                    Copy
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                      <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                                    </svg>
+                                    Copy All
                                   </button>
                                 </div>
-                                <div className="space-y-2">
-                                  {zone.lanes.map((lane: any, laneIndex: number) => (
-                                    <div key={laneIndex} className="bg-white rounded p-3 border border-gray-100">
-                                      <div className="flex items-center justify-between mb-2">
+                                <div className="space-y-3">
+                                  {lanes.map((lane: any, laneIndex: number) => (
+                                    <div key={laneIndex} className="bg-white rounded-lg p-4 border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
+                                      <div className="flex items-center justify-between mb-3">
                                         <div className="flex items-center gap-2">
-                                          <span className="text-xs font-medium text-gray-700">Lane {laneIndex + 1}</span>
+                                          <div className="w-6 h-6 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-xs font-bold">
+                                            {laneIndex + 1}
+                                          </div>
+                                          <span className="text-sm font-semibold text-gray-800">Lane {laneIndex + 1}</span>
                                         </div>
                                         <button 
                                           onClick={() => copyToClipboard(JSON.stringify(lane))}
-                                          className="px-2 py-1 bg-gray-500 hover:bg-gray-600 text-white rounded text-xs transition-colors"
+                                          className="px-3 py-1 bg-blue-500 hover:bg-blue-600 text-white rounded text-xs font-medium transition-colors"
                                         >
                                           Copy
                                         </button>
                                       </div>
-                                      <div className="text-gray-600 font-mono text-xs">
-                                        <div>Start: ({lane.start.x.toFixed(1)}, {lane.start.y.toFixed(1)})</div>
-                                        <div>End: ({lane.end.x.toFixed(1)}, {lane.end.y.toFixed(1)})</div>
+                                      <div className="grid grid-cols-2 gap-4 text-sm">
+                                        <div className="bg-gray-50 rounded-lg p-3">
+                                          <div className="text-xs font-medium text-gray-600 mb-1">Start Point</div>
+                                          <div className="text-gray-800 font-mono">
+                                            {lane.start ? 
+                                              `(${lane.start.x.toFixed(1)}, ${lane.start.y.toFixed(1)})` :
+                                              `(${lane.x1.toFixed(1)}, ${lane.y1.toFixed(1)})`
+                                            }
+                                          </div>
+                                        </div>
+                                        <div className="bg-gray-50 rounded-lg p-3">
+                                          <div className="text-xs font-medium text-gray-600 mb-1">End Point</div>
+                                          <div className="text-gray-800 font-mono">
+                                            {lane.end ? 
+                                              `(${lane.end.x.toFixed(1)}, ${lane.end.y.toFixed(1)})` :
+                                              `(${lane.x2.toFixed(1)}, ${lane.y2.toFixed(1)})`
+                                            }
+                                          </div>
+                                        </div>
                                       </div>
+                                      {lane.color && (
+                                        <div className="mt-3 flex items-center gap-2">
+                                          <div className="text-xs font-medium text-gray-600">Color:</div>
+                                          <div className="flex items-center gap-2">
+                                            <div 
+                                              className="w-4 h-4 rounded border border-gray-300 bg-green-500" 
+                                            ></div>
+                                            <span className="text-xs font-mono text-gray-700">{lane.color}</span>
+                                          </div>
+                                        </div>
+                                      )}
                                     </div>
                                   ))}
                                 </div>

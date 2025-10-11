@@ -914,6 +914,20 @@ export class PolygonZoneDrawerWithLanes {
     return JSON.parse(JSON.stringify(this.lanes));
   }
 
+  public getZonesWithLanes(): Array<{ polygon: Point[], lanes: Lane[] }> {
+    const zonesWithLanes: Array<{ polygon: Point[], lanes: Lane[] }> = [];
+    
+    this.polygons.forEach((polygon, polygonIndex) => {
+      const polygonLanes = this.lanes.filter(lane => lane.polygonIndex === polygonIndex);
+      zonesWithLanes.push({
+        polygon: JSON.parse(JSON.stringify(polygon)),
+        lanes: JSON.parse(JSON.stringify(polygonLanes))
+      });
+    });
+    
+    return zonesWithLanes;
+  }
+
   public setPolygons(polygons: Point[][]) {
     this.polygons = JSON.parse(JSON.stringify(polygons));
     this.activePolygonIndex = -1;
