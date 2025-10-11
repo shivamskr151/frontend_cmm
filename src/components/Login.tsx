@@ -19,7 +19,7 @@ const Login: React.FC = () => {
   useEffect(() => {
     console.log('Login: useEffect - isAuthenticated =', isAuthenticated, 'userLoading =', userLoading);
     if (isAuthenticated && !userLoading) {
-      console.log('Login: User is authenticated, redirecting to Dashboard');
+      console.log('Login: User is authenticated, redirecting to Zone');
       navigate('/');
     }
   }, [isAuthenticated, userLoading, navigate]);

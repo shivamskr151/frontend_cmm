@@ -33,13 +33,13 @@ const Navbar=()=> {
 
 
   const navigationItems = [
-    { path: '/', label: 'Camera Config', icon: 'M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z M12 13a3 3 0 1 0 0-6 3 3 0 0 0 0 6z' },
-    { path: '/moniter', label: 'PTZ Config', icon: 'M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z' },
+    { path: '/', label: 'Zone', icon: 'M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z M12 13a3 3 0 1 0 0-6 3 3 0 0 0 0 6z' },
+    { path: '/ptz', label: 'PTZ', icon: 'M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z' },
   ];
 
   // Check if a tab is active
   const isActiveTab = (path: string) => {
-    if (path === '/' && (location.pathname === '/' || location.pathname === '/dashboard')) return true;
+    if (path === '/' && (location.pathname === '/' || location.pathname === '/zone')) return true;
     return location.pathname === path;
   };
 
@@ -53,10 +53,10 @@ const Navbar=()=> {
     }
   };
 
-  // Redirect to login if not authenticated (except for /moniter route)
+  // Redirect to login if not authenticated (except for /ptz route)
   useEffect(() => {
-    if (!isAuthenticated && location.pathname !== '/login'  && location.pathname !== '/moniter' ) {
-      navigate('/');
+    if (!isAuthenticated && location.pathname !== '/login') {
+      navigate('/login');
     }
   }, [isAuthenticated, location.pathname, navigate]);
 

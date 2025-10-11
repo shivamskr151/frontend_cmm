@@ -319,41 +319,41 @@ export const useZoneDrawing = () => {
   const handleDrawLane = useCallback(() => {
     if (zoneDrawerRef.current) {
       if (currentZoneType === 'rectangle-with-lanes') {
-        console.log('Dashboard: Draw Lane clicked');
-        console.log('Dashboard: Zone drawer type:', zoneDrawerRef.current.constructor.name);
+        console.log('Zone: Draw Lane clicked');
+        console.log('Zone: Zone drawer type:', zoneDrawerRef.current.constructor.name);
         
         // Check if the drawer has the hasZones method (RectangleZoneWithLanesDrawer)
         if (typeof (zoneDrawerRef.current as any).hasZones === 'function') {
           const hasZones = (zoneDrawerRef.current as RectangleZoneWithLanesDrawer).hasZones();
-          console.log('Dashboard: Has zones:', hasZones);
+          console.log('Zone: Has zones:', hasZones);
           if (!hasZones) {
             return { success: false, message: 'Please create a zone first before drawing lanes. Use "Draw Zone" to create a rectangle zone.' };
           }
           
-          console.log('Dashboard: Setting draw mode to lane');
+          console.log('Zone: Setting draw mode to lane');
           (zoneDrawerRef.current as RectangleZoneWithLanesDrawer).setDrawMode('lane');
           const activeZoneIndex = (zoneDrawerRef.current as RectangleZoneWithLanesDrawer).getActiveZoneIndex();
-          console.log('Dashboard: Active zone index:', activeZoneIndex);
+          console.log('Zone: Active zone index:', activeZoneIndex);
         } else {
-          console.error('Dashboard: Zone drawer does not support lanes. Current type:', zoneDrawerRef.current.constructor.name);
+          console.error('Zone: Zone drawer does not support lanes. Current type:', zoneDrawerRef.current.constructor.name);
           return { success: false, message: 'Current zone type does not support lane drawing. Please select "Rectangle Zone with Lanes" from the zone type dropdown.' };
         }
       } else if (currentZoneType === 'polygon-with-lanes') {
-        console.log('Dashboard: Draw Lane clicked for polygon with lanes');
-        console.log('Dashboard: Zone drawer type:', zoneDrawerRef.current.constructor.name);
+        console.log('Zone: Draw Lane clicked for polygon with lanes');
+        console.log('Zone: Zone drawer type:', zoneDrawerRef.current.constructor.name);
         
         // Check if the drawer has the hasZones method (PolygonZoneDrawerWithLanes)
         if (typeof (zoneDrawerRef.current as any).hasZones === 'function') {
           const hasZones = (zoneDrawerRef.current as PolygonZoneDrawerWithLanes).hasZones();
-          console.log('Dashboard: Has zones:', hasZones);
+          console.log('Zone: Has zones:', hasZones);
           if (!hasZones) {
             return { success: false, message: 'Please create a polygon zone first before drawing lanes. Use "Draw Zone" to create a polygon zone.' };
           }
           
-          console.log('Dashboard: Setting draw mode to lane');
+          console.log('Zone: Setting draw mode to lane');
           (zoneDrawerRef.current as PolygonZoneDrawerWithLanes).setDrawMode('lane');
         } else {
-          console.error('Dashboard: Zone drawer does not support lanes. Current type:', zoneDrawerRef.current.constructor.name);
+          console.error('Zone: Zone drawer does not support lanes. Current type:', zoneDrawerRef.current.constructor.name);
           return { success: false, message: 'Current zone type does not support lane drawing. Please select "Polygon Zone with Lanes" from the zone type dropdown.' };
         }
       } else {
