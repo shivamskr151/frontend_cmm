@@ -34,6 +34,47 @@ export const JsonEditor: React.FC<JsonEditorProps> = ({
     
     // Set theme
     monaco.editor.setTheme('custom-light');
+    
+    // Remove iPad keyboard widget and other problematic widgets
+    const removeProblematicWidgets = () => {
+      // Remove iPad keyboard widget
+      const iPadWidgets = document.querySelectorAll('.iPadShowKeyboard, [widgetid="editor.contrib.ShowKeyboardWidget"]');
+      iPadWidgets.forEach(widget => {
+        if (widget.parentNode) {
+          widget.parentNode.removeChild(widget);
+        }
+      });
+      
+      // Remove other problematic Monaco widgets
+      const problematicWidgets = document.querySelectorAll('[widgetid*="ShowKeyboard"], [widgetid*="iPad"]');
+      problematicWidgets.forEach(widget => {
+        if (widget.parentNode) {
+          widget.parentNode.removeChild(widget);
+        }
+      });
+    };
+    
+    // Remove widgets immediately
+    removeProblematicWidgets();
+    
+    // Set up observer to remove widgets as they appear
+    const observer = new MutationObserver(() => {
+      removeProblematicWidgets();
+    });
+    
+    // Observe the editor container for new widgets
+    const editorContainer = editor.getDomNode();
+    if (editorContainer) {
+      observer.observe(editorContainer, {
+        childList: true,
+        subtree: true
+      });
+    }
+    
+    // Clean up observer when component unmounts
+    return () => {
+      observer.disconnect();
+    };
 
     // Add JSON validation
     const validateJson = () => {
@@ -104,6 +145,33 @@ export const JsonEditor: React.FC<JsonEditorProps> = ({
 
   return (
     <div className="relative">
+      {/* Hide iPad keyboard widget and other problematic Monaco widgets */}
+      <style>
+        {`
+          /* Hide iPad keyboard widget */
+          .iPadShowKeyboard,
+          [widgetid="editor.contrib.ShowKeyboardWidget"],
+          .monaco-editor .iPadShowKeyboard,
+          .monaco-editor [widgetid="editor.contrib.ShowKeyboardWidget"] {
+            display: none !important;
+            visibility: hidden !important;
+            opacity: 0 !important;
+            pointer-events: none !important;
+          }
+          
+          /* Hide other problematic Monaco widgets on mobile */
+          @media (max-width: 768px) {
+            .monaco-editor .monaco-widget,
+            .monaco-editor .monaco-widget-overlay,
+            .monaco-editor .iPadShowKeyboard,
+            .monaco-editor [widgetid*="ShowKeyboard"],
+            .monaco-editor [widgetid*="iPad"] {
+              display: none !important;
+              visibility: hidden !important;
+            }
+          }
+        `}
+      </style>
       {/* Editor Toolbar */}
       <div className="flex items-center justify-between mb-2 p-2 bg-gray-100 rounded-t-lg border-b border-gray-300">
         <div className="flex items-center gap-2">
@@ -209,6 +277,31 @@ export const JsonEditor: React.FC<JsonEditorProps> = ({
               indentation: true,
             },
             placeholder: placeholder,
+            // Disable mobile-specific widgets
+            contextmenu: false,
+            mouseWheelZoom: false,
+            // Disable iPad keyboard widget
+            domReadOnly: false,
+            // Disable touch-specific features that cause issues
+            disableLayerHinting: true,
+            // Ensure proper mobile behavior
+            scrollBeyondLastLine: false,
+            // Disable problematic mobile widgets
+            hideCursorInOverviewRuler: true,
+            overviewRulerBorder: false,
+            // Disable iPad-specific features
+            // enableSplitViewResizing: false, // This option doesn't exist in Monaco Editor
+            // Additional mobile optimizations
+            minimap: {
+              enabled: false,
+            },
+            scrollbar: {
+              vertical: 'auto',
+              horizontal: 'auto',
+              useShadows: false,
+              verticalHasArrows: false,
+              horizontalHasArrows: false,
+            },
           }}
         />
       </div>

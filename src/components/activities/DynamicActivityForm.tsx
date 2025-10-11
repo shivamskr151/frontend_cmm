@@ -187,12 +187,15 @@ export const DynamicActivityForm: React.FC<DynamicActivityFormProps> = ({
   const categories = groupFieldsByCategory();
 
   return (
-    <div className={`space-y-6 ${className}`}>
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-        <h3 className="text-lg font-semibold text-blue-900 mb-2">
-          {selectedActivity.replace(/_/g, ' ').toUpperCase()} Configuration
-        </h3>
-        <p className="text-sm text-blue-700">
+    <div className={`space-y-4 sm:space-y-6 ${className}`}>
+      <div className="bg-gradient-to-br from-blue-50/90 to-indigo-50/90 backdrop-blur-sm rounded-xl border border-blue-200/70 p-3 sm:p-4 md:p-6 shadow-lg shadow-blue-200/30">
+        <div className="flex items-center space-x-2 mb-4 sm:mb-6">
+          <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+          <h3 className="text-base sm:text-lg font-semibold text-gray-800">
+            {selectedActivity.replace(/_/g, ' ').toUpperCase()} Configuration
+          </h3>
+        </div>
+        <p className="text-xs sm:text-sm text-blue-700 mb-4 sm:mb-6">
           Configure parameters for the selected monitoring activity
         </p>
       </div>
@@ -203,14 +206,14 @@ export const DynamicActivityForm: React.FC<DynamicActivityFormProps> = ({
         const displayName = categoryName === 'Time Settings' ? 'Time Window' : categoryName;
         
         return (
-          <div key={categoryName} className={`${isTimeSettings ? 'bg-gradient-to-br from-blue-50/90 to-indigo-50/90 backdrop-blur-sm border border-blue-200/70 shadow-lg shadow-blue-200/30' : 'bg-white border border-gray-200'} rounded-xl p-6`}>
-            <div className="flex items-center space-x-2 mb-6">
+          <div key={categoryName} className={`${isTimeSettings ? 'bg-gradient-to-br from-blue-50/90 to-indigo-50/90 backdrop-blur-sm border border-blue-200/70 shadow-lg shadow-blue-200/30' : 'bg-white border border-gray-200'} rounded-xl p-3 sm:p-4 md:p-6`}>
+            <div className="flex items-center space-x-2 mb-4 sm:mb-6">
               <div className={`w-2 h-2 ${isTimeSettings ? 'bg-blue-500' : 'bg-gray-400'} rounded-full`}></div>
-              <h4 className={`text-lg font-semibold ${isTimeSettings ? 'text-gray-800' : 'text-gray-800'} border-b ${isTimeSettings ? 'border-blue-200/60' : 'border-gray-200'} pb-2 w-full`}>
+              <h4 className={`text-base sm:text-lg font-semibold ${isTimeSettings ? 'text-gray-800' : 'text-gray-800'} border-b ${isTimeSettings ? 'border-blue-200/60' : 'border-gray-200'} pb-2 w-full`}>
                 {displayName}
               </h4>
             </div>
-            <div className={`grid gap-6 ${isTimeSettings ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2 gap-4'}`}>
+            <div className={`grid gap-4 sm:gap-6 ${isTimeSettings ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2'}`}>
               {fields.map(renderField)}
             </div>
           </div>

@@ -256,10 +256,15 @@ export class ZoneDrawer {
       if (targetZoneIndex !== -1) {
         console.log('Lane mode: Starting lane drawing in zone:', targetZoneIndex);
         this.activeZoneIndex = targetZoneIndex;
+        
+        // Constrain the start point to be within the zone
+        const activeZone = this.zones[targetZoneIndex];
+        const constrainedStart = this.constrainPointToZone(imageX, imageY, activeZone.rectangle);
+        
         this.isDrawingLane = true;
         this.currentLane = {
-          start: { x: imageX, y: imageY },
-          end: { x: imageX, y: imageY },
+          start: constrainedStart,
+          end: constrainedStart,
           color: this.laneColors[this.zones[targetZoneIndex].lanes.length % this.laneColors.length]
         };
         this.activeLaneIndex = -1;
@@ -289,9 +294,14 @@ export class ZoneDrawer {
       this.currentRectangle.x2 = imageX;
       this.currentRectangle.y2 = imageY;
       this.redraw();
-    } else if (this.isDrawingLane && this.currentLane) {
+    } else if (this.isDrawingLane && this.currentLane && this.activeZoneIndex !== -1) {
       console.log('Lane drawing: mouse move to', imageX, imageY);
-      this.currentLane.end = { x: imageX, y: imageY };
+      
+      // Constrain the lane end point to be within the active zone
+      const activeZone = this.zones[this.activeZoneIndex];
+      const constrainedPoint = this.constrainPointToZone(imageX, imageY, activeZone.rectangle);
+      
+      this.currentLane.end = { x: constrainedPoint.x, y: constrainedPoint.y };
       this.redraw();
     }
   }
@@ -322,6 +332,12 @@ export class ZoneDrawer {
       this.redraw();
     } else if (this.isDrawingLane && this.currentLane && this.activeZoneIndex !== -1) {
       console.log('Lane drawing: mouse up, finishing lane');
+      
+      // Ensure the final end point is constrained to the zone
+      const activeZone = this.zones[this.activeZoneIndex];
+      const constrainedEnd = this.constrainPointToZone(this.currentLane.end.x, this.currentLane.end.y, activeZone.rectangle);
+      this.currentLane.end = constrainedEnd;
+      
       // Only create lane if it has minimum length
       const length = Math.sqrt(
         Math.pow(this.currentLane.end.x - this.currentLane.start.x, 2) +
@@ -422,6 +438,14 @@ export class ZoneDrawer {
     const dx = px - xx;
     const dy = py - yy;
     return Math.sqrt(dx * dx + dy * dy);
+  }
+
+  private constrainPointToZone(x: number, y: number, zoneRect: Rectangle): Point {
+    // Constrain the point to be within the zone boundaries
+    const constrainedX = Math.max(zoneRect.x1, Math.min(zoneRect.x2, x));
+    const constrainedY = Math.max(zoneRect.y1, Math.min(zoneRect.y2, y));
+    
+    return { x: constrainedX, y: constrainedY };
   }
 
   private redraw() {
