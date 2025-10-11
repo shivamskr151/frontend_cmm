@@ -10,8 +10,8 @@ import { CameraProvider } from './contexts/CameraContext';
 function AppContent() {
   const location = useLocation();
   
-  // Show navbar only on / and /ptz routes, hide on /login
-  const showNavbar = location.pathname === '/' || location.pathname === '/ptz';
+  // Show navbar only on /, /zone, and /ptz routes, hide on /login
+  const showNavbar = location.pathname === '/' || location.pathname === '/zone' || location.pathname === '/ptz';
 
   return (
     <div className="App">
@@ -19,6 +19,7 @@ function AppContent() {
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/" element={<Zone />} />
+        <Route path="/zone" element={<Zone />} />
         <Route path="/ptz" element={<PTZ />} />
       </Routes>
     </div>

@@ -1,6 +1,8 @@
 
 import { useEffect, useState, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import { useCameras } from "../contexts/CameraContext";
+import { useUser } from "../contexts/UserContext";
 import { useWebSocket, usePatrol, usePresets } from "../hooks/ptz";
 import {
   JoystickControl,
@@ -15,6 +17,9 @@ import {
 } from "../components/ptz";
 
 function PTZ() {
+  const navigate = useNavigate();
+  const { isAuthenticated, isLoading } = useUser();
+  
   // State for Pan/Tilt
   const [speeds, setSpeeds] = useState({ Pan: 0.5, Tilt: 0.5 });
   const [zoomLevel, setZoomLevel] = useState(50); // Zoom percentage (0-100) - Display only
@@ -32,6 +37,13 @@ function PTZ() {
   const patrolHook = usePatrol(sendPatrolCommand);
   const presetsHook = usePresets();
 
+  // Check authentication status
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) {
+      console.log('PTZ: User not authenticated, redirecting to login');
+      navigate('/login');
+    }
+  }, [isAuthenticated, isLoading, navigate]);
 
   // Camera loading is now handled by the shared CameraContext
   const handleCameraSelect = useCallback((cameraId: string) => {

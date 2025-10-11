@@ -46,16 +46,37 @@ const Navbar=()=> {
   // Handle logout
   const handleLogout = async () => {
     try {
+      console.log('Navbar: Starting logout process...');
       await logout();
+      console.log('Navbar: Logout completed, isAuthenticated should be false');
       setShowProfileDropdown(false);
+      
+      // Clear any remaining localStorage data manually
+      localStorage.removeItem('access_token');
+      localStorage.removeItem('client_data');
+      localStorage.removeItem('login_timestamp');
+      
+      // Force redirect to login and clear any cached state
+      setTimeout(() => {
+        console.log('Navbar: Redirecting to login after logout');
+        // Force a hard navigation to ensure clean state
+        window.location.href = '/login';
+      }, 100);
     } catch (error) {
       console.error('Logout failed:', error);
+      // Still redirect to login even if logout fails
+      setTimeout(() => {
+        window.location.href = '/login';
+      }, 100);
     }
   };
 
-  // Redirect to login if not authenticated (except for /ptz route)
+  // Redirect to login if not authenticated (except for /login, /ptz, and /zone routes)
+  // This allows direct access to /ptz and /zone in new tabs
   useEffect(() => {
-    if (!isAuthenticated && location.pathname !== '/login') {
+    console.log('Navbar: Authentication check - isAuthenticated:', isAuthenticated, 'pathname:', location.pathname);
+    if (!isAuthenticated && location.pathname !== '/login' && location.pathname !== '/ptz' && location.pathname !== '/zone') {
+      console.log('Navbar: Redirecting to login from:', location.pathname);
       navigate('/login');
     }
   }, [isAuthenticated, location.pathname, navigate]);
