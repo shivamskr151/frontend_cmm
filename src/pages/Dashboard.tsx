@@ -1232,7 +1232,7 @@ const Dashboard: React.FC = () => {
                   ref={snapshotImageRef}
                   src={hasSnapshot ? (snapshotUrl || '/api/snapshot/placeholder') : 'https://picsum.photos/800/400?random=1'} 
                   alt="Zone Snapshot" 
-                  className="w-full h-full object-contain block border border-gray-300 rounded-xl relative z-10 shadow-lg"
+                  className="w-full h-full object-cover block border border-gray-300 rounded-xl relative z-10 shadow-lg"
                   onError={(e) => {
                     const target = e.target as HTMLImageElement;
                     target.src = 'https://picsum.photos/800/400?random=1';
