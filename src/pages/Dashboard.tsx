@@ -26,7 +26,7 @@ const Dashboard: React.FC = () => {
   const [, setCameraName] = useState('Unknown');
   const [, setCameraStatus] = useState('Disconnected');
   const [selectedActivity, setSelectedActivity] = useState('');
-  const [currentZoneType, setCurrentZoneType] = useState('rectangle');
+  const [currentZoneType, setCurrentZoneType] = useState('');
   // const [username, setUsername] = useState('Loading...');
   // Use shared camera context instead of local state
   const { cameras, camerasLoading, camerasError, loadCameras, refreshCameras, selectedCamera, setSelectedCamera, getSelectedCameraData } = useCameras();
@@ -212,6 +212,13 @@ const Dashboard: React.FC = () => {
   const initializeZoneDrawer = useCallback((zoneType?: string) => {
     const typeToUse = zoneType || currentZoneType;
     console.log('initializeZoneDrawer called with zoneType:', zoneType, 'currentZoneType:', currentZoneType, 'typeToUse:', typeToUse);
+    
+    // If no zone type is selected, don't initialize anything
+    if (!typeToUse || typeToUse.trim() === '') {
+      console.log('No zone type selected, skipping initialization');
+      return;
+    }
+    
     if (zoneCanvasRef.current && snapshotImageRef.current) {
       try {
         console.log('Initializing zone drawer for type:', typeToUse);
@@ -593,19 +600,15 @@ const Dashboard: React.FC = () => {
     if (zoneDrawerRef.current) {
       if (currentZoneType === 'rectangle') {
         console.log('Using RectangleZoneDrawer - starting zone drawing');
-        showMessage('Rectangle zone drawing mode activated. Click and drag to draw a zone.', 'Info', 'info');
       } else if (currentZoneType === 'rectangle-with-lanes') {
         console.log('Using RectangleZoneWithLanesDrawer - setting draw mode to zone');
         (zoneDrawerRef.current as RectangleZoneWithLanesDrawer).setDrawMode('zone');
-        showMessage('Rectangle zone drawing mode activated. Click and drag to draw a zone.', 'Info', 'info');
       } else if (currentZoneType === 'polygon') {
         console.log('Using PolygonZoneDrawer - starting polygon drawing');
         (zoneDrawerRef.current as PolygonZoneDrawer).startDrawing();
-        showMessage('Polygon zone drawing mode activated. Click to add points, double-click to complete polygon.', 'Info', 'info');
       } else if (currentZoneType === 'polygon-with-lanes') {
         console.log('Using PolygonZoneDrawerWithLanes - setting draw mode to polygon');
         (zoneDrawerRef.current as PolygonZoneDrawerWithLanes).setDrawMode('polygon');
-        showMessage('Polygon zone drawing mode activated. Click to add points, double-click to complete polygon.', 'Info', 'info');
       } else {
         showMessage(`Zone type "${currentZoneType}" is not yet implemented.`, 'Warning', 'warning');
       }
@@ -647,11 +650,6 @@ const Dashboard: React.FC = () => {
           (zoneDrawerRef.current as RectangleZoneWithLanesDrawer).setDrawMode('lane');
           const activeZoneIndex = (zoneDrawerRef.current as RectangleZoneWithLanesDrawer).getActiveZoneIndex();
           console.log('Dashboard: Active zone index:', activeZoneIndex);
-          if (activeZoneIndex !== -1) {
-            showMessage('Lane drawing mode activated. Click and drag to draw a lane within the selected zone.', 'Info', 'info');
-          } else {
-            showMessage('Lane drawing mode activated. Click and drag within any zone to draw a lane.', 'Info', 'info');
-          }
         } else {
           console.error('Dashboard: Zone drawer does not support lanes. Current type:', zoneDrawerRef.current.constructor.name);
           console.log('Dashboard: Reinitializing with correct drawer type...');
@@ -681,7 +679,6 @@ const Dashboard: React.FC = () => {
           
           console.log('Dashboard: Setting draw mode to lane');
           (zoneDrawerRef.current as PolygonZoneDrawerWithLanes).setDrawMode('lane');
-          showMessage('Lane drawing mode activated. Click and drag to draw a lane within the polygon zone.', 'Info', 'info');
         } else {
           console.error('Dashboard: Zone drawer does not support lanes. Current type:', zoneDrawerRef.current.constructor.name);
           console.log('Dashboard: Reinitializing with correct drawer type...');
