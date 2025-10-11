@@ -1431,11 +1431,6 @@ const Dashboard: React.FC = () => {
                                     <div key={laneIndex} className="bg-white rounded p-3 border border-gray-100">
                                       <div className="flex items-center justify-between mb-2">
                                         <div className="flex items-center gap-2">
-                                          <div 
-                                            className="w-3 h-3 rounded-full border border-gray-300"
-                                            style={{ backgroundColor: lane.color }}
-                                            title={`Lane color: ${lane.color}`}
-                                          ></div>
                                           <span className="text-xs font-medium text-gray-700">Lane {laneIndex + 1}</span>
                                         </div>
                                         <button 
@@ -1448,7 +1443,6 @@ const Dashboard: React.FC = () => {
                                       <div className="text-gray-600 font-mono text-xs">
                                         <div>Start: ({lane.start.x.toFixed(1)}, {lane.start.y.toFixed(1)})</div>
                                         <div>End: ({lane.end.x.toFixed(1)}, {lane.end.y.toFixed(1)})</div>
-                                        <div>Color: {lane.color}</div>
                                       </div>
                                     </div>
                                   ))}

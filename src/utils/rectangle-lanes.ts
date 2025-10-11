@@ -477,10 +477,13 @@ export class ZoneDrawer {
     // Draw rectangle
     this.drawRectangle(zone.rectangle, isActive, zone.color);
 
+    // Draw zone label
+    this.drawZoneLabel(zone.rectangle, this.zones.indexOf(zone) + 1);
+
     // Draw lanes
     zone.lanes.forEach((lane, laneIndex) => {
       const isActiveLane = isActive && laneIndex === this.activeLaneIndex;
-      this.drawLane(lane, isActiveLane);
+      this.drawLane(lane, isActiveLane, laneIndex + 1);
     });
   }
 
@@ -502,7 +505,7 @@ export class ZoneDrawer {
     this.ctx.strokeRect(scaled.x1, scaled.y1, scaled.x2 - scaled.x1, scaled.y2 - scaled.y1);
   }
 
-  private drawLane(lane: Lane, isActive: boolean) {
+  private drawLane(lane: Lane, isActive: boolean, laneNumber?: number) {
     if (!this.ctx) return;
 
     const start = this.scalePointToScreen(lane.start);
@@ -516,6 +519,11 @@ export class ZoneDrawer {
     this.ctx.lineWidth = isActive ? 3 : this.laneWidth;
     this.ctx.lineCap = 'round';
     this.ctx.stroke();
+
+    // Draw lane label
+    if (laneNumber) {
+      this.drawLaneLabel(start, end, laneNumber);
+    }
 
     // Only draw endpoints if the lane is being actively drawn or selected
     if (isActive) {
@@ -761,6 +769,53 @@ export class ZoneDrawer {
     
     this.saveToHistory();
     this.redraw();
+  }
+
+  private drawZoneLabel(rectangle: Rectangle, zoneNumber: number) {
+    if (!this.ctx) return;
+
+    const scaled = this.scaleRectangleToScreen(rectangle);
+    const centerX = (scaled.x1 + scaled.x2) / 2;
+    const centerY = (scaled.y1 + scaled.y2) / 2;
+
+    // Draw background circle for label
+    this.ctx.beginPath();
+    this.ctx.arc(centerX, centerY, 12, 0, Math.PI * 2);
+    this.ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+    this.ctx.fill();
+    this.ctx.strokeStyle = '#333';
+    this.ctx.lineWidth = 1;
+    this.ctx.stroke();
+
+    // Draw zone number text
+    this.ctx.fillStyle = '#333';
+    this.ctx.font = 'bold 12px Arial';
+    this.ctx.textAlign = 'center';
+    this.ctx.textBaseline = 'middle';
+    this.ctx.fillText(`Z${zoneNumber}`, centerX, centerY);
+  }
+
+  private drawLaneLabel(start: Point, end: Point, laneNumber: number) {
+    if (!this.ctx) return;
+
+    const midX = (start.x + end.x) / 2;
+    const midY = (start.y + end.y) / 2;
+
+    // Draw background circle for label
+    this.ctx.beginPath();
+    this.ctx.arc(midX, midY, 8, 0, Math.PI * 2);
+    this.ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+    this.ctx.fill();
+    this.ctx.strokeStyle = '#333';
+    this.ctx.lineWidth = 1;
+    this.ctx.stroke();
+
+    // Draw lane number text
+    this.ctx.fillStyle = '#333';
+    this.ctx.font = 'bold 10px Arial';
+    this.ctx.textAlign = 'center';
+    this.ctx.textBaseline = 'middle';
+    this.ctx.fillText(`L${laneNumber}`, midX, midY);
   }
 
   public destroy() {

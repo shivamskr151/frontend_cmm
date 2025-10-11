@@ -301,6 +301,7 @@ export class RectangleZoneDrawer {
     this.rectangles.forEach((rectangle, index) => {
       const isActive = index === this.activeRectangleIndex;
       this.drawRectangle(rectangle, isActive);
+      this.drawZoneLabel(rectangle, index + 1);
     });
 
     // Draw current rectangle being created
@@ -464,6 +465,30 @@ export class RectangleZoneDrawer {
     
     this.saveToHistory();
     this.redraw();
+  }
+
+  private drawZoneLabel(rectangle: Rectangle, zoneNumber: number) {
+    if (!this.ctx) return;
+
+    const scaled = this.scaleRectangleToScreen(rectangle);
+    const centerX = (scaled.x1 + scaled.x2) / 2;
+    const centerY = (scaled.y1 + scaled.y2) / 2;
+
+    // Draw background circle for label
+    this.ctx.beginPath();
+    this.ctx.arc(centerX, centerY, 12, 0, Math.PI * 2);
+    this.ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+    this.ctx.fill();
+    this.ctx.strokeStyle = '#333';
+    this.ctx.lineWidth = 1;
+    this.ctx.stroke();
+
+    // Draw zone number text
+    this.ctx.fillStyle = '#333';
+    this.ctx.font = 'bold 12px Arial';
+    this.ctx.textAlign = 'center';
+    this.ctx.textBaseline = 'middle';
+    this.ctx.fillText(`Z${zoneNumber}`, centerX, centerY);
   }
 
   public destroy() {

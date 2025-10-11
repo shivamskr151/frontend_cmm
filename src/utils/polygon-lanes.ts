@@ -627,12 +627,14 @@ export class PolygonZoneDrawerWithLanes {
     this.polygons.forEach((polygon, index) => {
       const isActive = index === this.activePolygonIndex;
       this.drawPolygon(polygon, isActive);
+      this.drawPolygonLabel(polygon, index + 1);
     });
 
     // Draw all lanes
     this.lanes.forEach((lane, index) => {
       const isActive = index === this.activeLaneIndex;
       this.drawLane(lane, isActive);
+      this.drawLaneLabel(lane, index + 1);
     });
 
     // Draw current polygon if drawing
@@ -1033,6 +1035,68 @@ export class PolygonZoneDrawerWithLanes {
     
     this.saveToHistory();
     this.redraw();
+  }
+
+  private drawPolygonLabel(polygon: Point[], polygonNumber: number) {
+    if (!this.ctx || polygon.length < 3) return;
+
+    // Calculate centroid of polygon
+    let centerX = 0;
+    let centerY = 0;
+    for (const point of polygon) {
+      centerX += point.x * this.scaleX + this.offsetX;
+      centerY += point.y * this.scaleY + this.offsetY;
+    }
+    centerX /= polygon.length;
+    centerY /= polygon.length;
+
+    // Draw background circle for label
+    this.ctx.beginPath();
+    this.ctx.arc(centerX, centerY, 12, 0, Math.PI * 2);
+    this.ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+    this.ctx.fill();
+    this.ctx.strokeStyle = '#333';
+    this.ctx.lineWidth = 1;
+    this.ctx.stroke();
+
+    // Draw polygon number text
+    this.ctx.fillStyle = '#333';
+    this.ctx.font = 'bold 12px Arial';
+    this.ctx.textAlign = 'center';
+    this.ctx.textBaseline = 'middle';
+    this.ctx.fillText(`Z${polygonNumber}`, centerX, centerY);
+  }
+
+  private drawLaneLabel(lane: Lane, laneNumber: number) {
+    if (!this.ctx) return;
+
+    const start = {
+      x: lane.start.x * this.scaleX + this.offsetX,
+      y: lane.start.y * this.scaleY + this.offsetY
+    };
+    const end = {
+      x: lane.end.x * this.scaleX + this.offsetX,
+      y: lane.end.y * this.scaleY + this.offsetY
+    };
+
+    const midX = (start.x + end.x) / 2;
+    const midY = (start.y + end.y) / 2;
+
+    // Draw background circle for label
+    this.ctx.beginPath();
+    this.ctx.arc(midX, midY, 8, 0, Math.PI * 2);
+    this.ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+    this.ctx.fill();
+    this.ctx.strokeStyle = '#333';
+    this.ctx.lineWidth = 1;
+    this.ctx.stroke();
+
+    // Draw lane number text
+    this.ctx.fillStyle = '#333';
+    this.ctx.font = 'bold 10px Arial';
+    this.ctx.textAlign = 'center';
+    this.ctx.textBaseline = 'middle';
+    this.ctx.fillText(`L${laneNumber}`, midX, midY);
   }
 
   public destroy() {

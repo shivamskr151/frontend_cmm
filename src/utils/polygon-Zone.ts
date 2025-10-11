@@ -380,6 +380,7 @@ export class PolygonZoneDrawer {
     this.polygons.forEach((polygon, index) => {
       const isActive = index === this.activePolygonIndex;
       this.drawPolygon(polygon, isActive);
+      this.drawPolygonLabel(polygon, index + 1);
     });
     
     // Draw current polygon being created
@@ -651,6 +652,36 @@ export class PolygonZoneDrawer {
     
     this.saveToHistory();
     this.redraw();
+  }
+
+  private drawPolygonLabel(polygon: Point[], polygonNumber: number) {
+    if (!this.ctx || polygon.length < 3) return;
+
+    // Calculate centroid of polygon
+    let centerX = 0;
+    let centerY = 0;
+    for (const point of polygon) {
+      centerX += point.x * this.scaleX + this.offsetX;
+      centerY += point.y * this.scaleY + this.offsetY;
+    }
+    centerX /= polygon.length;
+    centerY /= polygon.length;
+
+    // Draw background circle for label
+    this.ctx.beginPath();
+    this.ctx.arc(centerX, centerY, 12, 0, Math.PI * 2);
+    this.ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+    this.ctx.fill();
+    this.ctx.strokeStyle = '#333';
+    this.ctx.lineWidth = 1;
+    this.ctx.stroke();
+
+    // Draw polygon number text
+    this.ctx.fillStyle = '#333';
+    this.ctx.font = 'bold 12px Arial';
+    this.ctx.textAlign = 'center';
+    this.ctx.textBaseline = 'middle';
+    this.ctx.fillText(`Z${polygonNumber}`, centerX, centerY);
   }
 
   public destroy() {
