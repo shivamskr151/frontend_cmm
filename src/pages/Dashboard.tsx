@@ -1005,7 +1005,7 @@ const Dashboard: React.FC = () => {
                         title="Select a monitoring activity"
                         aria-label="Select a monitoring activity"
                       >
-                        <option value="">Choose monitoring activity...</option>
+                        <option value="">Select an activity</option>
                         {Object.keys(activities).map(activityName => (
                           <option key={activityName} value={activityName}>
                             {activityName.replace(/_/g, ' ').toUpperCase()}
