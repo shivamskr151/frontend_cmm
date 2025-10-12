@@ -7,8 +7,10 @@ import { API_CONFIG } from '../config';
 import { loginApi } from '../auth/loginApi';
 
 export interface OnvifPreset {
-  preset_token: string;
-  preset_name: string;
+  preset_token?: string;
+  token?: string; // Backend might return 'token' instead of 'preset_token'
+  preset_name?: string;
+  name?: string; // Backend might return 'name' instead of 'preset_name'
   pan?: number;
   tilt?: number;
   zoom?: number;
@@ -93,6 +95,7 @@ class OnvifPresetApiService {
       }
 
       console.log(`✅ Successfully fetched ${presets.length} presets`);
+      console.log('📋 Raw presets data:', presets);
       return presets;
 
     } catch (error) {
@@ -205,6 +208,8 @@ class OnvifPresetApiService {
         presetToken
       };
 
+      console.log('📤 Remove Preset Request Body:', requestBody);
+
       const response = await fetch(`${API_CONFIG.BASE_URL}/onvif/presets/remove`, {
         method: 'POST',
         headers: this.getAuthHeaders(),
@@ -215,16 +220,41 @@ class OnvifPresetApiService {
       console.log('📡 Remove Preset API Response status:', response.status, response.statusText);
 
       if (!response.ok) {
+        // Try to get the error response body for more details
+        let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+        try {
+          const errorData = await response.json();
+          console.error('📄 Error response body:', errorData);
+          if (errorData.message) {
+            errorMessage = errorData.message;
+          } else if (errorData.error) {
+            errorMessage = errorData.error;
+          }
+        } catch (parseError) {
+          console.warn('Could not parse error response body:', parseError);
+        }
+
         if (response.status === 401) {
           throw new Error('Authentication failed. Please login again.');
         } else if (response.status === 403) {
           throw new Error('Access denied. You do not have permission to remove presets.');
+        } else if (response.status === 404) {
+          throw new Error('Preset not found or already deleted.');
+        } else if (response.status === 500) {
+          throw new Error(`Server error: ${errorMessage}`);
         } else {
-          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+          throw new Error(errorMessage);
         }
       }
 
-      await response.json();
+      const responseData = await response.json();
+      console.log('📄 Remove Preset Response:', responseData);
+      
+      // Check if the response indicates success
+      if (responseData.success === false) {
+        throw new Error(responseData.message || 'Failed to remove preset');
+      }
+      
       console.log('✅ Successfully removed preset');
 
     } catch (error) {
@@ -257,3 +287,4 @@ class OnvifPresetApiService {
 
 // Export singleton instance
 export const onvifPresetApi = new OnvifPresetApiService();
+

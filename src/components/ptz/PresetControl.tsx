@@ -78,7 +78,8 @@ const PresetControl: React.FC<PresetControlProps> = ({ speeds, zoomLevel }) => {
         await deletePreset(preset);
       } catch (err) {
         console.error('Failed to delete preset:', err);
-        alert('Failed to delete preset. Please try again.');
+        const errorMessage = err instanceof Error ? err.message : 'Failed to delete preset. Please try again.';
+        alert(errorMessage);
       }
     }
   };
@@ -271,7 +272,15 @@ const PresetControl: React.FC<PresetControlProps> = ({ speeds, zoomLevel }) => {
                 </span>
                 <div className="flex items-center gap-2">
                   <button
-                    onClick={handleDeleteSelectedPresets}
+                    onClick={async () => {
+                      try {
+                        await handleDeleteSelectedPresets();
+                      } catch (err) {
+                        console.error('Failed to delete selected presets:', err);
+                        const errorMessage = err instanceof Error ? err.message : 'Failed to delete selected presets. Please try again.';
+                        alert(errorMessage);
+                      }
+                    }}
                     disabled={isDeletingMultiple}
                     className="px-3 py-1 bg-red-100 hover:bg-red-200 text-red-700 rounded text-xs font-medium transition-all duration-200 border border-red-300 flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
@@ -345,7 +354,9 @@ const PresetControl: React.FC<PresetControlProps> = ({ speeds, zoomLevel }) => {
                       <div className="text-left">
                         <div className="text-xs font-medium">{preset.name}</div>
                         <div className="text-xs text-gray-500">
-                          Pan: {preset.pan.toFixed(2)}, Tilt: {preset.tilt.toFixed(2)}, Zoom: {preset.zoom}
+                          Pan: {typeof preset.pan === 'number' ? preset.pan.toFixed(2) : 'N/A'}, 
+                          Tilt: {typeof preset.tilt === 'number' ? preset.tilt.toFixed(2) : 'N/A'}, 
+                          Zoom: {typeof preset.zoom === 'number' ? preset.zoom.toString() : 'N/A'}
                         </div>
                       </div>
                       <div className="flex items-center gap-1">
