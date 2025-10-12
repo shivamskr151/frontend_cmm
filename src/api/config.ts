@@ -34,6 +34,8 @@ export const API_CONFIG = {
     LOGIN: '/client/login',
     CAMERA: '/camera',
     CAMERA_STATUS: (id: string) => `/camera/${id}/status`,
+    CONFIGURATION: '/configuration/search',
+    
     // ONVIF endpoints
     ONVIF_PRESETS: '/onvif/presets',
     ONVIF_PRESETS_SET: '/onvif/presets/set',
@@ -56,3 +58,4 @@ export const API_CONFIG = {
 } as const;
 
 export type ApiConfig = typeof API_CONFIG;
+

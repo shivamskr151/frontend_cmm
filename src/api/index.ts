@@ -29,6 +29,12 @@ export type {
   ActivityValidationResult 
 } from './activities/activityService';
 
+// Configuration APIs
+export { configurationApi } from './configuration/configurationApi';
+export type { 
+  ConfigurationData as CameraConfigurationData
+} from './configuration/configurationApi';
+
 // Base API configuration
 export { API_CONFIG } from './config';
 export type { ApiConfig } from './config';

@@ -736,6 +736,7 @@ const Zone: React.FC = () => {
         isOpen={showJsonEditorModal}
         onClose={() => setShowJsonEditorModal(false)}
         onAddActivities={handleAddFromJsonEditor}
+        cameraId={selectedCamera || undefined}
       />
     </>
   );

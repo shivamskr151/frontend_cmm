@@ -1,27 +1,33 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { JsonEditor } from './JsonEditor';
+import { configurationApi } from '../../api';
 
 interface JsonEditorModalProps {
   isOpen: boolean;
   onClose: () => void;
   onAddActivities: (jsonData: string) => Promise<{ success: boolean; message: string }>;
+  cameraId?: string;
 }
 
 export const JsonEditorModal: React.FC<JsonEditorModalProps> = ({
   isOpen,
   onClose,
-  onAddActivities
+  onAddActivities,
+  cameraId
 }) => {
   const [jsonData, setJsonData] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingConfig, setIsLoadingConfig] = useState(false);
   const [isValidJson, setIsValidJson] = useState(true);
   const [, setValidationErrors] = useState<string[]>([]);
   const modalRef = useRef<HTMLDivElement>(null);
+  const loadedCameraIdRef = useRef<string | null>(null);
 
   const handleClose = useCallback(() => {
     setJsonData('');
     setIsValidJson(true);
     setValidationErrors([]);
+    loadedCameraIdRef.current = null;
     onClose();
   }, [onClose]);
 
@@ -76,6 +82,92 @@ export const JsonEditorModal: React.FC<JsonEditorModalProps> = ({
     setIsValidJson(isValid);
     setValidationErrors(errors);
   };
+
+  // Load configuration when modal opens and cameraId is available
+  useEffect(() => {
+    const loadConfiguration = async () => {
+      if (!isOpen || !cameraId) return;
+
+      // Don't reload if we already loaded configuration for this camera
+      if (loadedCameraIdRef.current === cameraId) {
+        console.log('📋 Configuration already loaded for camera:', cameraId);
+        return;
+      }
+
+      setIsLoadingConfig(true);
+      try {
+        console.log('🔄 Loading configuration for camera:', cameraId);
+        
+        // First, let's try a direct API call to see the raw response
+        const directResponse = await fetch(`http://localhost:4200/configuration/search?cameraId=${encodeURIComponent(cameraId)}`, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('access_token') || localStorage.getItem('bearer_token')}`,
+            'Content-Type': 'application/json',
+          },
+        });
+        
+        console.log('📡 Direct API response status:', directResponse.status);
+        
+        if (directResponse.ok) {
+          const rawResponse = await directResponse.json();
+          console.log('📡 Direct API raw response:', rawResponse);
+          
+          // Try to use the raw response directly
+          const configJson = JSON.stringify(rawResponse, null, 2);
+          console.log('📝 Direct configuration JSON:', configJson);
+          
+          setJsonData(configJson);
+          setIsValidJson(true);
+          setValidationErrors([]);
+          loadedCameraIdRef.current = cameraId;
+          
+          console.log('✅ Configuration loaded directly for camera:', cameraId);
+        } else {
+          throw new Error(`Direct API call failed: ${directResponse.status} ${directResponse.statusText}`);
+        }
+      } catch (error) {
+        console.error('❌ Error loading configuration:', error);
+        console.error('❌ Error details:', error);
+        
+        // Try the configuration API as fallback
+        try {
+          console.log('🔄 Trying configuration API as fallback...');
+          const configData = await configurationApi.getConfiguration(cameraId);
+          
+          console.log('📋 Fallback configuration data received:', configData);
+          
+          // Handle different response formats
+          let configToDisplay;
+          if (configData.configuration) {
+            configToDisplay = configData.configuration;
+          } else if (configData) {
+            configToDisplay = configData;
+          } else {
+            configToDisplay = {};
+          }
+          
+          const configJson = JSON.stringify(configToDisplay, null, 2);
+          console.log('📝 Fallback configuration JSON:', configJson);
+          
+          setJsonData(configJson);
+          setIsValidJson(true);
+          setValidationErrors([]);
+          loadedCameraIdRef.current = cameraId;
+        } catch (fallbackError) {
+          console.error('❌ Fallback also failed:', fallbackError);
+          // Set empty JSON object as final fallback
+          setJsonData('{}');
+          setIsValidJson(true);
+          setValidationErrors([]);
+        }
+      } finally {
+        setIsLoadingConfig(false);
+      }
+    };
+
+    loadConfiguration();
+  }, [isOpen, cameraId]);
 
   if (!isOpen) return null;
 
@@ -143,12 +235,23 @@ export const JsonEditorModal: React.FC<JsonEditorModalProps> = ({
                   )}
                 </div>
               </div>
-              <div className="border border-gray-200 rounded-xl overflow-hidden shadow-sm">
+              <div className="border border-gray-200 rounded-xl overflow-hidden shadow-sm relative">
+                {isLoadingConfig && (
+                  <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex items-center justify-center z-10">
+                    <div className="flex items-center gap-3 text-blue-600">
+                      <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      <span className="text-sm font-medium">Loading camera configuration...</span>
+                    </div>
+                  </div>
+                )}
                 <JsonEditor
                   value={jsonData}
                   onChange={setJsonData}
                   height="350px"
-                  placeholder="Enter your JSON data here..."
+                  placeholder={cameraId ? "Loading camera configuration..." : "Enter your JSON data here..."}
                   onValidate={handleJsonValidation}
                 />
               </div>

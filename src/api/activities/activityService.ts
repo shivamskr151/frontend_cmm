@@ -46,8 +46,34 @@ export class ActivityService {
         activitiesData = parsed.activities_data;
       }
 
+      // Filter out metadata fields that shouldn't be treated as activities
+      const metadataFields = [
+        'id', 'sensorId', 'cameraId', 'activityData', 'createdAt', 'updatedAt', 
+        'timestamp', 'version', 'status', 'name', 'description', 'type', 
+        'location', 'ip', 'port', 'appName', 'configuration', 'data'
+      ];
+      const filteredActivities = Object.entries(activitiesData).filter(([key, value]) => {
+        // Skip metadata fields
+        if (metadataFields.includes(key)) {
+          return false;
+        }
+        
+        // Skip if the value is not an object (primitives are not activities)
+        if (typeof value !== 'object' || value === null) {
+          return false;
+        }
+        
+        // Skip if it doesn't look like an activity (no status or parameters)
+        const activityObj = value as Record<string, unknown>;
+        if (!activityObj.status && !activityObj.parameters) {
+          return false;
+        }
+        
+        return true;
+      });
+
       // Validate each activity
-      for (const [activityName, activity] of Object.entries(activitiesData)) {
+      for (const [activityName, activity] of filteredActivities) {
         const activityValidation = this.validateActivity(activity as Activity, activityName);
         result.errors.push(...activityValidation.errors);
         result.warnings.push(...activityValidation.warnings);
@@ -95,11 +121,41 @@ export class ActivityService {
     const parsed = JSON.parse(jsonData);
     
     // Handle both full configuration and activities-only formats
+    let activitiesData = parsed;
     if (parsed.activities_data) {
-      return parsed.activities_data;
+      activitiesData = parsed.activities_data;
     }
     
-    return parsed;
+    // Filter out metadata fields that shouldn't be treated as activities
+    const metadataFields = [
+      'id', 'sensorId', 'cameraId', 'activityData', 'createdAt', 'updatedAt', 
+      'timestamp', 'version', 'status', 'name', 'description', 'type', 
+      'location', 'ip', 'port', 'appName', 'configuration', 'data'
+    ];
+    const filteredActivities: ActivitiesData = {};
+    
+    for (const [key, value] of Object.entries(activitiesData)) {
+      // Skip metadata fields
+      if (metadataFields.includes(key)) {
+        continue;
+      }
+      
+      // Skip if the value is not an object (primitives are not activities)
+      if (typeof value !== 'object' || value === null) {
+        continue;
+      }
+      
+      // Skip if it doesn't look like an activity (no status or parameters)
+      const activityObj = value as Record<string, unknown>;
+      if (!activityObj.status && !activityObj.parameters) {
+        continue;
+      }
+      
+      // This looks like an activity, include it
+      filteredActivities[key] = value as Activity;
+    }
+    
+    return filteredActivities;
   }
 
   /**
