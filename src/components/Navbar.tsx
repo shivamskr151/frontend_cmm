@@ -106,42 +106,44 @@ const Navbar=()=> {
             </div>
           </div>
 
-          {/* Desktop Navigation - Show navigation items */}
-          <nav className="hidden md:flex items-center space-x-2 ">
-            {navigationItems.map((item) => (
-              <button
-                key={item.path}
-                onClick={() => {
-                  navigate(item.path);
-                  setShowMobileMenu(false);
-                }}
-                className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-300 border border-transparent ${
-                  isActiveTab(item.path)
-                    ? 'bg-blue-50 text-blue-700 border-blue-200 shadow-md shadow-blue-100/50'
-                    : 'text-gray-600 hover:text-gray-800 hover:bg-gray-50 hover:border-gray-200 hover:shadow-md hover:shadow-gray-100/50'
-                } group`}
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="16"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke={isActiveTab(item.path) ? '#1d4ed8' : 'currentColor'}
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
+          {/* Right side container for navigation and profile */}
+          <div className="flex items-center space-x-4">
+            {/* Desktop Navigation - Show navigation items */}
+            <nav className="hidden md:flex items-center space-x-2 ">
+              {navigationItems.map((item) => (
+                <button
+                  key={item.path}
+                  onClick={() => {
+                    navigate(item.path);
+                    setShowMobileMenu(false);
+                  }}
+                  className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-300 border border-transparent ${
+                    isActiveTab(item.path)
+                      ? 'bg-blue-50 text-blue-700 border-blue-200 shadow-md shadow-blue-100/50'
+                      : 'text-gray-600 hover:text-gray-800 hover:bg-gray-50 hover:border-gray-200 hover:shadow-md hover:shadow-gray-100/50'
+                  } group`}
                 >
-                  <path d={item.icon}></path>
-                </svg>
-                <span className="hidden lg:inline">{item.label}</span>
-                <span className="lg:hidden">{item.label.split(' ')[0]}</span>
-              </button>
-            ))}
-          </nav>
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke={isActiveTab(item.path) ? '#1d4ed8' : 'currentColor'}
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d={item.icon}></path>
+                  </svg>
+                  <span className="hidden lg:inline">{item.label}</span>
+                  <span className="lg:hidden">{item.label.split(' ')[0]}</span>
+                </button>
+              ))}
+            </nav>
 
-          {/* Profile Section */}
-          <div className="flex items-center  relative" ref={dropdownRef}>
+            {/* Profile Section */}
+            <div className="flex items-center  relative" ref={dropdownRef}>
             {/* Mobile Menu Toggle Button */}
             <button
               onClick={() => setShowMobileMenu(!showMobileMenu)}
@@ -237,6 +239,7 @@ const Navbar=()=> {
                 </div>
               </div>
             )}
+            </div>
           </div>
         </div>
 
