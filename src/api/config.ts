@@ -34,6 +34,11 @@ export const API_CONFIG = {
     LOGIN: '/client/login',
     CAMERA: '/camera',
     CAMERA_STATUS: (id: string) => `/camera/${id}/status`,
+    // ONVIF endpoints
+    ONVIF_PRESETS: '/onvif/presets',
+    ONVIF_PRESETS_SET: '/onvif/presets/set',
+    ONVIF_PRESETS_GOTO: '/onvif/presets/goto',
+    ONVIF_PRESETS_REMOVE: '/onvif/presets/remove',
   },
   
   // Headers

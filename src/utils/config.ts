@@ -6,18 +6,16 @@
 export const config = {
   // API Configuration
   api: {
-    baseUrl: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000',
+    baseUrl: import.meta.env.VITE_API_BASE_URL,
     timeout: Number(import.meta.env.VITE_API_TIMEOUT) || 10000,
   },
 
   // WebSocket Configuration
-  // || 'ws://localhost:4000'
-  // console.log("VITE_WEBSOCKET_URL", import.meta.env.VITE_WEBSOCKET_URL),
   websocket: {
-    url:'ws://localhost:4000'  ,
-    reconnectAttempts: Number(import.meta.env.VITE_WEBSOCKET_RECONNECT_ATTEMPTS) || 3,
+    url: import.meta.env.VITE_WEBSOCKET_BASE_URL || 'ws://localhost:4200/ws/joystick',
+    reconnectAttempts: Number(import.meta.env.VITE_WEBSOCKET_RECONNECT_ATTEMPTS) || 5,
     reconnectDelay: Number(import.meta.env.VITE_WEBSOCKET_RECONNECT_DELAY) || 3000,
-    connectionTimeout: Number(import.meta.env.VITE_WEBSOCKET_CONNECTION_TIMEOUT) || 5000,
+    connectionTimeout: Number(import.meta.env.VITE_WEBSOCKET_CONNECTION_TIMEOUT) || 10000,
   },
 
   // PTZ Configuration

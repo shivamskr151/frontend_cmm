@@ -30,10 +30,10 @@ function PTZ() {
   const { cameras, loadCameras, selectedCamera, setSelectedCamera, getSelectedCameraData } = useCameras();
   
   // Camera ID - can be made dynamic later
-  const cameraId = "CAM001";
+  const cameraId = selectedCamera || "CAM001";
   
   // Custom hooks
-  const { sendMovement, sendZoom, sendPatrolCommand } = useWebSocket(cameraId);
+  const { connectionStatus, sendMovement, sendZoom, sendPatrolCommand, getPTZStatus } = useWebSocket(cameraId);
   const patrolHook = usePatrol(sendPatrolCommand);
   const presetsHook = usePresets();
 
@@ -49,7 +49,11 @@ function PTZ() {
   const handleCameraSelect = useCallback((cameraId: string) => {
     setSelectedCamera(cameraId);
     setShowCameraModal(false);
-  }, [setSelectedCamera]);
+    
+    // Get PTZ status for the newly selected camera
+    console.log('📊 Getting PTZ status for camera:', cameraId);
+    getPTZStatus();
+  }, [setSelectedCamera, getPTZStatus]);
 
   // Load cameras on component mount
   useEffect(() => {
@@ -75,6 +79,22 @@ function PTZ() {
       }
     }
   }, [selectedCamera, cameras, getSelectedCameraData]);
+
+  // Get PTZ status when camera changes
+  useEffect(() => {
+    if (selectedCamera && connectionStatus === 'connected') {
+      console.log('📊 Auto-getting PTZ status for camera:', selectedCamera);
+      getPTZStatus();
+    }
+  }, [selectedCamera, connectionStatus, getPTZStatus]);
+
+  // Load presets when Preset tab is opened
+  useEffect(() => {
+    if (sectionName === 'Preset' && selectedCamera) {
+      console.log('🎯 Preset tab opened, loading presets for camera:', selectedCamera);
+      presetsHook.loadPresets();
+    }
+  }, [sectionName, selectedCamera, presetsHook]);
 
   // Handle zoom change (send immediately)
   const handleZoomChange = (value: number) => {
@@ -110,6 +130,11 @@ function PTZ() {
               selectedCamera={selectedCamera || ''}
               onCameraModalOpen={() => setShowCameraModal(true)}
             />
+
+         
+
+            {/* WebSocket Debug Component - Remove this after debugging */}
+            {/* <WebSocketDebug cameraId={cameraId} /> */}
 
             {/* Conditional rendering based on section */}
             {sectionName === 'Joystick' && (
