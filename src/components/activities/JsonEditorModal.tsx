@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { JsonEditor } from './JsonEditor';
 import { configurationApi } from '../../api';
+import { API_CONFIG } from '../../api/config';
 
 interface ConflictResponseData {
   id?: string;
@@ -235,7 +236,7 @@ export const JsonEditorModal: React.FC<JsonEditorModalProps> = ({
         console.log('🔄 Loading configuration for camera:', cameraId);
         
         // First, let's try a direct API call to see the raw response
-        const directResponse = await fetch(`http://localhost:4200/configuration/search?cameraId=${encodeURIComponent(cameraId)}`, {
+        const directResponse = await fetch(`${API_CONFIG.BASE_URL}/configuration/search?cameraId=${encodeURIComponent(cameraId)}`, {
           method: 'GET',
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('access_token') || localStorage.getItem('bearer_token')}`,
