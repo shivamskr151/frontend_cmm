@@ -296,8 +296,11 @@ class ConfigurationApiService {
   /**
    * Update only activity data for a configuration
    */
-  async updateActivityData(configId: string, payload: { sensorId?: string; cameraId?: string; activityData: Record<string, unknown> }): Promise<{ success: boolean; message: string; data?: unknown }> {
+  async updateActivityData(configId: string, payload: { activityName: string; activityData: Record<string, unknown> }): Promise<{ success: boolean; message: string; data?: unknown }> {
     try {
+      console.log('🌐 Updating activity data for config:', configId);
+      console.log('📤 Payload being sent:', JSON.stringify(payload, null, 2));
+      
       const authHeaders = this.getAuthHeaders();
       const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.CONFIGURATION_UPDATE_ACTIVITY_DATA(configId)}`, {
         method: 'PUT',
@@ -307,7 +310,15 @@ class ConfigurationApiService {
       });
 
       if (!response.ok) {
-        if (response.status === 401) {
+        if (response.status === 400) {
+          // Try to get detailed error message from response body
+          try {
+            const errorData = await response.json();
+            throw new Error(errorData.message || errorData.error || 'Bad Request: Invalid payload format');
+          } catch {
+            throw new Error('Bad Request: Invalid payload format or missing required fields');
+          }
+        } else if (response.status === 401) {
           throw new Error('Authentication failed. Please login again.');
         } else if (response.status === 403) {
           throw new Error('Access denied. You do not have permission to update activity data.');

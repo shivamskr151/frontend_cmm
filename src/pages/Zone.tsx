@@ -492,9 +492,15 @@ const Zone: React.FC = () => {
       let result;
       
       if (existing.found && existing.id) {
-        // Update existing configuration
+        // Update existing configuration using updateActivityData method
         console.log('🔄 Updating existing configuration with ID:', existing.id);
-        result = await configurationApi.updateConfiguration(existing.id, payload);
+        result = await configurationApi.updateActivityData(existing.id, {
+          activityName: selectedActivity,
+          activityData: {
+            ...activities[selectedActivity],
+            parameters: activityParameters
+          }
+        });
       } else {
         // Try to create new configuration first
         console.log('➕ Creating new configuration');
@@ -514,14 +520,26 @@ const Zone: React.FC = () => {
           
           if (existingConfigId) {
             console.log('🔄 Found existing configuration ID from conflict response:', existingConfigId);
-            result = await configurationApi.updateConfiguration(existingConfigId, payload);
+            result = await configurationApi.updateActivityData(existingConfigId, {
+              activityName: selectedActivity,
+              activityData: {
+                ...activities[selectedActivity],
+                parameters: activityParameters
+              }
+            });
           } else {
             // No configuration ID found in response, try to search for it
             console.log('🔍 No configuration ID in response, searching for existing configuration...');
             const retryExisting = await configurationApi.findExistingConfiguration(selectedCamera);
             if (retryExisting.found && retryExisting.id) {
               console.log('🔄 Found existing configuration ID via search:', retryExisting.id);
-              result = await configurationApi.updateConfiguration(retryExisting.id, payload);
+              result = await configurationApi.updateActivityData(retryExisting.id, {
+                activityName: selectedActivity,
+                activityData: {
+                  ...activities[selectedActivity],
+                  parameters: activityParameters
+                }
+              });
             } else {
               throw new Error('Configuration exists but could not be found for update. Please try refreshing the page and try again.');
             }
@@ -535,6 +553,9 @@ const Zone: React.FC = () => {
         throw new Error(result.message);
       }
 
+      // Clear cache to ensure fresh data is loaded
+      configurationApi.clearCache(selectedCamera);
+      
       // Refresh activities so UI reflects latest values
       await handleRefreshActivities();
 

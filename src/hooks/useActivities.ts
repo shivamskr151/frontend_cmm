@@ -2,7 +2,8 @@ import { useState, useCallback } from 'react';
 import type { 
   ActivitiesData, 
   NewActivityFormData, 
-  ActivityValidationResult 
+  ActivityValidationResult,
+  Activity
 } from '../types/activity';
 import { ActivityService, configurationApi } from '../api';
 
@@ -124,7 +125,36 @@ export const useActivities = (initialActivities: ActivitiesData = {}): UseActivi
         activitiesData = configData.configuration as ActivitiesData;
       }
       
+      // Handle the case where activityData might be nested in a different structure
+      // This handles responses from update-activity-data endpoint
+      if (typeof configData.activityData === 'object' && configData.activityData !== null) {
+        const activityDataObj = configData.activityData as Record<string, unknown>;
+        
+        // Check if it's a single activity object with activityName and activityData
+        if (activityDataObj.activityName && activityDataObj.activityData) {
+          const activityName = activityDataObj.activityName as string;
+          const activityData = activityDataObj.activityData as Record<string, unknown>;
+          activitiesData = { [activityName]: activityData as unknown as Activity };
+        }
+        // Check if it's already a flat object of activities
+        else if (typeof activityDataObj === 'object' && !Array.isArray(activityDataObj)) {
+          // Filter out metadata fields and ensure we only include valid activities
+          const metadataFields = ['id', 'sensorId', 'cameraId', 'createdAt', 'updatedAt', 'timestamp', 'version', 'status', 'name', 'description', 'type', 'location', 'ip', 'port', 'appName'];
+          
+          for (const [key, value] of Object.entries(activityDataObj)) {
+            if (!metadataFields.includes(key) && typeof value === 'object' && value !== null) {
+              const activityObj = value as Record<string, unknown>;
+              // Check if it looks like an activity (has status or parameters)
+              if (activityObj.status || activityObj.parameters) {
+                activitiesData[key] = value as unknown as Activity;
+              }
+            }
+          }
+        }
+      }
+      
       console.log('📋 Loaded activities from config:', activitiesData);
+      console.log('📋 Activity names:', Object.keys(activitiesData));
       
       // Update the activities state
       setActivities(activitiesData);
