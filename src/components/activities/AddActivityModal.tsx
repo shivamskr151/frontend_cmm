@@ -70,7 +70,7 @@ export const AddActivityModal: React.FC<AddActivityModalProps> = ({
         });
         onClose();
       }
-      // Handle error display (you might want to add a toast notification system)
+      // Handle error display
       console.log(result.message);
     } finally {
       setIsLoading(false);

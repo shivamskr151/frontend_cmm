@@ -484,69 +484,11 @@ const Zone: React.FC = () => {
         }
       } as { sensorId: string; cameraId: string; activityData: Record<string, unknown> };
 
-      console.log('📤 Sending payload to API:', payload);
+      
 
-      // Try to find existing configuration first
-      const existing = await configurationApi.findExistingConfiguration(selectedCamera);
-      console.log('🔍 Configuration search result:', existing);
-      
-      let result;
-      
-      if (existing.found && existing.id) {
-        // Update existing configuration using updateActivityData method
-        console.log('🔄 Updating existing configuration with ID:', existing.id);
-        result = await configurationApi.updateActivityData(existing.id, {
-          activityName: selectedActivity,
-          activityData: {
-            ...activities[selectedActivity],
-            parameters: activityParameters
-          }
-        });
-      } else {
-        // Try to create new configuration first
-        console.log('➕ Creating new configuration');
-        result = await configurationApi.createConfiguration(payload);
-        
-        // If creation fails due to conflict (409), try to get existing ID and update
-        if (!result.success && 'conflict' in result && result.conflict) {
-          console.log('🔍 Configuration already exists, attempting to get existing configuration ID...');
-          console.log('🔍 Conflict response data:', result.data);
-          
-          // Clear cache to ensure fresh data
-          configurationApi.clearCache(selectedCamera);
-          
-          // Try to get the existing configuration ID from the response first
-          const conflictData = result.data as { id?: string; _id?: string; existingConfigurationId?: string };
-          const existingConfigId = conflictData?.id || conflictData?._id || conflictData?.existingConfigurationId;
-          
-          if (existingConfigId) {
-            console.log('🔄 Found existing configuration ID from conflict response:', existingConfigId);
-            result = await configurationApi.updateActivityData(existingConfigId, {
-              activityName: selectedActivity,
-              activityData: {
-                ...activities[selectedActivity],
-                parameters: activityParameters
-              }
-            });
-          } else {
-            // No configuration ID found in response, try to search for it
-            console.log('🔍 No configuration ID in response, searching for existing configuration...');
-            const retryExisting = await configurationApi.findExistingConfiguration(selectedCamera);
-            if (retryExisting.found && retryExisting.id) {
-              console.log('🔄 Found existing configuration ID via search:', retryExisting.id);
-              result = await configurationApi.updateActivityData(retryExisting.id, {
-                activityName: selectedActivity,
-                activityData: {
-                  ...activities[selectedActivity],
-                  parameters: activityParameters
-                }
-              });
-            } else {
-              throw new Error('Configuration exists but could not be found for update. Please try refreshing the page and try again.');
-            }
-          }
-        }
-      }
+      // Use the new createOrUpdateConfiguration method that handles conflicts automatically
+      console.log('🔄 Creating or updating configuration...');
+      const result = await configurationApi.createOrUpdateConfiguration(payload, selectedCamera, selectedCamera);
       
       console.log('📡 API response:', result);
       
@@ -560,13 +502,17 @@ const Zone: React.FC = () => {
       // Refresh activities so UI reflects latest values
       await handleRefreshActivities();
 
-      setModalMessage(`Parameters saved successfully for ${selectedActivity}`);
+      // Show success message
+      const successMessage = `Parameters saved successfully for ${selectedActivity}`;
+      
+      setModalMessage(successMessage);
       setModalTitle('Success');
       setModalType('success');
       setShowMessageModal(true);
     } catch (error) {
       console.error('❌ Error saving parameters:', error);
       const errorMessage = error instanceof Error ? error.message : 'Failed to save parameters';
+      
       setModalMessage(errorMessage);
       setModalTitle('Error');
       setModalType('error');

@@ -3,12 +3,6 @@ import { JsonEditor } from './JsonEditor';
 import { configurationApi } from '../../api';
 import { API_CONFIG } from '../../api/config';
 
-interface ConflictResponseData {
-  id?: string;
-  _id?: string;
-  existingConfigurationId?: string;
-  [key: string]: unknown;
-}
 
 interface JsonEditorModalProps {
   isOpen: boolean;
@@ -97,15 +91,25 @@ export const JsonEditorModal: React.FC<JsonEditorModalProps> = ({
         console.log('🔄 Updating existing configuration with ID:', configId);
         result = await configurationApi.updateConfiguration(configId, apiData);
       } else {
-        // Create new configuration
-        console.log('➕ Creating new configuration');
-        result = await configurationApi.createConfiguration(apiData);
+        // Use the new createOrUpdateConfiguration method that handles conflicts automatically
+        console.log('🔄 Creating or updating configuration...');
+        result = await configurationApi.createOrUpdateConfiguration(apiData, isConfigAdded);
       }
       
       if (result.success) {
         setJsonData('');
         setIsValidJson(true);
         setValidationErrors([]);
+        
+        // Update local state if this was an update operation
+        if ('wasUpdated' in result && result.wasUpdated) {
+          const configIdFromResult = (result.data as { id?: string; _id?: string })?.id || (result.data as { id?: string; _id?: string })?._id;
+          if (configIdFromResult) {
+            setConfigId(configIdFromResult);
+            setIsConfigAdded(true);
+          }
+        }
+        
         // Ensure any cached configuration is invalidated so next open loads fresh data
         if (cameraId) {
           configurationApi.clearCache(cameraId);
@@ -119,95 +123,15 @@ export const JsonEditorModal: React.FC<JsonEditorModalProps> = ({
           console.log('🔄 Triggering activities refresh...');
           onActivitiesRefreshed();
         }
-      } else if ('conflict' in result && result.conflict) {
-        // Handle 409 Conflict - configuration already exists
-        console.log('🔍 Configuration already exists, attempting to get existing configuration ID...');
-        
-        // Try to get the existing configuration ID from the response
-        const conflictData = result.data as ConflictResponseData;
-        const existingConfigId = conflictData?.id || conflictData?._id || conflictData?.existingConfigurationId;
-        
-        if (existingConfigId) {
-          console.log('🔄 Found existing configuration ID:', existingConfigId);
-          setConfigId(existingConfigId);
-          setIsConfigAdded(true);
-          
-          // Retry with update using the same data
-          console.log('🔄 Attempting update with existing configuration ID...');
-          const updateResult = await configurationApi.updateConfiguration(existingConfigId, apiData);
-          
-          if (updateResult.success) {
-            setJsonData('');
-            setIsValidJson(true);
-            setValidationErrors([]);
-            if (cameraId) {
-              configurationApi.clearCache(cameraId);
-            }
-            onClose();
-            console.log('✅ Successfully updated existing configuration:', updateResult.message);
-            
-            // Refresh activities in the parent component
-            if (onActivitiesRefreshed) {
-              console.log('🔄 Triggering activities refresh...');
-              onActivitiesRefreshed();
-            }
-          } else {
-            console.error('❌ Error updating existing configuration:', updateResult.message);
-          }
-        } else {
-          // No configuration ID found in response, try to search for it
-          console.log('🔍 No configuration ID in response, searching for existing configuration...');
-          
-          if (cameraId) {
-            try {
-              // Use the new findExistingConfiguration method
-              const searchResult = await configurationApi.findExistingConfiguration(cameraId, apiData.sensorId as string);
-              
-              if (searchResult.found && searchResult.id) {
-                console.log('🔄 Found configuration ID via search:', searchResult.id);
-                setConfigId(searchResult.id);
-                setIsConfigAdded(true);
-                
-                // Retry with update
-                const updateResult = await configurationApi.updateConfiguration(searchResult.id, apiData);
-                
-                if (updateResult.success) {
-                  setJsonData('');
-                  setIsValidJson(true);
-                  setValidationErrors([]);
-                  if (cameraId) {
-                    configurationApi.clearCache(cameraId);
-                  }
-                  onClose();
-                  console.log('✅ Successfully updated existing configuration via search:', updateResult.message);
-                  
-                  // Refresh activities in the parent component
-                  if (onActivitiesRefreshed) {
-                    console.log('🔄 Triggering activities refresh...');
-                    onActivitiesRefreshed();
-                  }
-                } else {
-                  console.error('❌ Error updating existing configuration via search:', updateResult.message);
-                }
-              } else {
-                console.error('❌ Could not find existing configuration ID');
-              }
-            } catch (searchError) {
-              console.error('❌ Error searching for existing configuration:', searchError);
-            }
-          }
-        }
       } else {
         // Show error message
         console.error('❌ Error:', result.message);
-        // You might want to add a toast notification here
       }
     } catch (error) {
       console.error('❌ Error in handleSubmit:', error);
       // Show error message to user
       const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
       console.error('❌ User Error:', errorMessage);
-      // You might want to add a toast notification here
     } finally {
       setIsLoading(false);
     }
@@ -260,9 +184,12 @@ export const JsonEditorModal: React.FC<JsonEditorModalProps> = ({
           setIsConfigAdded(hasConfigAdded);
           setConfigId(configIdValue);
           
-          // Try to use the raw response directly
-          const configJson = JSON.stringify(rawResponse, null, 2);
-          console.log('📝 Direct configuration JSON:', configJson);
+          // Try to use the raw response directly, but exclude the 'id' field
+          const configWithoutId = { ...rawResponse };
+          delete configWithoutId.id;
+          delete configWithoutId._id;
+          const configJson = JSON.stringify(configWithoutId, null, 2);
+          console.log('📝 Direct configuration JSON (without id):', configJson);
           
           setJsonData(configJson);
           setIsValidJson(true);
@@ -303,8 +230,12 @@ export const JsonEditorModal: React.FC<JsonEditorModalProps> = ({
             configToDisplay = {};
           }
           
-          const configJson = JSON.stringify(configToDisplay, null, 2);
-          console.log('📝 Fallback configuration JSON:', configJson);
+          // Exclude the 'id' field from the display
+          const configWithoutId = { ...configToDisplay };
+          delete configWithoutId.id;
+          delete configWithoutId._id;
+          const configJson = JSON.stringify(configWithoutId, null, 2);
+          console.log('📝 Fallback configuration JSON (without id):', configJson);
           
           setJsonData(configJson);
           setIsValidJson(true);
