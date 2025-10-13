@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { auth } from '../utils/auth';
 import { type Camera } from '../api';
@@ -51,6 +51,7 @@ const Zone: React.FC = () => {
   const [showJsonEditorModal, setShowJsonEditorModal] = useState(false);
   const [activityParameters, setActivityParameters] = useState<Record<string, unknown>>({});
   const [isSaving, setIsSaving] = useState(false);
+  const [userSelectedZoneType, setUserSelectedZoneType] = useState(false);
 
   // Use the zone drawing hook
   const {
@@ -68,6 +69,13 @@ const Zone: React.FC = () => {
     handleClearAll,
     initializeZoneDrawer
   } = useZoneDrawing();
+
+  const handleZoneTypeChangeRef = useRef(handleZoneTypeChange);
+  
+  // Update ref when function changes
+  useEffect(() => {
+    handleZoneTypeChangeRef.current = handleZoneTypeChange;
+  }, [handleZoneTypeChange]);
 
   // Use the new activity system
   const {
@@ -124,15 +132,18 @@ const Zone: React.FC = () => {
         // Update zone coordinates state
         setZoneCoordinates(coordinates);
         
-        // Set zone type based on activity data
-        if (activity.zone_mode === 'rectangle' || activity.zones) {
-          handleZoneTypeChange('rectangle');
-        } else if (activity.zone_mode === 'polygon' || activity.polygons) {
-          handleZoneTypeChange('polygon');
+        // Only set zone type based on activity data if user hasn't manually selected one
+        // This allows users to manually select a different zone type after activity selection
+        if (!userSelectedZoneType) {
+          if (activity.zone_mode === 'rectangle' || activity.zones) {
+            handleZoneTypeChangeRef.current('rectangle');
+          } else if (activity.zone_mode === 'polygon' || activity.polygons) {
+            handleZoneTypeChangeRef.current('polygon');
+          }
         }
       }
     }
-  }, [selectedActivity, activities, handleZoneTypeChange, setZoneCoordinates]);
+  }, [selectedActivity, activities, setZoneCoordinates, userSelectedZoneType]);
 
   // Load activities when camera changes
   useEffect(() => {
@@ -313,6 +324,12 @@ const Zone: React.FC = () => {
     setShowZoneTypeModal(false);
   };
 
+  // Wrapper function to track user zone type selection
+  const handleUserZoneTypeChange = (zoneType: string) => {
+    setUserSelectedZoneType(true);
+    handleZoneTypeChange(zoneType);
+  };
+
   const handleCameraChange = useCallback(async (cameraId: string) => {
     setSelectedCamera(cameraId);
     const camera = cameras.find((c: Camera) => c.id === cameraId);
@@ -323,6 +340,7 @@ const Zone: React.FC = () => {
       setCameraName('Unknown');
       setCameraStatus('Disconnected');
     }
+    setUserSelectedZoneType(false); // Reset user zone type selection when camera changes
   }, [cameras, setSelectedCamera]);
 
   // Debug cameras state changes and update camera info when selected camera changes
@@ -647,7 +665,7 @@ const Zone: React.FC = () => {
           activities={activities}
           onCameraChange={handleCameraChange}
           onActivityChange={setSelectedActivity}
-          onZoneTypeChange={handleZoneTypeChange}
+          onZoneTypeChange={handleUserZoneTypeChange}
           onRefreshCameras={refreshCameras}
                 onOpenJsonEditor={() => setShowJsonEditorModal(true)}
                 onOpenAddActivity={() => setShowAddActivityModal(true)}
