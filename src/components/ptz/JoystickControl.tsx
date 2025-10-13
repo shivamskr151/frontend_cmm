@@ -3,12 +3,14 @@ import { useJoystick } from '../../hooks/ptz';
 
 interface JoystickControlProps {
   onMovement: (speeds: { Pan: number; Tilt: number }) => void;
+  onEnd: () => void;
   onZoomChange: (zoom: number) => void;
   zoomLevel: number;
 }
 
 const JoystickControl: React.FC<JoystickControlProps> = ({
   onMovement,
+  onEnd,
   onZoomChange,
   zoomLevel
 }) => {
@@ -24,8 +26,7 @@ const JoystickControl: React.FC<JoystickControlProps> = ({
   };
 
   const handleJoystickEnd = () => {
-    const stopSpeeds = { Pan: 0.5, Tilt: 0.5 };
-    onMovement(stopSpeeds);
+    onEnd();
   };
 
   const { joystickRef } = useJoystick({

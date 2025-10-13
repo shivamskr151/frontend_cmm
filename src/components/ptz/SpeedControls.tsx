@@ -38,7 +38,7 @@ const SpeedControls: React.FC<SpeedControlsProps> = ({ speeds }) => {
                 {label}
               </label>
               <div className="px-1.5 sm:px-2 bg-gray-100 rounded text-xs font-mono text-gray-700 border border-gray-300">
-                {speeds[label as keyof typeof speeds].toFixed(1)}
+                {(speeds[label as keyof typeof speeds] ?? 0).toFixed(1)}
               </div>
             </div>
 
@@ -47,7 +47,7 @@ const SpeedControls: React.FC<SpeedControlsProps> = ({ speeds }) => {
               <div className="h-2 bg-gray-200 rounded-full overflow-hidden border border-gray-300">
                 <div
                   className="h-full bg-gradient-to-r from-blue-500 via-blue-400 to-blue-300 rounded-full transition-all duration-300 shadow-sm"
-                  style={{ width: `${speeds[label as keyof typeof speeds] * 100}%` }}
+                  style={{ width: `${(speeds[label as keyof typeof speeds] ?? 0) * 100}%` }}
                 ></div>
               </div>
               <div className="flex justify-between text-xs text-gray-500 mt-1">

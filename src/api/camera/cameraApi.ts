@@ -15,6 +15,11 @@ export interface Camera {
   port?: number;
   location?: string;
   type?: string;
+  streamUrls?: {
+    llhls?: string;
+    webrtc?: string;
+    rtsp?: string;
+  };
 }
 
 interface CameraApiResponse {
@@ -115,6 +120,7 @@ class CameraApiService {
       }
 
       const data: CameraApiResponse = await response.json();
+      console.log('📡 Raw API response:', data);
       
       // Handle different response formats
       let cameras: Camera[] = [];
@@ -130,16 +136,22 @@ class CameraApiService {
       }
 
       // Validate and normalize camera data
-      cameras = cameras.map(camera => ({
-        id: camera.id || `camera_${Math.random().toString(36).substr(2, 9)}`,
-        name: camera.name || `Camera ${camera.id}`,
-        appName: camera.appName || camera.name || `Camera ${camera.id}`,
-        status: camera.status || 'unknown',
-        ip: camera.ip,
-        port: camera.port,
-        location: camera.location,
-        type: camera.type,
-      }));
+      cameras = cameras.map(camera => {
+        console.log('📷 Raw camera data:', camera);
+        const mappedCamera = {
+          id: camera.id || `camera_${Math.random().toString(36).substr(2, 9)}`,
+          name: camera.name || `Camera ${camera.id}`,
+          appName: camera.appName || camera.name || `Camera ${camera.id}`,
+          status: camera.status || 'unknown',
+          ip: camera.ip,
+          port: camera.port,
+          location: camera.location,
+          type: camera.type,
+          streamUrls: camera.streamUrls,
+        };
+        console.log('📷 Mapped camera data:', mappedCamera);
+        return mappedCamera;
+      });
 
       // Update cache
       this.cache = cameras;

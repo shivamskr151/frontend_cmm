@@ -1,4 +1,5 @@
 import { useState, useCallback, useMemo } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useCameras } from '../../contexts/CameraContext';
 import {
   usePresets as usePresetsQuery,
@@ -8,6 +9,7 @@ import {
   useDeleteMultiplePresets,
 } from '../api/useOnvifPresets';
 import { useLoadPresets } from '../api/useOnvifPresetsManual';
+import { queryKeys } from '../../lib/react-query';
 
 export interface Preset {
   id: number;
@@ -20,6 +22,7 @@ export interface Preset {
 
 export const usePresets = () => {
   const { selectedCamera } = useCameras();
+  const queryClient = useQueryClient();
   
   // State management
   const [selectedPresets, setSelectedPresets] = useState<number[]>([]);
@@ -29,14 +32,15 @@ export const usePresets = () => {
   const [useCurrentPosition, setUseCurrentPosition] = useState(false);
   
   // Default profile token - this should ideally come from camera configuration
-  const defaultProfileToken = "Profile_1";
+  // const defaultProfileToken = "Profile_1"; // Commented out as optional in backend
+  const defaultProfileToken = ""; // Empty string as fallback since Profile_1 is optional
   
-  // React Query hooks - disabled by default, only enabled when explicitly called
+  // React Query hooks - enabled when camera is selected
   const {
     data: onvifPresets = [],
     isLoading: loading,
     error: queryError,
-  } = usePresetsQuery(selectedCamera || '', defaultProfileToken, false); // Disabled by default
+  } = usePresetsQuery(selectedCamera || '', defaultProfileToken, !!selectedCamera); // Enabled when camera is selected
   
   const createPresetMutation = useCreatePreset();
   const gotoPresetMutation = useGotoPreset();
@@ -50,47 +54,50 @@ export const usePresets = () => {
   const presets = useMemo(() => {
     console.log('🔄 Converting ONVIF presets:', onvifPresets);
     return onvifPresets.map((preset, index) => {
-      // Helper function to safely extract numeric value from potentially complex objects
-      const extractNumericValue = (value: any, defaultValue: number): number => {
-        if (typeof value === 'number') {
-          return value;
-        }
-        if (typeof value === 'object' && value !== null) {
-          // If it's an object with position or speed properties, try to extract the numeric value
-          if (typeof value.position === 'number') {
-            return value.position;
-          }
-          if (typeof value.speed === 'number') {
-            return value.speed;
-          }
-          // If it has a value property
-          if (typeof value.value === 'number') {
-            return value.value;
-          }
-        }
-        if (typeof value === 'string') {
-          const parsed = parseFloat(value);
-          return isNaN(parsed) ? defaultValue : parsed;
-        }
-        return defaultValue;
-      };
+      // Extract pan/tilt from pan_tilt object structure
+      const panValue = preset.pan_tilt?.position?.x ?? preset.pan ?? 0;
+      const tiltValue = preset.pan_tilt?.position?.y ?? preset.tilt ?? 0;
+      const zoomValue = preset.zoom?.position?.x ?? 0;
 
       const convertedPreset: Preset = {
         id: index + 1,
         name: preset.preset_name || preset.name || `Preset ${index + 1}`,
-        pan: extractNumericValue(preset.pan, 0.5),
-        tilt: extractNumericValue(preset.tilt, 0.5),
-        zoom: extractNumericValue(preset.zoom, 50),
+        pan: panValue,
+        tilt: tiltValue,
+        zoom: zoomValue,
         preset_token: preset.preset_token || preset.token
       };
       
-      console.log(`📋 Converted preset ${index + 1}:`, convertedPreset);
+      console.log(`📋 Converted preset ${index + 1}:`, {
+        original: preset,
+        converted: convertedPreset,
+        extractedValues: { panValue, tiltValue, zoomValue }
+      });
       return convertedPreset;
     });
   }, [onvifPresets]);
   
   // Extract error message
   const error = queryError ? (queryError instanceof Error ? queryError.message : 'Failed to load presets') : null;
+
+  // Refresh presets function (invalidates cache and refetches)
+  const refreshPresets = useCallback(async () => {
+    if (!selectedCamera) {
+      console.log('No camera selected, skipping preset refresh');
+      return;
+    }
+    
+    console.log('🔄 Refreshing presets for camera:', selectedCamera);
+    try {
+      // Invalidate the cache to force a fresh fetch
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.presets.list(selectedCamera, defaultProfileToken),
+      });
+      console.log('✅ Presets refreshed successfully');
+    } catch (error) {
+      console.error('❌ Failed to refresh presets:', error);
+    }
+  }, [selectedCamera, defaultProfileToken, queryClient]);
 
   // Create a new preset using React Query mutation
   const createPreset = useCallback(async (presetName: string, pan?: number, tilt?: number, zoom?: number) => {
@@ -99,14 +106,20 @@ export const usePresets = () => {
     }
 
     try {
-      console.log('💾 Creating preset:', presetName);
+      console.log('💾 Creating preset:', presetName, 'with position:', { pan, tilt, zoom });
       const presetToken = await createPresetMutation.mutateAsync({
         cameraId: selectedCamera,
         profileToken: defaultProfileToken,
         presetName,
+        pan,
+        tilt,
+        zoom,
       });
       
       console.log('✅ Created preset with token:', presetToken);
+      
+      // Refresh presets to show the new one immediately
+      await refreshPresets();
       
       // Return a temporary preset object (the real one will be fetched via React Query)
       return {
@@ -121,7 +134,7 @@ export const usePresets = () => {
       console.error('❌ Error creating preset:', err);
       throw err;
     }
-  }, [selectedCamera, defaultProfileToken, presets.length, createPresetMutation]);
+  }, [selectedCamera, defaultProfileToken, presets.length, createPresetMutation, refreshPresets]);
 
   // Go to a preset using React Query mutation
   const gotoPreset = useCallback(async (preset: Preset) => {
@@ -179,6 +192,9 @@ export const usePresets = () => {
         presetToken: preset.preset_token,
       });
       console.log('✅ Successfully deleted preset:', preset.name);
+      
+      // Refresh presets to remove the deleted one immediately
+      await refreshPresets();
     } catch (err) {
       console.error('❌ Error deleting preset:', err);
       
@@ -199,7 +215,7 @@ export const usePresets = () => {
         throw new Error(`Failed to delete preset "${preset.name}". Please try again.`);
       }
     }
-  }, [selectedCamera, defaultProfileToken, deletePresetMutation, presets, loadPresetsManual]);
+  }, [selectedCamera, defaultProfileToken, deletePresetMutation, presets, loadPresetsManual, refreshPresets]);
 
   // Load presets function (manually triggers the API call)
   const loadPresets = useCallback(async () => {
@@ -260,6 +276,10 @@ export const usePresets = () => {
       
       // Clear the selection
       setSelectedPresets([]);
+      
+      // Refresh presets to remove the deleted ones immediately
+      await refreshPresets();
+      
       console.log("✅ Successfully deleted selected presets");
     } catch (err) {
       console.error("❌ Error deleting selected presets:", err);
@@ -280,7 +300,7 @@ export const usePresets = () => {
       }
       // Don't clear selection on error so user can retry
     }
-  }, [selectedPresets, presets, selectedCamera, defaultProfileToken, deleteMultiplePresetsMutation]);
+  }, [selectedPresets, presets, selectedCamera, defaultProfileToken, deleteMultiplePresetsMutation, refreshPresets]);
 
   const handleEditPreset = useCallback((preset: Preset) => {
     setEditingPreset(preset);
@@ -321,6 +341,7 @@ export const usePresets = () => {
     
     // API functions
     loadPresets,
+    refreshPresets,
     createPreset,
     gotoPreset,
     deletePreset,

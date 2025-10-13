@@ -2,11 +2,14 @@ import React, { useState } from 'react';
 import { usePresets } from '../../hooks/ptz';
 
 interface PresetControlProps {
-  speeds: { Pan: number; Tilt: number };
+  speeds?: { Pan: number; Tilt: number };
   zoomLevel: number;
 }
 
 const PresetControl: React.FC<PresetControlProps> = ({ speeds, zoomLevel }) => {
+  // Default speeds if not provided
+  const defaultSpeeds = { Pan: 0.5, Tilt: 0.5 };
+  const currentSpeeds = speeds || defaultSpeeds;
   const {
     selectedPresets,
     showCreatePresetModal,
@@ -21,10 +24,11 @@ const PresetControl: React.FC<PresetControlProps> = ({ speeds, zoomLevel }) => {
     createPreset,
     gotoPreset,
     deletePreset,
+    refreshPresets,
     handlePresetSelect,
     handleSelectAllPresets,
     handleDeleteSelectedPresets,
-    handleEditPreset,
+    // handleEditPreset,
     setShowCreatePresetModal,
     setUseCurrentPosition
   } = usePresets();
@@ -33,7 +37,8 @@ const PresetControl: React.FC<PresetControlProps> = ({ speeds, zoomLevel }) => {
   const [presetName, setPresetName] = useState('');
   const [manualPan, setManualPan] = useState(0.5);
   const [manualTilt, setManualTilt] = useState(0.5);
-  const [manualZoom, setManualZoom] = useState(50);
+  const [manualZoom, setManualZoom] = useState(0);
+  const [successMessage, setSuccessMessage] = useState('');
 
   // Handle creating a new preset
   const handleCreatePreset = async () => {
@@ -43,11 +48,15 @@ const PresetControl: React.FC<PresetControlProps> = ({ speeds, zoomLevel }) => {
     }
 
     try {
-      const pan = useCurrentPosition ? speeds.Pan : manualPan;
-      const tilt = useCurrentPosition ? speeds.Tilt : manualTilt;
+      const pan = useCurrentPosition ? currentSpeeds.Pan : manualPan;
+      const tilt = useCurrentPosition ? currentSpeeds.Tilt : manualTilt;
       const zoom = useCurrentPosition ? zoomLevel : manualZoom;
 
       await createPreset(presetName.trim(), pan, tilt, zoom);
+      
+      // Show success message
+      setSuccessMessage(`Preset "${presetName.trim()}" created successfully!`);
+      setTimeout(() => setSuccessMessage(''), 3000);
       
       // Reset form
       setPresetName('');
@@ -73,26 +82,47 @@ const PresetControl: React.FC<PresetControlProps> = ({ speeds, zoomLevel }) => {
 
   // Handle deleting a single preset
   const handleDeletePreset = async (preset: any) => {
-    if (confirm(`Delete preset "${preset.name}"?`)) {
-      try {
-        await deletePreset(preset);
-      } catch (err) {
-        console.error('Failed to delete preset:', err);
-        const errorMessage = err instanceof Error ? err.message : 'Failed to delete preset. Please try again.';
-        alert(errorMessage);
-      }
+    try {
+      await deletePreset(preset);
+      
+      // Show success message
+      setSuccessMessage(`Preset "${preset.name}" deleted successfully!`);
+      setTimeout(() => setSuccessMessage(''), 3000);
+    } catch (err) {
+      console.error('Failed to delete preset:', err);
+      const errorMessage = err instanceof Error ? err.message : 'Failed to delete preset. Please try again.';
+      alert(errorMessage);
     }
   };
 
   return (
     <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-gray-200/50 overflow-hidden shadow-lg shadow-gray-200/20 flex flex-col h-[calc(80vh-80px)] sm:h-[calc(60vh-100px)] md:h-[calc(70vh-120px)] lg:h-[calc(81vh-80px)]">
-      <div className="flex items-center space-x-2 p-3 sm:p-4 border-b border-gray-300">
-        <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-        <h3 className="text-sm font-semibold text-gray-700">Preset Management</h3>
+      <div className="flex items-center justify-between p-3 sm:p-4 border-b border-gray-300">
+        <div className="flex items-center space-x-2">
+          <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+          <h3 className="text-sm font-semibold text-gray-700">Preset Management</h3>
+        </div>
+        <button
+          onClick={refreshPresets}
+          disabled={loading}
+          className="p-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-600 hover:text-gray-800 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+          title="Refresh presets"
+        >
+          <svg 
+            className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} 
+            xmlns="http://www.w3.org/2000/svg" 
+            fill="none" 
+            viewBox="0 0 24 24" 
+            stroke="currentColor" 
+            strokeWidth="2"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          </svg>
+        </button>
       </div>
 
       {/* Content */}
-      <div className="p-3 sm:p-4 space-y-2 sm:space-y-4 flex-1 overflow-y-auto">
+      <div className="p-3 sm:p-4 space-y-2 sm:space-y-4 flex-1 ">
         {/* Add New Preset Form */}
         <div className="bg-gray-100 rounded-lg p-3 border border-gray-300">
           <div className="flex items-center justify-between">
@@ -150,7 +180,7 @@ const PresetControl: React.FC<PresetControlProps> = ({ speeds, zoomLevel }) => {
                       <label className="text-xs text-gray-600 block mb-1">Pan</label>
                       <input
                         type="number"
-                        value={speeds.Pan}
+                        value={currentSpeeds.Pan}
                         readOnly
                         className="w-full px-2 py-1.5 bg-white text-gray-700 rounded border border-gray-300 text-xs focus:outline-none focus:ring-1 focus:ring-blue-400 transition-colors"
                       />
@@ -159,7 +189,7 @@ const PresetControl: React.FC<PresetControlProps> = ({ speeds, zoomLevel }) => {
                       <label className="text-xs text-gray-600 block mb-1">Tilt</label>
                       <input
                         type="number"
-                        value={speeds.Tilt}
+                        value={currentSpeeds.Tilt}
                         readOnly
                         className="w-full px-2 py-1.5 bg-white text-gray-700 rounded border border-gray-300 text-xs focus:outline-none focus:ring-1 focus:ring-blue-400 transition-colors"
                       />
@@ -275,6 +305,10 @@ const PresetControl: React.FC<PresetControlProps> = ({ speeds, zoomLevel }) => {
                     onClick={async () => {
                       try {
                         await handleDeleteSelectedPresets();
+                        
+                        // Show success message
+                        setSuccessMessage(`${selectedPresets.length} preset${selectedPresets.length > 1 ? 's' : ''} deleted successfully!`);
+                        setTimeout(() => setSuccessMessage(''), 3000);
                       } catch (err) {
                         console.error('Failed to delete selected presets:', err);
                         const errorMessage = err instanceof Error ? err.message : 'Failed to delete selected presets. Please try again.';
@@ -309,6 +343,19 @@ const PresetControl: React.FC<PresetControlProps> = ({ speeds, zoomLevel }) => {
             </div>
           )}
 
+          {/* Success Message Display */}
+          {successMessage && (
+            <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg">
+              <div className="text-sm text-green-700 flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                  <polyline points="22,4 12,14.01 9,11.01"></polyline>
+                </svg>
+                {successMessage}
+              </div>
+            </div>
+          )}
+
           {/* Loading State */}
           {loading && (
             <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
@@ -322,9 +369,9 @@ const PresetControl: React.FC<PresetControlProps> = ({ speeds, zoomLevel }) => {
             </div>
           )}
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 h-full lg:h-[calc(74vh-200px)] overflow-y-auto custom-scrollbar">
+          <div className=" flex flex-col gap-2 h-full lg:h-[calc(74vh-200px)] overflow-y-auto custom-scrollbar py-4">
             {presets.length === 0 && !loading ? (
-              <div className="col-span-2 p-4 text-center text-gray-500">
+              <div className="col-span-2 p-4 text-center text-gray-500 ">
                 <div className="text-sm">No presets found</div>
                 <div className="text-xs mt-1">Create your first preset above</div>
               </div>
@@ -332,12 +379,14 @@ const PresetControl: React.FC<PresetControlProps> = ({ speeds, zoomLevel }) => {
               presets.map((preset) => (
                 <div
                   key={preset.id}
-                  className={`group relative px-2 sm:px-3 py-2 bg-gradient-to-br from-gray-100 to-gray-200 hover:from-gray-200 hover:to-gray-300 text-gray-700 rounded-lg border border-gray-300 transition-all duration-200 hover:shadow-md hover:scale-[1.02] active:scale-[0.98] cursor-pointer ${
-                    selectedPresets.includes(preset.id) ? 'bg-blue-50' : ''
-                  } ${isGoingToPreset ? 'opacity-50 cursor-wait' : ''}`}
                   onClick={() => !isGoingToPreset && handleGotoPreset(preset)}
+                  className={`group relative flex items-center justify-between p-4 h-24 rounded-xl border border-gray-200 shadow-sm transition-all duration-200 cursor-pointer hover:shadow-md hover:border-blue-200
+                    ${selectedPresets.includes(preset.id) ? 'bg-gray-200 border-blue-300' : 'bg-gray-200'}
+                    ${isGoingToPreset ? 'opacity-50 cursor-wait' : ''}
+                  `}
                 >
-                  <div className="flex items-center gap-2">
+                  {/* Left side: Checkbox + Info */}
+                  <div className="flex items-start gap-3 flex-1">
                     {/* Checkbox */}
                     <input
                       type="checkbox"
@@ -346,60 +395,44 @@ const PresetControl: React.FC<PresetControlProps> = ({ speeds, zoomLevel }) => {
                         e.stopPropagation();
                         handlePresetSelect(preset.id);
                       }}
-                      className="w-3 h-3 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-1"
+                      className="w-4 h-4 mt-1 text-blue-600 border-gray-300 rounded focus:ring-2 focus:ring-blue-400"
                     />
-                    
+            
                     {/* Preset Info */}
-                    <div className="flex-1 flex items-center justify-between">
-                      <div className="text-left">
-                        <div className="text-xs font-medium">{preset.name}</div>
-                        <div className="text-xs text-gray-500">
-                          Pan: {typeof preset.pan === 'number' ? preset.pan.toFixed(2) : 'N/A'}, 
-                          Tilt: {typeof preset.tilt === 'number' ? preset.tilt.toFixed(2) : 'N/A'}, 
-                          Zoom: {typeof preset.zoom === 'number' ? preset.zoom.toString() : 'N/A'}
-                        </div>
+                    <div className="flex flex-col">
+                      <div className="text-sm font-semibold text-gray-800">
+                        {preset.name}
                       </div>
-                      <div className="flex items-center gap-1">
-                        {/* Action Buttons */}
-                        <div className="flex items-center gap-1 transition-opacity">
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleEditPreset(preset);
-                            }}
-                            className="p-1 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded transition-all duration-200"
-                            title="Edit Preset"
-                          >
-                            <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-                            </svg>
-                          </button>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleDeletePreset(preset);
-                            }}
-                            disabled={isDeleting}
-                            className="p-1 bg-red-100 hover:bg-red-200 text-red-700 rounded transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                            title="Delete Preset"
-                          >
-                            {isDeleting ? (
-                              <svg className="animate-spin h-2.5 w-2.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                              </svg>
-                            ) : (
-                              <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <polyline points="3,6 5,6 21,6"></polyline>
-                                <path d="M19,6v14a2,2 0 0,1 -2,2H7a2,2 0 0,1 -2,-2V6m3,0V4a2,2 0 0,1 2,-2h4a2,2 0 0,1 2,2v2"></path>
-                              </svg>
-                            )}
-                          </button>
-                        </div>
+                      <div className="text-xs text-gray-500 mt-1">
+                        Pan: <span className="font-medium text-gray-700">{typeof preset.pan === 'number' ? preset.pan.toFixed(2) : 'N/A'}</span>,{' '}
+                        Tilt: <span className="font-medium text-gray-700">{typeof preset.tilt === 'number' ? preset.tilt.toFixed(2) : 'N/A'}</span>,{' '}
+                        Zoom: <span className="font-medium text-gray-700">{typeof preset.zoom === 'number' ? preset.zoom.toFixed(2) : 'N/A'}</span>
                       </div>
                     </div>
                   </div>
+            
+                  {/* Right side: Actions */}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDeletePreset(preset);
+                    }}
+                    disabled={isDeleting}
+                    title="Delete Preset"
+                    className="absolute top-2 right-2 p-1.5 rounded-full bg-red-50 text-red-500 hover:bg-red-100 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isDeleting ? (
+                      <svg className="animate-spin h-3.5 w-3.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.4 0 0 5.4 0 12h4zm2 5.3A8 8 0 014 12H0c0 3 1.1 5.8 3 7.9l3-2.6z"></path>
+                      </svg>
+                    ) : (
+                      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="3,6 5,6 21,6"></polyline>
+                        <path d="M19,6v14a2,2 0 0,1 -2,2H7a2,2 0 0,1 -2,-2V6m3,0V4a2,2 0 0,1 2,-2h4a2,2 0 0,1 2,2v2"></path>
+                      </svg>
+                    )}
+                  </button>
                 </div>
               ))
             )}

@@ -8,3 +8,4 @@ export { default as CameraSelectionModal } from './CameraSelectionModal';
 export { default as EditPatrolModal } from './EditPatrolModal';
 export { default as EditPresetModal } from './EditPresetModal';
 export { default as SectionToggle } from './SectionToggle';
+export { default as CreatePatrolTourModal } from './CreatePatrolTourModal';

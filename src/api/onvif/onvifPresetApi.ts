@@ -11,9 +11,23 @@ export interface OnvifPreset {
   token?: string; // Backend might return 'token' instead of 'preset_token'
   preset_name?: string;
   name?: string; // Backend might return 'name' instead of 'preset_name'
+  // Support for nested position structure from ONVIF API
+  pan_tilt?: {
+    position?: {
+      x?: number;
+      y?: number;
+    };
+    speed?: any;
+  };
+  zoom?: {
+    position?: {
+      x?: number;
+    };
+    speed?: any;
+  };
+  // Fallback support for flat structure
   pan?: number;
   tilt?: number;
-  zoom?: number;
 }
 
 export interface OnvifPresetRequest {
@@ -21,6 +35,9 @@ export interface OnvifPresetRequest {
   profileToken: string;
   presetName?: string;
   presetToken?: string;
+  pan?: number;
+  tilt?: number;
+  zoom?: number;
 }
 
 export interface OnvifPresetResponse {
@@ -108,14 +125,17 @@ class OnvifPresetApiService {
    * Set/Create a new preset
    * POST /onvif/presets/set
    */
-  async setPreset(cameraId: string, profileToken: string, presetName: string): Promise<string> {
+  async setPreset(cameraId: string, profileToken: string, presetName: string, pan?: number, tilt?: number, zoom?: number): Promise<string> {
     try {
-      console.log('💾 Setting preset:', presetName, 'for camera:', cameraId);
+      console.log('💾 Setting preset:', presetName, 'for camera:', cameraId, 'with position:', { pan, tilt, zoom });
       
       const requestBody: OnvifPresetRequest = {
         cameraId,
         profileToken,
-        presetName
+        presetName,
+        pan,
+        tilt,
+        zoom
       };
 
       const response = await fetch(`${API_CONFIG.BASE_URL}/onvif/presets/set`, {

@@ -36,11 +36,14 @@ export const useCreatePreset = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ cameraId, profileToken, presetName }: {
+    mutationFn: ({ cameraId, profileToken, presetName, pan, tilt, zoom }: {
       cameraId: string;
       profileToken: string;
       presetName: string;
-    }) => onvifPresetApi.setPreset(cameraId, profileToken, presetName),
+      pan?: number;
+      tilt?: number;
+      zoom?: number;
+    }) => onvifPresetApi.setPreset(cameraId, profileToken, presetName, pan, tilt, zoom),
     
     onSuccess: (presetToken, variables) => {
       // Invalidate and refetch presets for this camera
