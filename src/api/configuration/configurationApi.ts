@@ -124,6 +124,9 @@ class ConfigurationApiService {
           configuration: rawData.data.configuration || rawData.data.activityData || rawData.data || {},
           timestamp: rawData.data.timestamp || new Date().toISOString(),
           version: rawData.data.version || '1.0.0',
+          id: rawData.data.id,
+          _id: rawData.data._id,
+          is_config_added: rawData.data.is_config_added,
           sensorId: rawData.data.sensorId,
           activityData: rawData.data.activityData
         };
@@ -134,6 +137,9 @@ class ConfigurationApiService {
           configuration: rawData.configuration || rawData.activityData || {},
           timestamp: rawData.timestamp || new Date().toISOString(),
           version: rawData.version || '1.0.0',
+          id: rawData.id,
+          _id: rawData._id,
+          is_config_added: rawData.is_config_added,
           sensorId: rawData.sensorId,
           activityData: rawData.activityData
         };
@@ -143,7 +149,10 @@ class ConfigurationApiService {
           cameraId: cameraId,
           configuration: rawData,
           timestamp: new Date().toISOString(),
-          version: '1.0.0'
+          version: '1.0.0',
+          id: (rawData as { id?: string }).id,
+          _id: (rawData as { _id?: string })._id,
+          is_config_added: (rawData as { is_config_added?: boolean }).is_config_added
         };
       } else {
         throw new Error('Unexpected response format from configuration API');
@@ -280,6 +289,45 @@ class ConfigurationApiService {
       return {
         success: false,
         message: error instanceof Error ? error.message : 'Failed to update configuration'
+      };
+    }
+  }
+
+  /**
+   * Update only activity data for a configuration
+   */
+  async updateActivityData(configId: string, payload: { sensorId?: string; cameraId?: string; activityData: Record<string, unknown> }): Promise<{ success: boolean; message: string; data?: unknown }> {
+    try {
+      const authHeaders = this.getAuthHeaders();
+      const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.CONFIGURATION_UPDATE_ACTIVITY_DATA(configId)}`, {
+        method: 'PUT',
+        headers: authHeaders,
+        body: JSON.stringify(payload),
+        signal: AbortSignal.timeout(API_CONFIG.TIMEOUTS.DEFAULT),
+      });
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          throw new Error('Authentication failed. Please login again.');
+        } else if (response.status === 403) {
+          throw new Error('Access denied. You do not have permission to update activity data.');
+        } else if (response.status === 404) {
+          throw new Error(`Configuration with ID ${configId} not found.`);
+        } else {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+      }
+
+      const result = await response.json();
+      return {
+        success: true,
+        message: 'Activity data updated successfully!',
+        data: result
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : 'Failed to update activity data'
       };
     }
   }

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { auth } from '../utils/auth';
 import { type Camera } from '../api';
 import { useActivities } from '../hooks/useActivities';
+import { configurationApi } from '../api';
 import { AddActivityModal, JsonEditorModal } from '../components/activities';
 import { useCameras } from '../contexts/CameraContext';
 import { useZoneDrawing } from '../hooks/useZoneDrawing';
@@ -55,6 +56,7 @@ const Zone: React.FC = () => {
   const {
     currentZoneType,
     zoneCoordinates,
+    setZoneCoordinates,
     zoneCanvasRef,
     snapshotImageRef,
     zoneDrawerRef,
@@ -93,6 +95,44 @@ const Zone: React.FC = () => {
       setSelectedActivity('');
     }
   }, [activities, selectedActivity]);
+
+  // Load zone coordinates when activity is selected
+  useEffect(() => {
+    if (selectedActivity && activities[selectedActivity]) {
+      const activity = activities[selectedActivity] as unknown as Record<string, unknown>;
+      console.log('🔄 Loading zone coordinates for activity:', selectedActivity, activity);
+      
+      // Extract zone coordinates from the activity
+      if (activity.zones || activity.polygons || activity.lanes) {
+        const coordinates = {
+          zones: (activity.zones as { x: number; y: number; width: number; height: number; }[]) || [],
+          polygons: (activity.polygons as Array<Array<{ x: number; y: number }>>) || [],
+          lanes: activity.lanes ? Object.values(activity.lanes as Record<string, unknown>).map((lane: unknown) => {
+            const laneData = lane as number[][];
+            return {
+              x1: laneData[0][0],
+              y1: laneData[0][1], 
+              x2: laneData[1][0],
+              y2: laneData[1][1],
+              color: '#10b981'
+            };
+          }) : []
+        };
+        
+        console.log('📍 Restoring zone coordinates:', coordinates);
+        
+        // Update zone coordinates state
+        setZoneCoordinates(coordinates);
+        
+        // Set zone type based on activity data
+        if (activity.zone_mode === 'rectangle' || activity.zones) {
+          handleZoneTypeChange('rectangle');
+        } else if (activity.zone_mode === 'polygon' || activity.polygons) {
+          handleZoneTypeChange('polygon');
+        }
+      }
+    }
+  }, [selectedActivity, activities, handleZoneTypeChange, setZoneCoordinates]);
 
   // Load activities when camera changes
   useEffect(() => {
@@ -388,20 +428,106 @@ const Zone: React.FC = () => {
 
     setIsSaving(true);
     try {
-      // Here you would typically save to your backend
-      // For now, we'll just show a success message
-      console.log('Saving parameters for activity:', selectedActivity, activityParameters);
+      if (!selectedCamera) {
+        throw new Error('Please select a camera before saving.');
+      }
+
+      console.log('🔍 Searching for configuration for camera:', selectedCamera);
+      console.log('📋 Activity parameters to save:', activityParameters);
+      console.log('📍 Zone coordinates to save:', zoneCoordinates);
+      console.log('🎯 Current zone type:', currentZoneType);
+
+      // Build payload without hardcoding anything
+      const payload = {
+        sensorId: selectedCamera, // Use cameraId as sensorId for now
+        cameraId: selectedCamera,
+        activityData: {
+          [selectedActivity]: {
+            status: "ACTIVE", // Add required status field
+            parameters: activityParameters,
+            // Include zone coordinates based on current zone type
+            ...(currentZoneType === 'rectangle' || currentZoneType === 'rectangle-with-lanes' ? {
+              zone_mode: "rectangle",
+              zones: zoneCoordinates.zones
+            } : {}),
+            ...(currentZoneType === 'polygon' || currentZoneType === 'polygon-with-lanes' ? {
+              zone_mode: "polygon", 
+              polygons: zoneCoordinates.polygons
+            } : {}),
+            // Include lanes if they exist
+            ...(zoneCoordinates.lanes.length > 0 ? {
+              lanes: zoneCoordinates.lanes.reduce((acc, lane, index) => {
+                acc[`L${index + 1}`] = [[lane.x1, lane.y1], [lane.x2, lane.y2]];
+                return acc;
+              }, {} as Record<string, number[][]>)
+            } : {})
+          }
+        }
+      } as { sensorId: string; cameraId: string; activityData: Record<string, unknown> };
+
+      console.log('📤 Sending payload to API:', payload);
+
+      // Try to find existing configuration first
+      const existing = await configurationApi.findExistingConfiguration(selectedCamera);
+      console.log('🔍 Configuration search result:', existing);
       
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      let result;
       
+      if (existing.found && existing.id) {
+        // Update existing configuration
+        console.log('🔄 Updating existing configuration with ID:', existing.id);
+        result = await configurationApi.updateConfiguration(existing.id, payload);
+      } else {
+        // Try to create new configuration first
+        console.log('➕ Creating new configuration');
+        result = await configurationApi.createConfiguration(payload);
+        
+        // If creation fails due to conflict (409), try to get existing ID and update
+        if (!result.success && 'conflict' in result && result.conflict) {
+          console.log('🔍 Configuration already exists, attempting to get existing configuration ID...');
+          console.log('🔍 Conflict response data:', result.data);
+          
+          // Clear cache to ensure fresh data
+          configurationApi.clearCache(selectedCamera);
+          
+          // Try to get the existing configuration ID from the response first
+          const conflictData = result.data as { id?: string; _id?: string; existingConfigurationId?: string };
+          const existingConfigId = conflictData?.id || conflictData?._id || conflictData?.existingConfigurationId;
+          
+          if (existingConfigId) {
+            console.log('🔄 Found existing configuration ID from conflict response:', existingConfigId);
+            result = await configurationApi.updateConfiguration(existingConfigId, payload);
+          } else {
+            // No configuration ID found in response, try to search for it
+            console.log('🔍 No configuration ID in response, searching for existing configuration...');
+            const retryExisting = await configurationApi.findExistingConfiguration(selectedCamera);
+            if (retryExisting.found && retryExisting.id) {
+              console.log('🔄 Found existing configuration ID via search:', retryExisting.id);
+              result = await configurationApi.updateConfiguration(retryExisting.id, payload);
+            } else {
+              throw new Error('Configuration exists but could not be found for update. Please try refreshing the page and try again.');
+            }
+          }
+        }
+      }
+      
+      console.log('📡 API response:', result);
+      
+      if (!result.success) {
+        throw new Error(result.message);
+      }
+
+      // Refresh activities so UI reflects latest values
+      await handleRefreshActivities();
+
       setModalMessage(`Parameters saved successfully for ${selectedActivity}`);
       setModalTitle('Success');
       setModalType('success');
       setShowMessageModal(true);
     } catch (error) {
-      console.error('Error saving parameters:', error);
-      setModalMessage('Failed to save parameters');
+      console.error('❌ Error saving parameters:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to save parameters';
+      setModalMessage(errorMessage);
       setModalTitle('Error');
       setModalType('error');
       setShowMessageModal(true);

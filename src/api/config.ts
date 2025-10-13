@@ -37,6 +37,7 @@ export const API_CONFIG = {
     CONFIGURATION: '/configuration/search',
     CONFIGURATION_CREATE: '/configuration',
     CONFIGURATION_UPDATE: (id: string) => `/configuration/${id}`,
+    CONFIGURATION_UPDATE_ACTIVITY_DATA: (id: string) => `/configuration/${id}/update-activity-data`,
     
     // ONVIF endpoints
     ONVIF_PRESETS: '/onvif/presets',

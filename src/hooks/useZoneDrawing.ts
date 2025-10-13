@@ -415,6 +415,7 @@ export const useZoneDrawing = () => {
   return {
     currentZoneType,
     zoneCoordinates,
+    setZoneCoordinates,
     zoneCanvasRef,
     snapshotImageRef,
     zoneDrawerRef,
