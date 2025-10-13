@@ -11,6 +11,8 @@ interface JsonEditorProps {
   placeholder?: string;
   readOnly?: boolean;
   onValidate?: (isValid: boolean, errors: string[]) => void;
+  hideGenerateData?: boolean;
+  sensorId?: string;
 }
 
 export const JsonEditor: React.FC<JsonEditorProps> = ({
@@ -19,7 +21,9 @@ export const JsonEditor: React.FC<JsonEditorProps> = ({
   height = '400px',
   placeholder = 'Enter JSON data...',
   readOnly = false,
-  onValidate
+  onValidate,
+  hideGenerateData = false,
+  sensorId
 }) => {
   const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
   const [isValid, setIsValid] = useState(true);
@@ -71,11 +75,6 @@ export const JsonEditor: React.FC<JsonEditorProps> = ({
       });
     }
     
-    // Clean up observer when component unmounts
-    return () => {
-      observer.disconnect();
-    };
-
     // Add JSON validation
     const validateJson = () => {
       try {
@@ -106,6 +105,11 @@ export const JsonEditor: React.FC<JsonEditorProps> = ({
 
     // Initial validation
     validateJson();
+
+    // Clean up observer when component unmounts
+    return () => {
+      observer.disconnect();
+    };
   };
 
   const formatJson = () => {
@@ -135,7 +139,12 @@ export const JsonEditor: React.FC<JsonEditorProps> = ({
       // Add a small delay to simulate loading
       await new Promise(resolve => setTimeout(resolve, 800));
       
-      const formattedData = JSON.stringify(sampleActivitiesData, null, 2);
+      // Create data with sensorId if provided
+      const dataToGenerate = sensorId 
+        ? { sensorId, ...sampleActivitiesData }
+        : sampleActivitiesData;
+      
+      const formattedData = JSON.stringify(dataToGenerate, null, 2);
       editorRef.current.setValue(formattedData);
       onChange(formattedData);
       
@@ -197,25 +206,27 @@ export const JsonEditor: React.FC<JsonEditorProps> = ({
           )}
         </div>
         <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={generateData}
-            disabled={isGenerating}
-            className="px-2 py-1 text-xs bg-green-100 hover:bg-green-200 text-green-700 rounded border border-green-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
-            title="Generate sample data"
-          >
-            {isGenerating ? (
-              <>
-                <svg className="animate-spin h-3 w-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                Generating...
-              </>
-            ) : (
-              'Generate Data'
-            )}
-          </button>
+          {!hideGenerateData && (
+            <button
+              type="button"
+              onClick={generateData}
+              disabled={isGenerating}
+              className="px-2 py-1 text-xs bg-green-100 hover:bg-green-200 text-green-700 rounded border border-green-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+              title="Generate sample data"
+            >
+              {isGenerating ? (
+                <>
+                  <svg className="animate-spin h-3 w-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Generating...
+                </>
+              ) : (
+                'Generate Data'
+              )}
+            </button>
+          )}
           <button
             type="button"
             onClick={formatJson}

@@ -11,6 +11,11 @@ export interface ConfigurationData {
   configuration: Record<string, unknown>;
   timestamp?: string;
   version?: string;
+  is_config_added?: boolean;
+  id?: string;
+  _id?: string;
+  sensorId?: string;
+  activityData?: Record<string, unknown>;
 }
 
 
@@ -116,17 +121,21 @@ class ConfigurationApiService {
         
         configurationData = {
           cameraId: rawData.data.cameraId || cameraId,
-          configuration: rawData.data.configuration || rawData.data || {},
+          configuration: rawData.data.configuration || rawData.data.activityData || rawData.data || {},
           timestamp: rawData.data.timestamp || new Date().toISOString(),
-          version: rawData.data.version || '1.0.0'
+          version: rawData.data.version || '1.0.0',
+          sensorId: rawData.data.sensorId,
+          activityData: rawData.data.activityData
         };
-      } else if (rawData.configuration !== undefined) {
-        // Direct format: { configuration: { ... } }
+      } else if (rawData.configuration !== undefined || rawData.activityData !== undefined) {
+        // Direct format: { configuration: { ... } } or { activityData: { ... } }
         configurationData = {
           cameraId: rawData.cameraId || cameraId,
-          configuration: rawData.configuration || {},
+          configuration: rawData.configuration || rawData.activityData || {},
           timestamp: rawData.timestamp || new Date().toISOString(),
-          version: rawData.version || '1.0.0'
+          version: rawData.version || '1.0.0',
+          sensorId: rawData.sensorId,
+          activityData: rawData.activityData
         };
       } else if (Array.isArray(rawData) || typeof rawData === 'object') {
         // The entire response is the configuration
@@ -172,6 +181,130 @@ class ConfigurationApiService {
       this.cache.clear();
       this.cacheTimestamps.clear();
       console.log('🗑️ Cleared all configuration cache');
+    }
+  }
+
+  /**
+   * Create new configuration
+   */
+  async createConfiguration(configurationData: Record<string, unknown>): Promise<{ success: boolean; message: string; data?: unknown; conflict?: boolean }> {
+    try {
+      console.log('🌐 Creating new configuration:', configurationData);
+      
+      const authHeaders = this.getAuthHeaders();
+      const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.CONFIGURATION_CREATE}`, {
+        method: 'POST',
+        headers: authHeaders,
+        body: JSON.stringify(configurationData),
+        signal: AbortSignal.timeout(API_CONFIG.TIMEOUTS.DEFAULT),
+      });
+      
+      console.log('📡 Create configuration response status:', response.status);
+      
+      if (!response.ok) {
+        if (response.status === 401) {
+          throw new Error('Authentication failed. Please login again.');
+        } else if (response.status === 403) {
+          throw new Error('Access denied. You do not have permission to create configuration.');
+        } else if (response.status === 409) {
+          // Configuration already exists - this is expected behavior
+          const result = await response.json();
+          console.log('⚠️ Configuration already exists (409):', result);
+          return {
+            success: false,
+            message: 'Configuration already exists for this camera/sensor combination',
+            data: result,
+            conflict: true
+          };
+        } else {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+      }
+      
+      const result = await response.json();
+      console.log('✅ Configuration created successfully:', result);
+      
+      return {
+        success: true,
+        message: 'Configuration created successfully!',
+        data: result
+      };
+    } catch (error) {
+      console.error('❌ Error creating configuration:', error);
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : 'Failed to create configuration'
+      };
+    }
+  }
+
+  /**
+   * Update existing configuration
+   */
+  async updateConfiguration(configId: string, configurationData: Record<string, unknown>): Promise<{ success: boolean; message: string; data?: unknown }> {
+    try {
+      console.log('🌐 Updating configuration:', configId, configurationData);
+      
+      const authHeaders = this.getAuthHeaders();
+      const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.CONFIGURATION_UPDATE(configId)}`, {
+        method: 'PUT',
+        headers: authHeaders,
+        body: JSON.stringify(configurationData),
+        signal: AbortSignal.timeout(API_CONFIG.TIMEOUTS.DEFAULT),
+      });
+      
+      console.log('📡 Update configuration response status:', response.status);
+      
+      if (!response.ok) {
+        if (response.status === 401) {
+          throw new Error('Authentication failed. Please login again.');
+        } else if (response.status === 403) {
+          throw new Error('Access denied. You do not have permission to update configuration.');
+        } else if (response.status === 404) {
+          throw new Error(`Configuration with ID ${configId} not found.`);
+        } else {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+      }
+      
+      const result = await response.json();
+      console.log('✅ Configuration updated successfully:', result);
+      
+      return {
+        success: true,
+        message: 'Configuration updated successfully!',
+        data: result
+      };
+    } catch (error) {
+      console.error('❌ Error updating configuration:', error);
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : 'Failed to update configuration'
+      };
+    }
+  }
+
+  /**
+   * Search for existing configuration by cameraId and sensorId
+   */
+  async findExistingConfiguration(cameraId: string, sensorId?: string): Promise<{ id?: string; found: boolean }> {
+    try {
+      console.log('🔍 Searching for existing configuration:', { cameraId, sensorId });
+      
+      // Try to get configuration using the search endpoint
+      const configData = await this.getConfiguration(cameraId, true);
+      
+      if (configData.id || configData._id) {
+        const configId = configData.id || configData._id;
+        console.log('✅ Found existing configuration ID:', configId);
+        return { id: configId, found: true };
+      }
+      
+      console.log('❌ No existing configuration found');
+      return { found: false };
+    } catch (error) {
+      console.error('❌ Error searching for existing configuration:', error);
+      return { found: false };
     }
   }
 

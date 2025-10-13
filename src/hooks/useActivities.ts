@@ -4,13 +4,14 @@ import type {
   NewActivityFormData, 
   ActivityValidationResult 
 } from '../types/activity';
-import { ActivityService } from '../api';
+import { ActivityService, configurationApi } from '../api';
 
 export interface UseActivitiesReturn {
   activities: ActivitiesData;
   setActivities: (activities: ActivitiesData) => void;
   addActivity: (formData: NewActivityFormData) => Promise<{ success: boolean; message: string }>;
   addActivitiesFromJson: (jsonData: string) => Promise<{ success: boolean; message: string }>;
+  loadActivitiesFromConfig: (cameraId: string) => Promise<{ success: boolean; message: string }>;
   validateActivityJson: (jsonData: string) => ActivityValidationResult;
   getActivityStats: () => {
     total: number;
@@ -105,6 +106,42 @@ export const useActivities = (initialActivities: ActivitiesData = {}): UseActivi
     }
   }, [activities]);
 
+  const loadActivitiesFromConfig = useCallback(async (cameraId: string) => {
+    try {
+      console.log('🔄 Loading activities from configuration for camera:', cameraId);
+      
+      // Load configuration from API
+      const configData = await configurationApi.getConfiguration(cameraId);
+      
+      // Extract activities from the configuration
+      let activitiesData: ActivitiesData = {};
+      
+      if (configData.activityData) {
+        // If activityData exists, use it directly
+        activitiesData = configData.activityData as ActivitiesData;
+      } else if (configData.configuration) {
+        // If configuration exists, use it
+        activitiesData = configData.configuration as ActivitiesData;
+      }
+      
+      console.log('📋 Loaded activities from config:', activitiesData);
+      
+      // Update the activities state
+      setActivities(activitiesData);
+      
+      return {
+        success: true,
+        message: `Loaded ${Object.keys(activitiesData).length} activities from configuration`
+      };
+    } catch (error) {
+      console.error('❌ Error loading activities from config:', error);
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : 'Failed to load activities from configuration'
+      };
+    }
+  }, []);
+
   const validateActivityJson = useCallback((jsonData: string) => {
     return ActivityService.validateActivityJson(jsonData);
   }, []);
@@ -123,6 +160,7 @@ export const useActivities = (initialActivities: ActivitiesData = {}): UseActivi
     setActivities,
     addActivity,
     addActivitiesFromJson,
+    loadActivitiesFromConfig,
     validateActivityJson,
     getActivityStats,
     exportActivities

@@ -71,8 +71,21 @@ const Zone: React.FC = () => {
   const {
     activities,
     addActivity,
-    addActivitiesFromJson
+    loadActivitiesFromConfig
   } = useActivities();
+
+  // Handle refreshing activities after configuration changes
+  const handleRefreshActivities = useCallback(async () => {
+    if (selectedCamera) {
+      console.log('🔄 Refreshing activities for camera:', selectedCamera);
+      const result = await loadActivitiesFromConfig(selectedCamera);
+      if (result.success) {
+        console.log('✅ Activities refreshed successfully:', result.message);
+      } else {
+        console.error('❌ Failed to refresh activities:', result.message);
+      }
+    }
+  }, [selectedCamera, loadActivitiesFromConfig]);
 
   // Clear selected activity if it becomes inactive
   useEffect(() => {
@@ -80,6 +93,14 @@ const Zone: React.FC = () => {
       setSelectedActivity('');
     }
   }, [activities, selectedActivity]);
+
+  // Load activities when camera changes
+  useEffect(() => {
+    if (selectedCamera) {
+      console.log('🔄 Loading activities for camera:', selectedCamera);
+      handleRefreshActivities();
+    }
+  }, [selectedCamera, handleRefreshActivities]);
   
   const navigate = useNavigate();
 
@@ -415,13 +436,6 @@ const Zone: React.FC = () => {
     return result;
   };
 
-  // Handle adding activities from JSON editor using the new system
-  const handleAddFromJsonEditor = async (jsonData: string) => {
-    const result = await addActivitiesFromJson(jsonData);
-    showMessage(result.message, result.success ? 'Success' : 'Error', result.success ? 'success' : 'error');
-    return result;
-  };
-
   return (
     <>
       <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100 pt-8 overflow-x-hidden">
@@ -735,8 +749,9 @@ const Zone: React.FC = () => {
       <JsonEditorModal
         isOpen={showJsonEditorModal}
         onClose={() => setShowJsonEditorModal(false)}
-        onAddActivities={handleAddFromJsonEditor}
         cameraId={selectedCamera || undefined}
+        sensorId={selectedCamera || undefined}
+        onActivitiesRefreshed={handleRefreshActivities}
       />
     </>
   );
