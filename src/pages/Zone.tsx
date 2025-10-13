@@ -17,6 +17,7 @@ import {
   ActivityConfiguration,
   Modals
 } from '../components/zone';
+import { ErrorBoundary } from '../components/ErrorBoundary';
 
 
 
@@ -725,23 +726,29 @@ const Zone: React.FC = () => {
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
               {/* Zone Coordinates Card */}
-              <ZoneCoordinates
-                currentZoneType={currentZoneType}
-                zoneCoordinates={zoneCoordinates}
-              />
+              <ErrorBoundary>
+                <ZoneCoordinates
+                  currentZoneType={currentZoneType}
+                  zoneCoordinates={zoneCoordinates}
+                />
+              </ErrorBoundary>
               
               {/* Lane Coordinates Card - Only show when zone type includes lanes */}
-              <LaneCoordinates
-                currentZoneType={currentZoneType}
-                zoneCoordinates={zoneCoordinates}
-                zoneDrawerRef={zoneDrawerRef}
-              />
+              <ErrorBoundary>
+                <LaneCoordinates
+                  currentZoneType={currentZoneType}
+                  zoneCoordinates={zoneCoordinates}
+                  zoneDrawerRef={zoneDrawerRef}
+                />
+              </ErrorBoundary>
 
               {/* Zone Statistics Card */}
-              <ZoneStatistics
-                currentZoneType={currentZoneType}
-                zoneCoordinates={zoneCoordinates}
-              />
+              <ErrorBoundary>
+                <ZoneStatistics
+                  currentZoneType={currentZoneType}
+                  zoneCoordinates={zoneCoordinates}
+                />
+              </ErrorBoundary>
             </div>
           </div>
         </div>

@@ -60,9 +60,23 @@ const ZoneCoordinates: React.FC<ZoneCoordinatesProps> = ({
               );
             }
             
-            return zoneCoordinates.polygons.map((polygon, index) => {
-              const dimensions = calculatePolygonDimensions(polygon);
-              return (
+            return zoneCoordinates.polygons
+              .map((polygon, index) => {
+                // Add safety check for polygon data
+                if (!polygon || !Array.isArray(polygon) || polygon.length === 0) {
+                  console.warn('Invalid polygon data at index', index, polygon);
+                  return null;
+                }
+                
+                // Check if all points in the polygon are valid
+                const hasInvalidPoints = polygon.some(point => !point || typeof point.x !== 'number' || typeof point.y !== 'number');
+                if (hasInvalidPoints) {
+                  console.warn('Polygon has invalid points at index', index, polygon);
+                  return null;
+                }
+                
+                const dimensions = calculatePolygonDimensions(polygon);
+                return (
                 <div key={index} className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg p-4 border border-blue-200 shadow-sm">
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center gap-3">
@@ -127,14 +141,15 @@ const ZoneCoordinates: React.FC<ZoneCoordinatesProps> = ({
                       {polygon.map((point, pointIndex) => (
                         <div key={pointIndex} className="bg-gray-50 rounded p-2 flex items-center justify-between">
                           <span className="text-gray-600">Point {pointIndex + 1}:</span>
-                          <span className="font-mono text-gray-800">({point.x.toFixed(1)}, {point.y.toFixed(1)})</span>
+                          <span className="font-mono text-gray-800">({(point.x ?? 0).toFixed(1)}, {(point.y ?? 0).toFixed(1)})</span>
                         </div>
                       ))}
                     </div>
                   </div>
                 </div>
               );
-            });
+              })
+              .filter(Boolean);
           } else {
             if (zoneCoordinates.zones.length === 0) {
               return (
@@ -148,9 +163,16 @@ const ZoneCoordinates: React.FC<ZoneCoordinatesProps> = ({
               );
             }
             
-            return zoneCoordinates.zones.map((zone, index) => {
-              const dimensions = calculateRectangleDimensions(zone);
-              return (
+            return zoneCoordinates.zones
+              .map((zone, index) => {
+                // Add safety check for zone data
+                if (!zone || typeof zone.x !== 'number' || typeof zone.y !== 'number' || typeof zone.width !== 'number' || typeof zone.height !== 'number') {
+                  console.warn('Invalid zone data at index', index, zone);
+                  return null;
+                }
+                
+                const dimensions = calculateRectangleDimensions(zone);
+                return (
                 <div key={index} className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg p-4 border border-blue-200 shadow-sm">
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center gap-3">
@@ -176,11 +198,11 @@ const ZoneCoordinates: React.FC<ZoneCoordinatesProps> = ({
                   <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 text-sm">
                     <div className="bg-white rounded-lg p-3 border border-gray-200">
                       <div className="text-xs font-medium text-gray-600 mb-1">Position</div>
-                      <div className="text-gray-800 font-mono">({zone.x.toFixed(1)}, {zone.y.toFixed(1)})</div>
+                      <div className="text-gray-800 font-mono">({(zone.x ?? 0).toFixed(1)}, {(zone.y ?? 0).toFixed(1)})</div>
                     </div>
                     <div className="bg-white rounded-lg p-3 border border-gray-200">
                       <div className="text-xs font-medium text-gray-600 mb-1">Dimensions</div>
-                      <div className="text-gray-800 font-mono">{zone.width.toFixed(0)} × {zone.height.toFixed(0)} px</div>
+                      <div className="text-gray-800 font-mono">{(zone.width ?? 0).toFixed(0)} × {(zone.height ?? 0).toFixed(0)} px</div>
                     </div>
                     <div className="bg-white rounded-lg p-3 border border-gray-200">
                       <div className="text-xs font-medium text-gray-600 mb-1">Center Point</div>
@@ -201,7 +223,8 @@ const ZoneCoordinates: React.FC<ZoneCoordinatesProps> = ({
                   </div>
                 </div>
               );
-            });
+              })
+              .filter(Boolean);
           }
         })()}
       </div>
