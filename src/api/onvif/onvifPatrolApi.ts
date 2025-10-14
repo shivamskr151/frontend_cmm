@@ -431,6 +431,56 @@ class OnvifPatrolApiService {
     return this.operatePresetTour(cameraId, profileToken, tourToken, 'resume');
   }
 
+  /**
+   * Delete a preset tour
+   * DELETE /onvif/preset-tours/delete
+   */
+  async deletePresetTour(
+    cameraId: string,
+    profileToken: string,
+    tourToken: string
+  ): Promise<void> {
+    try {
+      console.log('🗑️ Deleting preset tour:', tourToken, 'for camera:', cameraId);
+      
+      const requestBody = {
+        cameraId,
+        profileToken,
+        presetTourToken: tourToken
+      };
+
+      const response = await fetch(`${API_CONFIG.BASE_URL}/onvif/preset-tours/delete`, {
+        method: 'DELETE',
+        headers: this.getAuthHeaders(),
+        body: JSON.stringify(requestBody),
+        signal: AbortSignal.timeout(API_CONFIG.TIMEOUTS.DEFAULT),
+      });
+
+      console.log('📡 Delete Preset Tour API Response status:', response.status, response.statusText);
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          throw new Error('Authentication failed. Please login again.');
+        } else if (response.status === 403) {
+          throw new Error('Access denied. You do not have permission to delete preset tours.');
+        } else if (response.status === 404) {
+          throw new Error('Preset tour not found.');
+        } else {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+      }
+
+      const data = await response.json();
+      console.log('📄 Delete Preset Tour Response:', data);
+      
+      console.log('✅ Successfully deleted preset tour');
+
+    } catch (error) {
+      console.error('❌ Error deleting preset tour:', error);
+      throw error;
+    }
+  }
+
 
   /**
    * Create a patrol tour from preset patterns

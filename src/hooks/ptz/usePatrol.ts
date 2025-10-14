@@ -348,6 +348,40 @@ export const usePatrol = (sendPatrolCommand: (action: string, patternId?: number
     setSelectedPatrolPatterns([]);
   }, [selectedPatrolPatterns]);
 
+  const deletePatrolPattern = useCallback(async (patternId: number) => {
+    if (!selectedCamera) {
+      setError('No camera selected');
+      return;
+    }
+
+    const pattern = patrolPatterns.find(p => p.id === patternId);
+    if (!pattern || !pattern.presetToken) {
+      setError('Invalid patrol pattern or missing preset token');
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      const profileToken = getProfileToken();
+      const tourToken = pattern.presetToken;
+      
+      console.log("🗑️ Deleting patrol tour:", tourToken);
+      await onvifPatrolApi.deletePresetTour(selectedCamera, profileToken, tourToken);
+      
+      // Reload patrol tours to reflect the deletion
+      await loadPatrolTours();
+      
+      console.log("✅ Successfully deleted patrol tour");
+    } catch (err) {
+      console.error("❌ Error deleting patrol:", err);
+      setError(err instanceof Error ? err.message : 'Failed to delete patrol');
+    } finally {
+      setLoading(false);
+    }
+  }, [selectedCamera, patrolPatterns, getProfileToken, loadPatrolTours]);
+
   // Modify an existing patrol tour
   const modifyPatrol = useCallback(async (
     patternId: number,
@@ -533,6 +567,7 @@ export const usePatrol = (sendPatrolCommand: (action: string, patternId?: number
     handleEditPatrolPattern,
     handleSavePatrolPattern,
     setShowEditPatrolModal,
+    deletePatrolPattern,
     
     // API functions
     loadPatrolTours,

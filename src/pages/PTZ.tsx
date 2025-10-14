@@ -216,6 +216,7 @@ function PTZ() {
                 loadPatrolTours={patrolHook.loadPatrolTours}
                 clearError={patrolHook.clearError}
                 handleEditPatrolPattern={patrolHook.handleEditPatrolPattern}
+                deletePatrolPattern={patrolHook.deletePatrolPattern}
               />
             )}
           </div>
