@@ -18,15 +18,16 @@ const CreatePatrolTourModal: React.FC<CreatePatrolTourModalProps> = ({
   const { selectedCamera } = useCameras();
   const [tourName, setTourName] = useState('');
   const [selectedPresets, setSelectedPresets] = useState<string[]>([]);
-  const [speed, setSpeed] = useState(0.8);
-  const [waitTime, setWaitTime] = useState(3);
+  const [presetWaitTimes, setPresetWaitTimes] = useState<Record<string, number>>({});
+  const [presetSpeeds, setPresetSpeeds] = useState<Record<string, number>>({});
+  const [isLooping, setIsLooping] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Get presets for the selected camera
   const { data: presets, isLoading: presetsLoading, error: presetsError } = usePresets(
     selectedCamera || '',
-    '', // Profile token - commented out 'Profile_1' as it's optional in backend
+    'Profile_1', // Use Profile_1 as specified in the API
     !!selectedCamera
   );
 
@@ -35,8 +36,9 @@ const CreatePatrolTourModal: React.FC<CreatePatrolTourModalProps> = ({
     if (isOpen) {
       setTourName('');
       setSelectedPresets([]);
-      setSpeed(0.8);
-      setWaitTime(3);
+      setPresetWaitTimes({});
+      setPresetSpeeds({});
+      setIsLooping(false);
       setError(null);
     }
   }, [isOpen]);
@@ -62,11 +64,33 @@ const CreatePatrolTourModal: React.FC<CreatePatrolTourModalProps> = ({
   }, [isOpen, onClose]);
 
   const handlePresetToggle = (presetToken: string) => {
-    setSelectedPresets(prev => 
-      prev.includes(presetToken) 
-        ? prev.filter(token => token !== presetToken)
-        : [...prev, presetToken]
-    );
+    setSelectedPresets(prev => {
+      if (prev.includes(presetToken)) {
+        // Remove preset and its wait time and speed
+        setPresetWaitTimes(prevTimes => {
+          const newTimes = { ...prevTimes };
+          delete newTimes[presetToken];
+          return newTimes;
+        });
+        setPresetSpeeds(prevSpeeds => {
+          const newSpeeds = { ...prevSpeeds };
+          delete newSpeeds[presetToken];
+          return newSpeeds;
+        });
+        return prev.filter(token => token !== presetToken);
+      } else {
+        // Add preset with default wait time and speed
+        setPresetWaitTimes(prevTimes => ({
+          ...prevTimes,
+          [presetToken]: 3 // Default wait time
+        }));
+        setPresetSpeeds(prevSpeeds => ({
+          ...prevSpeeds,
+          [presetToken]: 0.8 // Default speed
+        }));
+        return [...prev, presetToken];
+      }
+    });
   };
 
   const handleSelectAllPresets = () => {
@@ -74,9 +98,20 @@ const CreatePatrolTourModal: React.FC<CreatePatrolTourModalProps> = ({
     
     if (selectedPresets.length === presets.length) {
       setSelectedPresets([]);
+      setPresetWaitTimes({});
+      setPresetSpeeds({});
     } else {
       const allTokens = presets.map(p => p.preset_token || p.token).filter(Boolean) as string[];
       setSelectedPresets(allTokens);
+      // Set default wait time and speed for all presets
+      const defaultWaitTimes: Record<string, number> = {};
+      const defaultSpeeds: Record<string, number> = {};
+      allTokens.forEach(token => {
+        defaultWaitTimes[token] = 3;
+        defaultSpeeds[token] = 0.8;
+      });
+      setPresetWaitTimes(defaultWaitTimes);
+      setPresetSpeeds(defaultSpeeds);
     }
   };
 
@@ -100,16 +135,23 @@ const CreatePatrolTourModal: React.FC<CreatePatrolTourModalProps> = ({
     setError(null);
 
     try {
-      const tourToken = await onvifPatrolApi.createPatrolFromPresets(
+      // Create steps with individual wait times and speeds for each preset
+      const steps = selectedPresets.map(presetToken => ({
+        presetToken,
+        speed: presetSpeeds[presetToken] || 0.8,
+        waitTime: presetWaitTimes[presetToken] || 3
+      }));
+
+      const tourToken = await onvifPatrolApi.createAdvancedPresetTour(
         selectedCamera,
-        '', // Profile token - commented out 'Profile_1' as it's optional in backend
+        'Profile_1', // Use Profile_1 as specified in the API
         tourName.trim(),
-        selectedPresets,
+        steps,
+        false, // autoStart
         {
-          speed,
-          waitTime,
-          autoStart: false,
-          randomOrder: false
+          recurringTime: isLooping ? 0 : -1, // -1 means no looping, 0 means infinite loop
+          recurringDuration: "PT3S",
+          randomPresetOrder: false
         }
       );
 
@@ -148,119 +190,148 @@ const CreatePatrolTourModal: React.FC<CreatePatrolTourModalProps> = ({
         }
       }}
     >
-      <div className="bg-white rounded-lg sm:rounded-xl shadow-2xl w-full max-w-2xl h-[95vh] sm:h-[80vh] max-h-[700px] flex flex-col">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl h-[95vh] sm:h-[85vh] max-h-[800px] flex flex-col overflow-hidden">
         {/* Header */}
-        <div className="flex items-center justify-between p-3 sm:p-4 border-b border-gray-200 flex-shrink-0">
-          <h2 className="text-base sm:text-lg font-semibold text-gray-900">Create Patrol Tour</h2>
+        <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-4 sm:p-6 flex-shrink-0">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"></path>
+                  <circle cx="12" cy="13" r="3"></circle>
+                </svg>
+              </div>
+              <div>
+                <h2 className="text-lg sm:text-xl font-bold">Create Patrol Tour</h2>
+                <p className="text-blue-100 text-sm">Configure your camera patrol sequence</p>
+              </div>
+            </div>
           <button
             onClick={onClose}
-            className="p-1.5 sm:p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              className="p-2 hover:bg-white/20 rounded-xl transition-colors"
+              title="Close modal"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="sm:w-5 sm:h-5">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <line x1="18" y1="6" x2="6" y2="18"></line>
               <line x1="6" y1="6" x2="18" y2="18"></line>
             </svg>
           </button>
+          </div>
         </div>
 
         {/* Content */}
-        <div className="p-3 sm:p-4 space-y-3 sm:space-y-4 overflow-y-auto flex-1 min-h-0">
+        <div className="p-4 sm:p-6 space-y-6 overflow-y-auto flex-1 min-h-0 bg-gray-50/30">
           {/* Error Display */}
           {error && (
-            <div className="p-2 sm:p-3 bg-red-50 border border-red-200 rounded-lg">
-              <div className="flex items-center gap-2">
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-red-500 sm:w-4 sm:h-4">
+            <div className="p-4 bg-red-50 border-l-4 border-red-400 rounded-lg shadow-sm">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-red-500">
                   <circle cx="12" cy="12" r="10"></circle>
                   <line x1="15" y1="9" x2="9" y2="15"></line>
                   <line x1="9" y1="9" x2="15" y2="15"></line>
                 </svg>
-                <span className="text-xs sm:text-sm text-red-700">{error}</span>
+                </div>
+                <span className="text-sm font-medium text-red-800">{error}</span>
               </div>
             </div>
           )}
 
-          {/* Tour Name */}
-          <div>
-            <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">
-              Tour Name *
-            </label>
-            <input
-              type="text"
-              value={tourName}
-              onChange={(e) => setTourName(e.target.value)}
-              placeholder="Enter tour name..."
-              className="w-full px-3 py-2 sm:py-2.5 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            />
-          </div>
-
-          {/* Speed and Wait Time */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-            <div>
-              <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">
-                Speed: <span className="text-blue-600 font-semibold">{speed}</span>
-              </label>
-              <div className="space-y-1">
+          {/* Tour Configuration */}
+          <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Tour Name */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-800 mb-3">
+                  <span className="flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-blue-600">
+                      <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+                      <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+                    </svg>
+                    Tour Name
+                    <span className="text-red-500">*</span>
+                  </span>
+                </label>
                 <input
-                  type="range"
-                  min="0.1"
-                  max="1.0"
-                  step="0.1"
-                  value={speed}
-                  onChange={(e) => setSpeed(parseFloat(e.target.value))}
-                  className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
+                  type="text"
+                  value={tourName}
+                  onChange={(e) => setTourName(e.target.value)}
+                  placeholder="Enter a descriptive name for your patrol tour..."
+                  className="w-full px-4 py-3 text-base border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors placeholder-gray-400"
                 />
-                <div className="flex justify-between text-xs text-gray-500">
-                  <span>Slow</span>
-                  <span>Fast</span>
+              </div>
+
+              {/* Patrol Behavior */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-800 mb-3">
+                  <span className="flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-blue-600">
+                      <path d="M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9c2.12 0 4.07.74 5.6 1.98L21 3"></path>
+                      <path d="M21 3v6h-6"></path>
+                    </svg>
+                    Patrol Behavior
+                  </span>
+                </label>
+                <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                  <input
+                    type="checkbox"
+                    checked={isLooping}
+                    onChange={(e) => setIsLooping(e.target.checked)}
+                    className="w-5 h-5 text-blue-600 bg-white border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+                    title="Enable continuous looping"
+                  />
+                  <div className="flex-1">
+                    <span className="text-sm font-medium text-gray-800">
+                      {isLooping ? 'Continuous Loop' : 'Single Run'}
+                    </span>
+                    <p className="text-xs text-gray-500 mt-1">
+                      {isLooping ? 'Patrol will repeat indefinitely' : 'Patrol will run once and stop'}
+                    </p>
+                  </div>
+                  <div className={`w-3 h-3 rounded-full ${isLooping ? 'bg-green-500' : 'bg-gray-300'}`}></div>
                 </div>
               </div>
-            </div>
-            <div>
-              <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">
-                Wait Time (seconds)
-              </label>
-              <input
-                type="number"
-                min="1"
-                max="60"
-                value={waitTime}
-                onChange={(e) => setWaitTime(parseInt(e.target.value) || 1)}
-                className="w-full px-3 py-2 sm:py-2.5 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              />
             </div>
           </div>
 
           {/* Preset Selection */}
-          <div>
-            <div className="flex items-center justify-between mb-2 sm:mb-3">
-              <h3 className="text-xs sm:text-sm font-medium text-gray-700">Select Presets</h3>
+          <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-blue-600">
+                  <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"></path>
+                  <circle cx="12" cy="13" r="3"></circle>
+                </svg>
+                <h3 className="text-sm font-semibold text-gray-800">Camera Presets</h3>
+              </div>
               <button
                 onClick={handleSelectAllPresets}
-                className="text-xs text-blue-600 hover:text-blue-700 font-medium px-2 py-1 rounded hover:bg-blue-50 transition-colors"
+                className="text-sm text-blue-600 hover:text-blue-700 font-medium px-3 py-2 rounded-lg hover:bg-blue-50 transition-colors border border-blue-200 hover:border-blue-300"
+                title="Select or deselect all presets"
               >
                 {selectedPresets.length === presets?.length ? 'Deselect All' : 'Select All'}
               </button>
             </div>
 
             {/* Presets List */}
-            <div className="space-y-1 sm:space-y-2 max-h-40 sm:max-h-32 overflow-y-auto border border-gray-200 rounded-lg p-2 sm:p-3">
+            <div className="space-y-3 max-h-60 overflow-y-auto">
               {presetsLoading ? (
-                <div className="flex items-center justify-center py-6 sm:py-8">
-                  <div className="flex items-center gap-2 text-gray-500">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="animate-spin sm:w-4 sm:h-4">
+                <div className="flex items-center justify-center py-8">
+                  <div className="flex items-center gap-3 text-gray-500">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="animate-spin">
                       <polyline points="23,4 23,10 17,10"></polyline>
                       <polyline points="1,20 1,14 7,14"></polyline>
                       <path d="M20.49,9A9,9,0,0,0,5.64,5.64L1,10m22,4L18.36,18.36A9,9,0,0,1,3.51,15"></path>
                     </svg>
-                    <span className="text-xs sm:text-sm">Loading presets...</span>
+                    <span className="text-sm font-medium">Loading presets...</span>
                   </div>
                 </div>
               ) : presetsError ? (
-                <div className="text-center py-6 sm:py-8 text-red-500 text-xs sm:text-sm">
+                <div className="text-center py-8 text-red-500 text-sm">
                   Failed to load presets
                 </div>
               ) : !presets || presets.length === 0 ? (
-                <div className="text-center py-6 sm:py-8 text-gray-500 text-xs sm:text-sm">
+                <div className="text-center py-8 text-gray-500 text-sm">
                   No presets available
                 </div>
               ) : (
@@ -272,21 +343,94 @@ const CreatePatrolTourModal: React.FC<CreatePatrolTourModalProps> = ({
                   return (
                     <div
                       key={presetToken}
-                      className={`flex items-center gap-2 sm:gap-3 p-2 sm:p-2.5 rounded-lg border transition-colors cursor-pointer ${
+                      className={`rounded-xl border-2 transition-all duration-200 ${
                         isSelected 
-                          ? 'bg-blue-50 border-blue-200' 
-                          : 'bg-gray-50 border-gray-200 hover:bg-gray-100'
+                          ? 'bg-blue-50 border-blue-300 shadow-md' 
+                          : 'bg-white border-gray-200 hover:border-gray-300 hover:shadow-sm'
                       }`}
-                      onClick={() => handlePresetToggle(presetToken || '')}
                     >
+                      <div className="p-4">
+                        <div className="flex items-center gap-3 mb-3">
                       <input
                         type="checkbox"
                         checked={isSelected}
                         onChange={() => handlePresetToggle(presetToken || '')}
-                        className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 flex-shrink-0"
+                            className="w-5 h-5 text-blue-600 bg-white border-gray-300 rounded focus:ring-blue-500 focus:ring-2 flex-shrink-0"
+                            title={`Select ${presetName}`}
                       />
                       <div className="flex-1 min-w-0">
-                        <div className="text-xs sm:text-sm font-medium text-gray-900 truncate">{presetName}</div>
+                            <div className="text-sm font-semibold text-gray-900 truncate">{presetName}</div>
+                            <div className="text-xs text-gray-500">Camera preset position</div>
+                          </div>
+                          {isSelected && (
+                            <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                          )}
+                        </div>
+                      
+                      {/* Speed and Wait Time Inputs - only show when preset is selected */}
+                      {isSelected && (
+                        <div className="bg-white rounded-lg p-4 border border-gray-200">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            {/* Speed Control */}
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-2">
+                                <span className="flex items-center gap-2">
+                                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-blue-600">
+                                    <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"></path>
+                                  </svg>
+                                  Movement Speed
+                                </span>
+                              </label>
+                              <input
+                                type="number"
+                                min="0.1"
+                                max="1.0"
+                                step="0.1"
+                                value={presetSpeeds[presetToken || ''] || 0.8}
+                                onChange={(e) => {
+                                  const newSpeed = parseFloat(e.target.value) || 0.1;
+                                  setPresetSpeeds(prev => ({
+                                    ...prev,
+                                    [presetToken || '']: newSpeed
+                                  }));
+                                }}
+                                onClick={(e) => e.stopPropagation()}
+                                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                title={`Set speed for ${presetName} (0.1 to 1.0)`}
+                              />
+                            </div>
+                            
+                            {/* Wait Time Control */}
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-2">
+                                <span className="flex items-center gap-2">
+                                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-blue-600">
+                                    <circle cx="12" cy="12" r="10"></circle>
+                                    <polyline points="12,6 12,12 16,14"></polyline>
+                                  </svg>
+                                  Wait Time (seconds)
+                                </span>
+                              </label>
+                              <input
+                                type="number"
+                                min="1"
+                                max="60"
+                                value={presetWaitTimes[presetToken || ''] || 3}
+                                onChange={(e) => {
+                                  const newTime = parseInt(e.target.value) || 1;
+                                  setPresetWaitTimes(prev => ({
+                                    ...prev,
+                                    [presetToken || '']: newTime
+                                  }));
+                                }}
+                                onClick={(e) => e.stopPropagation()}
+                                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                title={`Set wait time for ${presetName}`}
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      )}
                       </div>
                     </div>
                   );
@@ -297,47 +441,89 @@ const CreatePatrolTourModal: React.FC<CreatePatrolTourModalProps> = ({
 
           {/* Selected Presets Summary */}
           {selectedPresets.length > 0 && (
-            <div className="p-2 sm:p-3 bg-blue-50 border border-blue-200 rounded-lg">
-              <div className="text-xs sm:text-sm text-blue-700">
-                <strong>{selectedPresets.length}</strong> preset{selectedPresets.length !== 1 ? 's' : ''} selected
+            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-4 shadow-sm">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-blue-600">
+                      <path d="M9 11H5a2 2 0 0 0-2 2v3c0 1.1.9 2 2 2h4m0-7v7m0-7h10a2 2 0 0 1 2 2v3c0 1.1-.9 2-2 2H9m0-7V9a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"></path>
+                    </svg>
+                  </div>
+                  <div>
+                    <div className="text-sm font-semibold text-blue-800">
+                      {selectedPresets.length} preset{selectedPresets.length !== 1 ? 's' : ''} selected
+                    </div>
+                    <div className="text-xs text-blue-600">Patrol sequence configuration</div>
+                  </div>
+                </div>
+                {isLooping && (
+                  <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 border border-green-200">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1">
+                      <path d="M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9c2.12 0 4.07.74 5.6 1.98L21 3"></path>
+                      <path d="M21 3v6h-6"></path>
+                    </svg>
+                    Looping
+                  </span>
+                )}
+              </div>
+              <div className="space-y-2">
+                {selectedPresets.map((presetToken, index) => {
+                  const preset = presets?.find(p => (p.preset_token || p.token) === presetToken);
+                  const presetName = preset?.preset_name || preset?.name || 'Unnamed Preset';
+                  const waitTime = presetWaitTimes[presetToken] || 3;
+                  const speed = presetSpeeds[presetToken] || 0.8;
+                  return (
+                    <div key={presetToken} className="flex items-center gap-3 p-2 bg-white rounded-lg border border-blue-100">
+                      <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center text-xs font-bold text-blue-700">
+                        {index + 1}
+                      </div>
+                      <div className="flex-1">
+                        <div className="text-sm font-medium text-gray-800">{presetName}</div>
+                        <div className="text-xs text-gray-500">Speed: {speed} • Wait: {waitTime}s</div>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           )}
         </div>
 
         {/* Footer */}
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-2 sm:gap-3 p-3 sm:p-4 border-t border-gray-200 bg-gray-50 flex-shrink-0">
+        <div className="bg-white border-t border-gray-200 p-4 sm:p-6 flex-shrink-0">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-3">
           <button
             onClick={onClose}
             disabled={loading}
-            className="w-full sm:w-auto px-4 py-2.5 sm:py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm sm:text-base font-medium"
+              className="w-full sm:w-auto px-6 py-3 text-gray-700 bg-gray-100 border border-gray-300 rounded-xl hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 text-sm font-medium"
           >
             Cancel
           </button>
           <button
             onClick={handleCreateTour}
             disabled={loading || !tourName.trim() || selectedPresets.length === 0}
-            className="w-full sm:w-auto px-6 py-2.5 sm:py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2 text-sm sm:text-base font-medium"
+              className="w-full sm:w-auto px-8 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center justify-center gap-2 text-sm font-semibold shadow-lg hover:shadow-xl"
           >
             {loading ? (
               <>
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="animate-spin sm:w-4 sm:h-4">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="animate-spin">
                   <polyline points="23,4 23,10 17,10"></polyline>
                   <polyline points="1,20 1,14 7,14"></polyline>
                   <path d="M20.49,9A9,9,0,0,0,5.64,5.64L1,10m22,4L18.36,18.36A9,9,0,0,1,3.51,15"></path>
                 </svg>
-                Creating...
+                  Creating Tour...
               </>
             ) : (
               <>
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="sm:w-4 sm:h-4">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"></path>
                   <circle cx="12" cy="13" r="3"></circle>
                 </svg>
-                Create Tour
+                  Create Patrol Tour
               </>
             )}
           </button>
+          </div>
         </div>
       </div>
     </div>,

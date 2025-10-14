@@ -7,7 +7,8 @@ import { API_CONFIG } from '../config';
 import { loginApi } from '../auth/loginApi';
 
 export interface PatrolTourStep {
-  presetToken: string;
+  presetToken?: string;
+  preset_token?: string; // Backend might return 'preset_token' instead of 'presetToken'
   speed: number;
   waitTime: number;
 }
@@ -107,6 +108,7 @@ class OnvifPatrolApiService {
       }
 
       const data: PatrolTourResponse = await response.json();
+      console.log('📄 Raw API response data:', data);
       
       // Handle different response formats
       let tours: PatrolTour[] = [];
@@ -120,7 +122,26 @@ class OnvifPatrolApiService {
       }
 
       console.log(`✅ Successfully fetched ${tours.length} preset tours`);
-      console.log('📋 Raw preset tours data:', tours);
+      console.log('📋 Processed patrol tours data:', tours);
+      
+      // Log each tour's steps in detail
+      tours.forEach((tour, index) => {
+        console.log(`  📋 Tour ${index + 1}:`, {
+          token: tour.tour_token || tour.token,
+          name: tour.tour_name || tour.name,
+          steps: tour.steps,
+          stepCount: tour.steps?.length || 0,
+          stepDetails: tour.steps?.map((step, stepIndex) => ({
+            index: stepIndex,
+            presetToken: step.presetToken,
+            preset_token: step.preset_token,
+            speed: step.speed,
+            waitTime: step.waitTime,
+            rawStep: step // Log the raw step object to see all fields
+          }))
+        });
+      });
+      
       return tours;
 
     } catch (error) {
@@ -274,6 +295,18 @@ class OnvifPatrolApiService {
         steps
       };
 
+      console.log('📤 Sending modify request to backend:', {
+        url: `${API_CONFIG.BASE_URL}/onvif/preset-tours/modify`,
+        method: 'POST',
+        body: requestBody,
+        steps: requestBody.steps?.map(step => ({
+          presetToken: step.presetToken,
+          preset_token: step.preset_token,
+          speed: step.speed,
+          waitTime: step.waitTime
+        }))
+      });
+
       const response = await fetch(`${API_CONFIG.BASE_URL}/onvif/preset-tours/modify`, {
         method: 'POST',
         headers: this.getAuthHeaders(),
@@ -297,6 +330,8 @@ class OnvifPatrolApiService {
 
       const data: PatrolTourResponse = await response.json();
       console.log('📄 Modify Preset Tour Response:', data);
+      console.log('📄 Response status:', response.status);
+      console.log('📄 Response headers:', Object.fromEntries(response.headers.entries()));
       
       // Check if the response indicates success
       if (data.success === false) {
@@ -396,6 +431,7 @@ class OnvifPatrolApiService {
     return this.operatePresetTour(cameraId, profileToken, tourToken, 'resume');
   }
 
+
   /**
    * Create a patrol tour from preset patterns
    * This is a convenience method that creates a tour with multiple presets
@@ -413,7 +449,7 @@ class OnvifPatrolApiService {
       isLooping?: boolean;
     } = {}
   ): Promise<string> {
-    const { speed = 0.8, waitTime = 3, autoStart = false, randomOrder = false, isLooping = false } = options;
+    const { speed = 0.8, waitTime = 3, autoStart = false, randomOrder = false } = options;
 
     const steps: PatrolTourStep[] = presetTokens.map(presetToken => ({
       presetToken,
@@ -435,6 +471,60 @@ class OnvifPatrolApiService {
       autoStart,
       startingCondition,
       // isLooping
+    );
+  }
+
+  /**
+   * Modify an existing patrol tour from preset patterns
+   * This is a convenience method that modifies a tour with multiple presets
+   */
+  async modifyPatrolFromPresets(
+    cameraId: string,
+    profileToken: string,
+    tourToken: string,
+    presetTokens: string[],
+    options: {
+      speed?: number;
+      waitTime?: number;
+      autoStart?: boolean;
+      randomOrder?: boolean;
+      presetSpeeds?: Record<string, number>;
+      presetWaitTimes?: Record<string, number>;
+    } = {}
+  ): Promise<void> {
+    const { speed = 0.8, waitTime = 3, autoStart = false, randomOrder = false, presetSpeeds = {}, presetWaitTimes = {} } = options;
+
+    console.log('🔧 modifyPatrolFromPresets Debug:');
+    console.log('  - Camera ID:', cameraId);
+    console.log('  - Profile Token:', profileToken);
+    console.log('  - Tour Token:', tourToken);
+    console.log('  - Preset Tokens:', presetTokens);
+    console.log('  - Options:', options);
+    console.log('  - Preset Speeds:', presetSpeeds);
+    console.log('  - Preset Wait Times:', presetWaitTimes);
+
+    const steps: PatrolTourStep[] = presetTokens.map(presetToken => ({
+      presetToken,
+      preset_token: presetToken, // Also include preset_token for backend compatibility
+      speed: presetSpeeds[presetToken] || speed,
+      waitTime: presetWaitTimes[presetToken] || waitTime
+    }));
+
+    console.log('  - Generated Steps:', steps);
+
+    const startingCondition: PatrolStartingCondition = {
+      recurringTime: 0,
+      recurringDuration: "PT3S",
+      randomPresetOrder: randomOrder
+    };
+
+    return this.modifyPresetTour(
+      cameraId,
+      profileToken,
+      tourToken,
+      steps,
+      autoStart,
+      startingCondition
     );
   }
 }

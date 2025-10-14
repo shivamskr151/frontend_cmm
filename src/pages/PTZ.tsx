@@ -204,21 +204,18 @@ function PTZ() {
             {sectionName === 'Patrol' && (
               <PatrolControl
                 patrolStatus={patrolHook.patrolStatus}
-                selectedPatrolPatterns={patrolHook.selectedPatrolPatterns}
                 patrolPatterns={patrolHook.patrolPatterns}
+                patrolTours={patrolHook.patrolTours}
                 loading={patrolHook.loading}
                 error={patrolHook.error}
-                isLooping={patrolHook.isLooping}
                 startPatrol={patrolHook.startPatrol}
                 stopPatrol={patrolHook.stopPatrol}
                 stopIndividualPatrol={patrolHook.stopIndividualPatrol}
                 pausePatrol={patrolHook.pausePatrol}
                 resumePatrol={patrolHook.resumePatrol}
-                handlePatrolPatternSelect={patrolHook.handlePatrolPatternSelect}
-                handleSelectAllPatrolPatterns={patrolHook.handleSelectAllPatrolPatterns}
                 loadPatrolTours={patrolHook.loadPatrolTours}
                 clearError={patrolHook.clearError}
-                handleLoopingToggle={patrolHook.handleLoopingToggle}
+                handleEditPatrolPattern={patrolHook.handleEditPatrolPattern}
               />
             )}
           </div>
@@ -238,6 +235,7 @@ function PTZ() {
         isOpen={patrolHook.showEditPatrolModal}
         onClose={() => patrolHook.setShowEditPatrolModal(false)}
         editingPatrolPattern={patrolHook.editingPatrolPattern}
+        editingPatrolTour={patrolHook.editingPatrolTour}
         onSave={patrolHook.handleSavePatrolPattern}
       />
 

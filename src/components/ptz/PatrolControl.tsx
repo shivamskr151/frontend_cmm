@@ -1,45 +1,40 @@
 import React, { useState } from 'react';
 import CreatePatrolTourModal from './CreatePatrolTourModal';
 import { type PatrolPattern } from '../../hooks/ptz';
+import { type PatrolTour } from '../../api/onvif/onvifPatrolApi';
 
 
 interface PatrolControlProps {
   // Patrol data and functions from parent component
   patrolStatus: 'idle' | 'running' | 'paused' | 'loading' | 'error';
-  selectedPatrolPatterns: number[];
   patrolPatterns: PatrolPattern[];
+  patrolTours: PatrolTour[];
   loading: boolean;
   error: string | null;
-  isLooping: boolean;
   startPatrol: (patternId: number) => void;
   stopPatrol: () => void;
   stopIndividualPatrol: (patternId: number) => void;
   pausePatrol: () => void;
   resumePatrol: () => void;
-  handlePatrolPatternSelect: (patternId: number) => void;
-  handleSelectAllPatrolPatterns: () => void;
   loadPatrolTours: () => void;
   clearError: () => void;
-  handleLoopingToggle: () => void;
+  handleEditPatrolPattern: (pattern: PatrolPattern, tour: PatrolTour) => void;
 }
 
 const PatrolControl: React.FC<PatrolControlProps> = ({ 
   patrolStatus,
-  selectedPatrolPatterns,
   patrolPatterns,
+  patrolTours,
   loading,
   error,
-  isLooping,
   startPatrol,
   stopPatrol,
   stopIndividualPatrol,
   pausePatrol,
   resumePatrol,
-  handlePatrolPatternSelect,
-  handleSelectAllPatrolPatterns,
   loadPatrolTours,
   clearError,
-  handleLoopingToggle
+  handleEditPatrolPattern
 }) => {
   const [showCreateTourModal, setShowCreateTourModal] = useState(false);
 
@@ -145,28 +140,7 @@ const PatrolControl: React.FC<PatrolControlProps> = ({
 
         {/* Patrol Patterns Section */}
         <div className="flex-1 py-0.5 px-0.5 overflow-hidden">
-          <div className="flex items-center justify-end">
-            {/* Select All Checkbox */}
-            <div className="flex items-center gap-2 p-3">
-              <input
-                type="checkbox"
-                checked={selectedPatrolPatterns.length === patrolPatterns.length && patrolPatterns.length > 0}
-                onChange={handleSelectAllPatrolPatterns}
-                className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
-              />
-              <span className="text-xs text-gray-600">Select All</span>
-              <input
-                type="checkbox"
-                checked={isLooping}
-                onChange={handleLoopingToggle}
-                className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
-              />
-              <span className="text-xs text-gray-600"> Enable Looping</span>
-
-            </div>
-          </div>
-
-          <div className="space-y-2 h-[calc(100%-60px)] overflow-y-auto custom-scrollbar">
+          <div className="space-y-2 h-full overflow-y-auto custom-scrollbar">
             {/* Loading State */}
             {loading && patrolPatterns.length === 0 && (
               <div className="flex items-center justify-center h-32">
@@ -208,35 +182,23 @@ const PatrolControl: React.FC<PatrolControlProps> = ({
             {patrolPatterns.map((pattern) => (
               <div
                 key={pattern.id}
-                className={`w-full bg-gradient-to-r from-gray-100 to-gray-200 hover:from-gray-200 hover:to-gray-300 text-gray-700 rounded-lg border border-gray-300 transition-all duration-200 hover:shadow-md group ${
-                  selectedPatrolPatterns.includes(pattern.id) ? ' bg-blue-50' : ''
-                }`}
+                className="w-full bg-gradient-to-r from-gray-100 to-gray-200 hover:from-gray-200 hover:to-gray-300 text-gray-700 rounded-lg border border-gray-300 transition-all duration-200 hover:shadow-md group"
               >
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 sm:gap-3 p-2">
-                  {/* Checkbox */}
-                  <div className="flex gap-2 justify-center items-center">
-                    <input
-                      type="checkbox"
-                      checked={selectedPatrolPatterns.includes(pattern.id)}
-                      onChange={() => handlePatrolPatternSelect(pattern.id)}
-                      className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
-                    />
-                    
-                    {/* Pattern Info */}
-                    <div className="flex-1 flex sm:flex-row justify-between items-start sm:items-center w-full">
-                      <div className="text-left">
-                        <div className="text-sm font-medium flex items-center gap-2">
-                          {pattern.name}
-                          {pattern.isRunning && (
-                            <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                              <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse mr-1"></div>
-                              Running
-                            </span>
-                          )}
-                        </div>
-                        <div className="text-xs text-gray-500">
-                          {/* Token: {pattern.presetToken || 'N/A'} */}
-                        </div>
+                  {/* Pattern Info */}
+                  <div className="flex-1 flex sm:flex-row justify-between items-start sm:items-center w-full">
+                    <div className="text-left">
+                      <div className="text-sm font-medium flex items-center gap-2">
+                        {pattern.name}
+                        {pattern.isRunning && (
+                          <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                            <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse mr-1"></div>
+                            Running
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        {/* Token: {pattern.presetToken || 'N/A'} */}
                       </div>
                     </div>
                   </div>
@@ -263,31 +225,23 @@ const PatrolControl: React.FC<PatrolControlProps> = ({
                         <rect x="6" y="6" width="12" height="12"></rect>
                       </svg>
                     </button>
-                    {/* <button
-                      onClick={() => handleEditPatrolPattern(pattern)}
-                      className="p-1.5 sm:p-2 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded transition-all duration-200"
-                      title="Edit Pattern"
+                    <button
+                      onClick={() => {
+                        // Find the corresponding patrol tour for this pattern
+                        const patrolTour = patrolTours.find((_, index) => index + 1 === pattern.id);
+                        if (patrolTour) {
+                          handleEditPatrolPattern(pattern, patrolTour);
+                        }
+                      }}
+                      disabled={!pattern.presetToken || loading}
+                      className="p-1.5 sm:p-2 bg-blue-100 hover:bg-blue-200 disabled:bg-gray-100 disabled:cursor-not-allowed text-blue-700 disabled:text-gray-400 rounded transition-all duration-200"
+                      title={!pattern.presetToken ? "No preset token available" : "Edit Patrol"}
                     >
                       <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
                         <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
                       </svg>
-                    </button> */}
-                    {/* <button
-                      onClick={() => {
-                        if (confirm(`Delete patrol pattern "${pattern.name}"?`)) {
-                          console.log("Deleting patrol pattern:", pattern);
-                          // Here you would typically make an API call to delete the pattern
-                        }
-                      }}
-                      className="p-1.5 sm:p-2 bg-red-100 hover:bg-red-200 text-red-700 rounded transition-all duration-200"
-                      title="Delete Pattern"
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <polyline points="3,6 5,6 21,6"></polyline>
-                        <path d="M19,6v14a2,2 0 0,1 -2,2H7a2,2 0 0,1 -2,-2V6m3,0V4a2,2 0 0,1 2,-2h4a2,2 0 0,1 2,2v2"></path>
-                      </svg>
-                    </button> */}
+                    </button>
                   </div>
                 </div>
               </div>
