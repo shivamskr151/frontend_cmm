@@ -203,7 +203,22 @@ function PTZ() {
 
             {sectionName === 'Patrol' && (
               <PatrolControl
-                sendPatrolCommand={sendPatrolCommand}
+                patrolStatus={patrolHook.patrolStatus}
+                selectedPatrolPatterns={patrolHook.selectedPatrolPatterns}
+                patrolPatterns={patrolHook.patrolPatterns}
+                loading={patrolHook.loading}
+                error={patrolHook.error}
+                isLooping={patrolHook.isLooping}
+                startPatrol={patrolHook.startPatrol}
+                stopPatrol={patrolHook.stopPatrol}
+                stopIndividualPatrol={patrolHook.stopIndividualPatrol}
+                pausePatrol={patrolHook.pausePatrol}
+                resumePatrol={patrolHook.resumePatrol}
+                handlePatrolPatternSelect={patrolHook.handlePatrolPatternSelect}
+                handleSelectAllPatrolPatterns={patrolHook.handleSelectAllPatrolPatterns}
+                loadPatrolTours={patrolHook.loadPatrolTours}
+                clearError={patrolHook.clearError}
+                handleLoopingToggle={patrolHook.handleLoopingToggle}
               />
             )}
           </div>

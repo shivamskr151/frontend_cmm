@@ -144,6 +144,45 @@ export const usePatrol = (sendPatrolCommand: (action: string, patternId?: number
     }
   }, [selectedCamera, currentTourToken, getProfileToken, sendPatrolCommand]);
 
+  const stopIndividualPatrol = useCallback(async (patternId: number) => {
+    if (!selectedCamera) {
+      setError('No camera selected');
+      return;
+    }
+
+    const pattern = patrolPatterns.find(p => p.id === patternId);
+    if (!pattern || !pattern.presetToken) {
+      setError('Invalid patrol pattern or missing preset token');
+      return;
+    }
+
+    setError(null);
+
+    try {
+      const profileToken = getProfileToken();
+      const tourToken = pattern.presetToken;
+      
+      console.log("🛑 Stopping individual patrol tour:", tourToken);
+      await onvifPatrolApi.operatePresetTour(selectedCamera, profileToken, tourToken, 'stop');
+      
+      // If this was the currently running tour, reset the status
+      if (currentTourToken === tourToken) {
+        setPatrolStatus('idle');
+        setCurrentTourToken(null);
+        setCurrentPatrolStep(0);
+        setPatrolProgress(0);
+      }
+      
+      // Reload patrol tours to get updated status
+      await loadPatrolTours();
+      
+      console.log("✅ Successfully stopped individual patrol tour");
+    } catch (err) {
+      console.error("❌ Error stopping individual patrol:", err);
+      setError(err instanceof Error ? err.message : 'Failed to stop patrol');
+    }
+  }, [selectedCamera, patrolPatterns, currentTourToken, getProfileToken, loadPatrolTours]);
+
   const pausePatrol = useCallback(async () => {
     if (!selectedCamera || !currentTourToken) {
       setError('No active patrol to pause');
@@ -318,6 +357,7 @@ export const usePatrol = (sendPatrolCommand: (action: string, patternId?: number
     // Actions
     startPatrol,
     stopPatrol,
+    stopIndividualPatrol,
     pausePatrol,
     resumePatrol,
     handlePatrolPatternSelect,

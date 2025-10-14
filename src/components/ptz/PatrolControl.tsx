@@ -1,33 +1,47 @@
 import React, { useState } from 'react';
-import { usePatrol } from '../../hooks/ptz';
 import CreatePatrolTourModal from './CreatePatrolTourModal';
+import { type PatrolPattern } from '../../hooks/ptz';
 
 
 interface PatrolControlProps {
-  sendPatrolCommand: (action: string, patternId?: number, pattern?: any) => void;
+  // Patrol data and functions from parent component
+  patrolStatus: 'idle' | 'running' | 'paused' | 'loading' | 'error';
+  selectedPatrolPatterns: number[];
+  patrolPatterns: PatrolPattern[];
+  loading: boolean;
+  error: string | null;
+  isLooping: boolean;
+  startPatrol: (patternId: number) => void;
+  stopPatrol: () => void;
+  stopIndividualPatrol: (patternId: number) => void;
+  pausePatrol: () => void;
+  resumePatrol: () => void;
+  handlePatrolPatternSelect: (patternId: number) => void;
+  handleSelectAllPatrolPatterns: () => void;
+  loadPatrolTours: () => void;
+  clearError: () => void;
+  handleLoopingToggle: () => void;
 }
 
-const PatrolControl: React.FC<PatrolControlProps> = ({ sendPatrolCommand }) => {
+const PatrolControl: React.FC<PatrolControlProps> = ({ 
+  patrolStatus,
+  selectedPatrolPatterns,
+  patrolPatterns,
+  loading,
+  error,
+  isLooping,
+  startPatrol,
+  stopPatrol,
+  stopIndividualPatrol,
+  pausePatrol,
+  resumePatrol,
+  handlePatrolPatternSelect,
+  handleSelectAllPatrolPatterns,
+  loadPatrolTours,
+  clearError,
+  handleLoopingToggle
+}) => {
   const [showCreateTourModal, setShowCreateTourModal] = useState(false);
-  
-  const {
-    patrolStatus,
-    selectedPatrolPatterns,
-    patrolPatterns,
-    loading,
-    error,
-    isLooping,
-    startPatrol,
-    stopPatrol,
-    pausePatrol,
-    resumePatrol,
-    handlePatrolPatternSelect,
-    handleSelectAllPatrolPatterns,
-    // handleEditPatrolPattern,
-    loadPatrolTours,
-    clearError,
-    handleLoopingToggle
-  } = usePatrol(sendPatrolCommand);
 
   const handleTourCreated = (tourToken: string) => {
     console.log('✅ Tour created successfully:', tourToken);
@@ -147,7 +161,7 @@ const PatrolControl: React.FC<PatrolControlProps> = ({ sendPatrolCommand }) => {
                 onChange={handleLoopingToggle}
                 className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
               />
-              <span className="text-xs text-gray-600">Looping</span>
+              <span className="text-xs text-gray-600"> Enable Looping</span>
 
             </div>
           </div>
@@ -237,6 +251,16 @@ const PatrolControl: React.FC<PatrolControlProps> = ({ sendPatrolCommand }) => {
                     >
                       <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <polygon points="5,3 19,12 5,21"></polygon>
+                      </svg>
+                    </button>
+                    <button
+                      onClick={() => stopIndividualPatrol(pattern.id)}
+                      disabled={!pattern.presetToken || loading}
+                      className="p-1.5 sm:p-2 bg-red-100 hover:bg-red-200 disabled:bg-gray-100 disabled:cursor-not-allowed text-red-700 disabled:text-gray-400 rounded transition-all duration-200"
+                      title={!pattern.presetToken ? "No preset token available" : "Stop Patrol"}
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <rect x="6" y="6" width="12" height="12"></rect>
                       </svg>
                     </button>
                     {/* <button
