@@ -52,7 +52,6 @@ const Zone: React.FC = () => {
   const [showJsonEditorModal, setShowJsonEditorModal] = useState(false);
   const [activityParameters, setActivityParameters] = useState<Record<string, unknown>>({});
   const [isSaving, setIsSaving] = useState(false);
-  const [userSelectedZoneType, setUserSelectedZoneType] = useState(false);
 
   // Use the zone drawing hook
   const {
@@ -111,6 +110,8 @@ const Zone: React.FC = () => {
       const activity = activities[selectedActivity] as unknown as Record<string, unknown>;
       console.log('🔄 Loading zone coordinates for activity:', selectedActivity, activity);
       
+      // Zone type will not be automatically selected after activity selection
+      
       // Extract zone coordinates from the activity
       if (activity.zones || activity.polygons || activity.lanes) {
         const coordinates = {
@@ -133,18 +134,11 @@ const Zone: React.FC = () => {
         // Update zone coordinates state
         setZoneCoordinates(coordinates);
         
-        // Only set zone type based on activity data if user hasn't manually selected one
-        // This allows users to manually select a different zone type after activity selection
-        if (!userSelectedZoneType) {
-          if (activity.zone_mode === 'rectangle' || activity.zones) {
-            handleZoneTypeChangeRef.current('rectangle');
-          } else if (activity.zone_mode === 'polygon' || activity.polygons) {
-            handleZoneTypeChangeRef.current('polygon');
-          }
-        }
+        // Don't automatically set zone type - let user manually select it
+        // This prevents auto-selection of zone type after activity selection
       }
     }
-  }, [selectedActivity, activities, setZoneCoordinates, userSelectedZoneType]);
+  }, [selectedActivity, activities, setZoneCoordinates]);
 
   // Load activities when camera changes
   useEffect(() => {
@@ -325,9 +319,8 @@ const Zone: React.FC = () => {
     setShowZoneTypeModal(false);
   };
 
-  // Wrapper function to track user zone type selection
+  // Wrapper function for user zone type selection
   const handleUserZoneTypeChange = (zoneType: string) => {
-    setUserSelectedZoneType(true);
     handleZoneTypeChange(zoneType);
   };
 
@@ -341,7 +334,7 @@ const Zone: React.FC = () => {
       setCameraName('Unknown');
       setCameraStatus('Disconnected');
     }
-    setUserSelectedZoneType(false); // Reset user zone type selection when camera changes
+    // Reset zone type selection when camera changes
   }, [cameras, setSelectedCamera]);
 
   // Debug cameras state changes and update camera info when selected camera changes
