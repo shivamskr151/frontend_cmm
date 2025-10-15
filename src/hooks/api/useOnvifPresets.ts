@@ -30,7 +30,7 @@ export const usePresets = (cameraId: string, profileToken: string, enabled: bool
 // =================================================================
 
 /**
- * Hook to create a new preset
+ * Hook to create a new preset with manual position values
  */
 export const useCreatePreset = () => {
   const queryClient = useQueryClient();
@@ -43,7 +43,7 @@ export const useCreatePreset = () => {
       pan?: number;
       tilt?: number;
       zoom?: number;
-    }) => onvifPresetApi.setPreset(cameraId, profileToken, presetName, pan, tilt, zoom),
+    }) => onvifPresetApi.createPreset(cameraId, profileToken, presetName, pan, tilt, zoom),
     
     onSuccess: (presetToken, variables) => {
       // Invalidate and refetch presets for this camera
@@ -56,6 +56,34 @@ export const useCreatePreset = () => {
     
     onError: (error) => {
       console.error('❌ Failed to create preset:', error);
+    },
+  });
+};
+
+/**
+ * Hook to set a new preset with current camera position
+ */
+export const useSetPreset = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ cameraId, profileToken, presetName }: {
+      cameraId: string;
+      profileToken: string;
+      presetName: string;
+    }) => onvifPresetApi.setPreset(cameraId, profileToken, presetName),
+    
+    onSuccess: (presetToken, variables) => {
+      // Invalidate and refetch presets for this camera
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.presets.list(variables.cameraId, variables.profileToken),
+      });
+      
+      console.log('✅ Preset set successfully:', presetToken);
+    },
+    
+    onError: (error) => {
+      console.error('❌ Failed to set preset:', error);
     },
   });
 };

@@ -122,12 +122,12 @@ class OnvifPresetApiService {
   }
 
   /**
-   * Set/Create a new preset
-   * POST /onvif/presets/set
+   * Create a new preset with manual position values
+   * POST /onvif/presets/create
    */
-  async setPreset(cameraId: string, profileToken: string, presetName: string, pan?: number, tilt?: number, zoom?: number): Promise<string> {
+  async createPreset(cameraId: string, profileToken: string, presetName: string, pan?: number, tilt?: number, zoom?: number): Promise<string> {
     try {
-      console.log('💾 Setting preset:', presetName, 'for camera:', cameraId, 'with position:', { pan, tilt, zoom });
+      console.log('💾 Creating preset with manual position:', presetName, 'for camera:', cameraId, 'with position:', { pan, tilt, zoom });
       
       const requestBody: OnvifPresetRequest = {
         cameraId,
@@ -136,6 +136,54 @@ class OnvifPresetApiService {
         pan,
         tilt,
         zoom
+      };
+
+      const response = await fetch(`${API_CONFIG.BASE_URL}/onvif/presets/create`, {
+        method: 'POST',
+        headers: this.getAuthHeaders(),
+        body: JSON.stringify(requestBody),
+        signal: AbortSignal.timeout(API_CONFIG.TIMEOUTS.DEFAULT),
+      });
+
+      console.log('📡 Create Preset API Response status:', response.status, response.statusText);
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          throw new Error('Authentication failed. Please login again.');
+        } else if (response.status === 403) {
+          throw new Error('Access denied. You do not have permission to create presets.');
+        } else {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+      }
+
+      const data: OnvifPresetResponse = await response.json();
+      
+      if (!data.preset_token) {
+        throw new Error('No preset token returned from server');
+      }
+
+      console.log('✅ Successfully created preset with token:', data.preset_token);
+      return data.preset_token;
+
+    } catch (error) {
+      console.error('❌ Error creating preset:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Set/Create a new preset using current camera position
+   * POST /onvif/presets/set
+   */
+  async setPreset(cameraId: string, profileToken: string, presetName: string): Promise<string> {
+    try {
+      console.log('💾 Setting preset with current position:', presetName, 'for camera:', cameraId);
+      
+      const requestBody: OnvifPresetRequest = {
+        cameraId,
+        profileToken,
+        presetName
       };
 
       const response = await fetch(`${API_CONFIG.BASE_URL}/onvif/presets/set`, {

@@ -4,6 +4,7 @@ import { useCameras } from '../../contexts/CameraContext';
 import {
   usePresets as usePresetsQuery,
   useCreatePreset,
+  useSetPreset,
   useGotoPreset,
   useDeletePreset,
   useDeleteMultiplePresets,
@@ -43,6 +44,7 @@ export const usePresets = () => {
   } = usePresetsQuery(selectedCamera || '', defaultProfileToken, !!selectedCamera); // Enabled when camera is selected
   
   const createPresetMutation = useCreatePreset();
+  const setPresetMutation = useSetPreset();
   const gotoPresetMutation = useGotoPreset();
   const deletePresetMutation = useDeletePreset();
   const deleteMultiplePresetsMutation = useDeleteMultiplePresets();
@@ -100,21 +102,34 @@ export const usePresets = () => {
   }, [selectedCamera, defaultProfileToken, queryClient]);
 
   // Create a new preset using React Query mutation
-  const createPreset = useCallback(async (presetName: string, pan?: number, tilt?: number, zoom?: number) => {
+  const createPreset = useCallback(async (presetName: string, useCurrentPosition: boolean, pan?: number, tilt?: number, zoom?: number) => {
     if (!selectedCamera) {
       throw new Error('No camera selected');
     }
 
     try {
-      console.log('💾 Creating preset:', presetName, 'with position:', { pan, tilt, zoom });
-      const presetToken = await createPresetMutation.mutateAsync({
-        cameraId: selectedCamera,
-        profileToken: defaultProfileToken,
-        presetName,
-        pan,
-        tilt,
-        zoom,
-      });
+      console.log('💾 Creating preset:', presetName, 'useCurrentPosition:', useCurrentPosition, 'with position:', { pan, tilt, zoom });
+      
+      let presetToken: string;
+      
+      if (useCurrentPosition) {
+        // Use setPreset API (current position)
+        presetToken = await setPresetMutation.mutateAsync({
+          cameraId: selectedCamera,
+          profileToken: defaultProfileToken,
+          presetName,
+        });
+      } else {
+        // Use createPreset API (manual position)
+        presetToken = await createPresetMutation.mutateAsync({
+          cameraId: selectedCamera,
+          profileToken: defaultProfileToken,
+          presetName,
+          pan,
+          tilt,
+          zoom,
+        });
+      }
       
       console.log('✅ Created preset with token:', presetToken);
       
@@ -134,7 +149,7 @@ export const usePresets = () => {
       console.error('❌ Error creating preset:', err);
       throw err;
     }
-  }, [selectedCamera, defaultProfileToken, presets.length, createPresetMutation, refreshPresets]);
+  }, [selectedCamera, defaultProfileToken, presets.length, createPresetMutation, setPresetMutation, refreshPresets]);
 
   // Go to a preset using React Query mutation
   const gotoPreset = useCallback(async (preset: Preset) => {
@@ -334,7 +349,7 @@ export const usePresets = () => {
     error,
     
     // Mutation states
-    isCreating: createPresetMutation.isPending,
+    isCreating: createPresetMutation.isPending || setPresetMutation.isPending,
     isGoingToPreset: gotoPresetMutation.isPending,
     isDeleting: deletePresetMutation.isPending,
     isDeletingMultiple: deleteMultiplePresetsMutation.isPending,

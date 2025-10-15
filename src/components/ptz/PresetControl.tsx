@@ -6,10 +6,7 @@ interface PresetControlProps {
   zoomLevel: number;
 }
 
-const PresetControl: React.FC<PresetControlProps> = ({ speeds, zoomLevel }) => {
-  // Default speeds if not provided
-  const defaultSpeeds = { Pan: 0.5, Tilt: 0.5 };
-  const currentSpeeds = speeds || defaultSpeeds;
+const PresetControl: React.FC<PresetControlProps> = () => {
   const {
     selectedPresets,
     showCreatePresetModal,
@@ -48,11 +45,13 @@ const PresetControl: React.FC<PresetControlProps> = ({ speeds, zoomLevel }) => {
     }
 
     try {
-      const pan = useCurrentPosition ? currentSpeeds.Pan : manualPan;
-      const tilt = useCurrentPosition ? currentSpeeds.Tilt : manualTilt;
-      const zoom = useCurrentPosition ? zoomLevel : manualZoom;
-
-      await createPreset(presetName.trim(), pan, tilt, zoom);
+      if (useCurrentPosition) {
+        // Use current position - no need to pass position values
+        await createPreset(presetName.trim(), true);
+      } else {
+        // Use manual position values
+        await createPreset(presetName.trim(), false, manualPan, manualTilt, manualZoom);
+      }
       
       // Show success message
       setSuccessMessage(`Preset "${presetName.trim()}" created successfully!`);
@@ -170,42 +169,6 @@ const PresetControl: React.FC<PresetControlProps> = ({ speeds, zoomLevel }) => {
                   Use Current Camera Position
                 </label>
               </div>
-
-              {/* Position Inputs - Only show when checkbox is checked */}
-              {useCurrentPosition && (
-                <div className="space-y-2 p-3 bg-blue-50 rounded-lg border border-blue-200">
-                  <div className="text-xs font-medium text-blue-700 mb-2">Current Position Values</div>
-                  <div className="grid grid-cols-3 gap-2">
-                    <div>
-                      <label className="text-xs text-gray-600 block mb-1">Pan</label>
-                      <input
-                        type="number"
-                        value={currentSpeeds.Pan}
-                        readOnly
-                        className="w-full px-2 py-1.5 bg-white text-gray-700 rounded border border-gray-300 text-xs focus:outline-none focus:ring-1 focus:ring-blue-400 transition-colors"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-xs text-gray-600 block mb-1">Tilt</label>
-                      <input
-                        type="number"
-                        value={currentSpeeds.Tilt}
-                        readOnly
-                        className="w-full px-2 py-1.5 bg-white text-gray-700 rounded border border-gray-300 text-xs focus:outline-none focus:ring-1 focus:ring-blue-400 transition-colors"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-xs text-gray-600 block mb-1">Zoom</label>
-                      <input
-                        type="number"
-                        value={zoomLevel}
-                        readOnly
-                        className="w-full px-2 py-1.5 bg-white text-gray-700 rounded border border-gray-300 text-xs focus:outline-none focus:ring-1 focus:ring-blue-400 transition-colors"
-                      />
-                    </div>
-                  </div>
-                </div>
-              )}
 
               {/* Manual Position Inputs - Only show when checkbox is unchecked */}
               {!useCurrentPosition && (
