@@ -470,7 +470,7 @@ export const ImportActivitiesModal: React.FC<ImportActivitiesModalProps> = ({
                     <button
                       key={activity.key}
                       onClick={() => handleActivitySelect(activity.key)}
-                      className={`p-3 rounded-lg border-2 transition-all duration-200 text-sm font-medium ${
+                      className={`p-3 rounded-lg border-2 transition-all duration-200 text-sm font-medium h-20 flex flex-col items-center justify-center text-center ${
                         isSelected
                           ? 'bg-green-100 border-green-500 text-green-700 shadow-md'
                           : 'bg-white border-gray-200 text-gray-700 hover:border-blue-300 hover:bg-blue-50'
