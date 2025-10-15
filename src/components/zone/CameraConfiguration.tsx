@@ -15,7 +15,7 @@ interface CameraConfigurationProps {
   onZoneTypeChange: (zoneType: string) => void;
   onRefreshCameras: () => void;
   onOpenJsonEditor: () => void;
-  onOpenAddActivity: () => void;
+  onOpenImportActivities: () => void;
 }
 
 const CameraConfiguration: React.FC<CameraConfigurationProps> = ({
@@ -31,7 +31,7 @@ const CameraConfiguration: React.FC<CameraConfigurationProps> = ({
   onZoneTypeChange,
   onRefreshCameras,
   onOpenJsonEditor,
-  onOpenAddActivity
+  onOpenImportActivities
 }) => {
   return (
     <div className="mb-6 sm:mb-8">
@@ -47,7 +47,7 @@ const CameraConfiguration: React.FC<CameraConfigurationProps> = ({
           </div>
           <AddConfigDropdown
             onOpenJsonEditor={onOpenJsonEditor}
-            onOpenAddActivity={onOpenAddActivity}
+            onOpenImportActivities={onOpenImportActivities}
             disabled={!selectedCamera}
           />
         </div>

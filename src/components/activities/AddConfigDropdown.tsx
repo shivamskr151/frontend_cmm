@@ -2,13 +2,13 @@ import React, { useState, useEffect } from 'react';
 
 interface AddConfigDropdownProps {
   onOpenJsonEditor: () => void;
-  onOpenAddActivity: () => void;
+  onOpenImportActivities: () => void;
   disabled?: boolean;
 }
 
 export const AddConfigDropdown: React.FC<AddConfigDropdownProps> = ({
   onOpenJsonEditor,
-  onOpenAddActivity,
+  onOpenImportActivities,
   disabled = false
 }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -38,8 +38,8 @@ export const AddConfigDropdown: React.FC<AddConfigDropdownProps> = ({
     setIsOpen(false);
   };
 
-  const handleAddActivityClick = () => {
-    onOpenAddActivity();
+  const handleImportActivitiesClick = () => {
+    onOpenImportActivities();
     setIsOpen(false);
   };
 
@@ -90,17 +90,19 @@ export const AddConfigDropdown: React.FC<AddConfigDropdownProps> = ({
               </div>
             </button>
             <button
-              onClick={handleAddActivityClick}
-              className="w-full px-4 py-3 text-left text-gray-700 hover:bg-green-50 hover:text-green-700 transition-all duration-200 flex items-center gap-3 group"
+              onClick={handleImportActivitiesClick}
+              className="w-full px-4 py-3 text-left text-gray-700 hover:bg-purple-50 hover:text-purple-700 transition-all duration-200 flex items-center gap-3 group"
             >
-              <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center group-hover:bg-green-200 transition-colors">
+              <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center group-hover:bg-purple-200 transition-colors">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"></path>
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                  <polyline points="7,10 12,15 17,10"></polyline>
+                  <line x1="12" y1="15" x2="12" y2="3"></line>
                 </svg>
               </div>
               <div>
-                <div className="font-medium">Add Activity</div>
-                <div className="text-xs text-gray-500">Create new monitoring activity</div>
+                <div className="font-medium">Import Activities</div>
+                <div className="text-xs text-gray-500">Import activities from JSON with selection</div>
               </div>
             </button>
           </div>

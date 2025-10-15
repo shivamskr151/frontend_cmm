@@ -4,7 +4,7 @@ import { auth } from '../utils/auth';
 import { type Camera } from '../api';
 import { useActivities } from '../hooks/useActivities';
 import { configurationApi } from '../api';
-import { AddActivityModal, JsonEditorModal } from '../components/activities';
+import { JsonEditorModal, ImportActivitiesModal } from '../components/activities';
 import { useCameras } from '../contexts/CameraContext';
 import { useZoneDrawing } from '../hooks/useZoneDrawing';
 import type { ModalType, ToastType, SpeedLimit } from '../types/dashboard';
@@ -48,8 +48,8 @@ const Zone: React.FC = () => {
   const [newVehicleType, setNewVehicleType] = useState('');
   const [newSpeedValue, setNewSpeedValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [showAddActivityModal, setShowAddActivityModal] = useState(false);
   const [showJsonEditorModal, setShowJsonEditorModal] = useState(false);
+  const [showImportActivitiesModal, setShowImportActivitiesModal] = useState(false);
   const [activityParameters, setActivityParameters] = useState<Record<string, unknown>>({});
   const [isSaving, setIsSaving] = useState(false);
 
@@ -80,7 +80,7 @@ const Zone: React.FC = () => {
   // Use the new activity system
   const {
     activities,
-    addActivity,
+    addActivitiesFromJson,
     loadActivitiesFromConfig
   } = useActivities();
 
@@ -449,11 +449,15 @@ const Zone: React.FC = () => {
       console.log('📍 Zone coordinates to save:', zoneCoordinates);
       console.log('🎯 Current zone type:', currentZoneType);
 
-      // Build payload without hardcoding anything
+      // Get existing activities to preserve them
+      const existingActivities = { ...activities };
+      
+      // Build payload without hardcoding anything, preserving existing activities
       const payload = {
         sensorId: selectedCamera, // Use cameraId as sensorId for now
         cameraId: selectedCamera,
         activityData: {
+          ...existingActivities, // Preserve all existing activities
           [selectedActivity]: {
             status: "ACTIVE", // Add required status field
             parameters: activityParameters,
@@ -572,11 +576,71 @@ const Zone: React.FC = () => {
   };
 
 
-  // Handle adding new activity using the new system
-  const handleAddActivity = async (formData: unknown) => {
-    const result = await addActivity(formData as Parameters<typeof addActivity>[0]);
-    showMessage(result.message, result.success ? 'Success' : 'Error', result.success ? 'success' : 'error');
-    return result;
+
+  // Handle importing activities from JSON
+  const handleImportActivities = async (jsonData: string) => {
+    try {
+      // First, add activities to local state
+      const result = await addActivitiesFromJson(jsonData);
+      
+      if (result.success && selectedCamera) {
+        // Parse the imported activities
+        const importedActivities = JSON.parse(jsonData);
+        
+        // Save each imported activity to the backend configuration
+        for (const activity of importedActivities) {
+          if (activity.name && activity.status && activity.parameters) {
+            try {
+              // Check if configuration exists for this camera
+              const existingConfig = await configurationApi.findExistingConfiguration(selectedCamera);
+              
+              if (existingConfig.found && existingConfig.id) {
+                // Update existing configuration with new activity
+                const activityUpdatePayload = {
+                  activityName: activity.name,
+                  activityData: {
+                    status: activity.status,
+                    parameters: activity.parameters
+                  }
+                };
+                
+                await configurationApi.updateActivityData(existingConfig.id, activityUpdatePayload);
+                console.log(`✅ Saved activity ${activity.name} to existing configuration`);
+              } else {
+                // Create new configuration with this activity
+                const newConfigPayload = {
+                  sensorId: selectedCamera,
+                  cameraId: selectedCamera,
+                  activityData: {
+                    [activity.name]: {
+                      status: activity.status,
+                      parameters: activity.parameters
+                    }
+                  }
+                };
+                
+                await configurationApi.createOrUpdateConfiguration(newConfigPayload, false);
+                console.log(`✅ Created new configuration with activity ${activity.name}`);
+              }
+            } catch (activityError) {
+              console.error(`❌ Failed to save activity ${activity.name}:`, activityError);
+              // Continue with other activities even if one fails
+            }
+          }
+        }
+        
+        // Clear cache and refresh activities
+        configurationApi.clearCache(selectedCamera);
+        await handleRefreshActivities();
+      }
+      
+      showMessage(result.message, result.success ? 'Success' : 'Error', result.success ? 'success' : 'error');
+      return result;
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to import activities';
+      showMessage(errorMessage, 'Error', 'error');
+      return { success: false, message: errorMessage };
+    }
   };
 
   return (
@@ -666,8 +730,8 @@ const Zone: React.FC = () => {
           onActivityChange={setSelectedActivity}
           onZoneTypeChange={handleUserZoneTypeChange}
           onRefreshCameras={refreshCameras}
-                onOpenJsonEditor={() => setShowJsonEditorModal(true)}
-                onOpenAddActivity={() => setShowAddActivityModal(true)}
+          onOpenJsonEditor={() => setShowJsonEditorModal(true)}
+          onOpenImportActivities={() => setShowImportActivitiesModal(true)}
         />
 
 
@@ -889,18 +953,18 @@ const Zone: React.FC = () => {
       </div>
 
       {/* Activity Modals */}
-      <AddActivityModal
-        isOpen={showAddActivityModal}
-        onClose={() => setShowAddActivityModal(false)}
-        onAddActivity={handleAddActivity}
-      />
-
       <JsonEditorModal
         isOpen={showJsonEditorModal}
         onClose={() => setShowJsonEditorModal(false)}
         cameraId={selectedCamera || undefined}
         sensorId={selectedCamera || undefined}
         onActivitiesRefreshed={handleRefreshActivities}
+      />
+
+      <ImportActivitiesModal
+        isOpen={showImportActivitiesModal}
+        onClose={() => setShowImportActivitiesModal(false)}
+        onImportActivities={handleImportActivities}
       />
     </>
   );

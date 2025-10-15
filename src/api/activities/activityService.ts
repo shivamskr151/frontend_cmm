@@ -120,6 +120,22 @@ export class ActivityService {
   static parseActivityJson(jsonData: string): ActivitiesData {
     const parsed = JSON.parse(jsonData);
     
+    // Handle array format (from ImportActivitiesModal)
+    if (Array.isArray(parsed)) {
+      const filteredActivities: ActivitiesData = {};
+      
+      for (const activity of parsed) {
+        if (typeof activity === 'object' && activity !== null && activity.name) {
+          const activityObj = activity as Record<string, unknown>;
+          if (activityObj.status || activityObj.parameters) {
+            filteredActivities[activity.name as string] = activity as Activity;
+          }
+        }
+      }
+      
+      return filteredActivities;
+    }
+    
     // Handle both full configuration and activities-only formats
     let activitiesData = parsed;
     if (parsed.activities_data) {
