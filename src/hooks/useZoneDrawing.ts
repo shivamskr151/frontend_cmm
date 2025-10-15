@@ -16,23 +16,19 @@ export const useZoneDrawing = () => {
   // Initialize zone drawer
   const initializeZoneDrawer = useCallback((zoneType?: string) => {
     const typeToUse = zoneType || currentZoneType;
-    console.log('initializeZoneDrawer called with zoneType:', zoneType, 'currentZoneType:', currentZoneType, 'typeToUse:', typeToUse);
     
     // If no zone type is selected, don't initialize anything
     if (!typeToUse || typeToUse.trim() === '') {
-      console.log('No zone type selected, skipping initialization');
       return;
     }
     
     if (zoneCanvasRef.current && snapshotImageRef.current) {
       try {
-        console.log('Initializing zone drawer for type:', typeToUse);
-        
         // Only reinitialize if we're switching to a different zone type or if no drawer exists
         if (currentZoneType !== typeToUse || !zoneDrawerRef.current) {
           // Clean up existing drawer
           if (zoneDrawerRef.current) {
-            (zoneDrawerRef.current as any).destroy();
+            (zoneDrawerRef.current as RectangleZoneDrawer | RectangleZoneWithLanesDrawer | PolygonZoneDrawer | PolygonZoneDrawerWithLanes).destroy?.();
             zoneDrawerRef.current = null;
           }
           
@@ -42,18 +38,15 @@ export const useZoneDrawing = () => {
           }
         } else {
           // If we're reinitializing the same zone type and drawer exists, just return
-          console.log('Drawer already exists for zone type:', typeToUse, 'skipping reinitialization');
           return;
         }
         
         // Create appropriate drawer based on zone type
         if (typeToUse === 'rectangle') {
-          console.log('Creating RectangleZoneDrawer');
           zoneDrawerRef.current = new RectangleZoneDrawer(zoneCanvasRef.current, snapshotImageRef.current);
           
           // Set up callbacks for rectangle drawer
-          zoneDrawerRef.current.onRectangleCreated = (rectangle: any) => {
-            console.log('Rectangle zone created:', rectangle);
+          zoneDrawerRef.current.onRectangleCreated = (rectangle: { x1: number; y1: number; x2: number; y2: number }) => {
             // Update zone coordinates state with duplicate prevention
             setZoneCoordinates(prev => {
               const newZone = {
@@ -72,7 +65,6 @@ export const useZoneDrawing = () => {
               );
               
               if (zoneExists) {
-                console.log('Zone already exists, skipping duplicate');
                 return prev;
               }
               
@@ -84,13 +76,10 @@ export const useZoneDrawing = () => {
           };
           
         } else if (typeToUse === 'rectangle-with-lanes') {
-          console.log('Creating RectangleZoneWithLanesDrawer');
           zoneDrawerRef.current = new RectangleZoneWithLanesDrawer(zoneCanvasRef.current, snapshotImageRef.current);
-          console.log('RectangleZoneWithLanesDrawer created:', zoneDrawerRef.current.constructor.name);
           
           // Set up callbacks for rectangle with lanes drawer
-          zoneDrawerRef.current.onZoneCreated = (zone: any) => {
-            console.log('Rectangle zone with lanes created:', zone);
+          zoneDrawerRef.current.onZoneCreated = (zone: { rectangle: { x1: number; y1: number; x2: number; y2: number } }) => {
             // Update zone coordinates state with duplicate prevention
             setZoneCoordinates(prev => {
               const newZone = {
@@ -109,7 +98,6 @@ export const useZoneDrawing = () => {
               );
               
               if (zoneExists) {
-                console.log('Zone already exists, skipping duplicate');
                 return prev;
               }
               
@@ -120,8 +108,7 @@ export const useZoneDrawing = () => {
             });
           };
           
-          zoneDrawerRef.current.onLaneCreated = (lane: any, zoneIndex: number) => {
-            console.log('Lane created:', lane, 'in zone:', zoneIndex);
+          zoneDrawerRef.current.onLaneCreated = (lane: { start: { x: number; y: number }; end: { x: number; y: number }; color: string }) => {
             // Update lane coordinates state with duplicate prevention
             setZoneCoordinates(prev => {
               const newLane = {
@@ -141,7 +128,6 @@ export const useZoneDrawing = () => {
               );
               
               if (laneExists) {
-                console.log('Lane already exists, skipping duplicate');
                 return prev;
               }
               
@@ -153,12 +139,10 @@ export const useZoneDrawing = () => {
           };
           
         } else if (typeToUse === 'polygon') {
-          console.log('Creating PolygonZoneDrawer');
           zoneDrawerRef.current = new PolygonZoneDrawer(zoneCanvasRef.current, snapshotImageRef.current);
           
           // Set up callbacks for polygon drawer
-          zoneDrawerRef.current.onPolygonCreated = (polygon: any) => {
-            console.log('Polygon zone created:', polygon);
+          zoneDrawerRef.current.onPolygonCreated = (polygon: Array<{ x: number; y: number }>) => {
             // Update polygon coordinates state with duplicate prevention
             setZoneCoordinates(prev => {
               // Check if this polygon already exists to prevent duplicates
@@ -171,7 +155,6 @@ export const useZoneDrawing = () => {
               });
               
               if (polygonExists) {
-                console.log('Polygon already exists, skipping duplicate');
                 return prev;
               }
               
@@ -183,12 +166,10 @@ export const useZoneDrawing = () => {
           };
           
         } else if (typeToUse === 'polygon-with-lanes') {
-          console.log('Creating PolygonZoneDrawerWithLanes');
           zoneDrawerRef.current = new PolygonZoneDrawerWithLanes(zoneCanvasRef.current, snapshotImageRef.current);
           
           // Set up callbacks for polygon with lanes drawer
-          zoneDrawerRef.current.onPolygonCreated = (polygon: any) => {
-            console.log('Polygon zone with lanes created:', polygon);
+          zoneDrawerRef.current.onPolygonCreated = (polygon: Array<{ x: number; y: number }>) => {
             // Update polygon coordinates state with duplicate prevention
             setZoneCoordinates(prev => {
               // Check if this polygon already exists to prevent duplicates
@@ -201,7 +182,6 @@ export const useZoneDrawing = () => {
               });
               
               if (polygonExists) {
-                console.log('Polygon already exists, skipping duplicate');
                 return prev;
               }
               
@@ -212,8 +192,7 @@ export const useZoneDrawing = () => {
             });
           };
           
-          zoneDrawerRef.current.onLaneCreated = (lane: any) => {
-            console.log('Lane created in polygon zone:', lane);
+          zoneDrawerRef.current.onLaneCreated = (lane: { x1: number; y1: number; x2: number; y2: number }) => {
             // Update lane coordinates state with duplicate prevention
             setZoneCoordinates(prev => {
               const newLane = {
@@ -233,7 +212,6 @@ export const useZoneDrawing = () => {
               );
               
               if (laneExists) {
-                console.log('Lane already exists, skipping duplicate');
                 return prev;
               }
               
@@ -243,12 +221,7 @@ export const useZoneDrawing = () => {
               };
             });
           };
-          
-        } else {
-          console.log('Zone type not yet implemented:', typeToUse);
         }
-        
-        console.log('Zone drawer initialized successfully for type:', typeToUse);
       } catch (error) {
         console.error('Error initializing zone drawer:', error);
       }
@@ -257,8 +230,6 @@ export const useZoneDrawing = () => {
 
   // Handle zone type change
   const handleZoneTypeChange = useCallback((zoneType: string) => {
-    console.log('Changing zone type to:', zoneType);
-    console.log('Current zone type before change:', currentZoneType);
     setCurrentZoneType(zoneType);
     
     // Reset zone coordinates when changing zone type to prevent duplicates
@@ -268,43 +239,32 @@ export const useZoneDrawing = () => {
     if (zoneCanvasRef.current && snapshotImageRef.current) {
       // Clean up existing drawer first
       if (zoneDrawerRef.current) {
-        console.log('Destroying existing drawer');
-        (zoneDrawerRef.current as any).destroy();
+        (zoneDrawerRef.current as RectangleZoneDrawer | RectangleZoneWithLanesDrawer | PolygonZoneDrawer | PolygonZoneDrawerWithLanes).destroy?.();
         zoneDrawerRef.current = null;
       }
       
       // Small delay to ensure state is updated
       setTimeout(() => {
-        console.log('Initializing new drawer for type:', zoneType);
-        console.log('Current zone type in timeout:', zoneType);
         initializeZoneDrawer(zoneType);
       }, 100);
     }
-  }, [currentZoneType, initializeZoneDrawer]);
+  }, [initializeZoneDrawer]);
 
   // Zone drawing control functions
   const handleDrawZone = useCallback(() => {
-    console.log('Draw Zone clicked, current zone type:', currentZoneType);
-    console.log('Zone drawer ref:', zoneDrawerRef.current);
-    console.log('Zone drawer type:', zoneDrawerRef.current?.constructor.name);
-    
     if (zoneDrawerRef.current) {
       if (currentZoneType === 'rectangle') {
-        console.log('Using RectangleZoneDrawer - starting zone drawing');
+        // Rectangle drawer starts drawing automatically
       } else if (currentZoneType === 'rectangle-with-lanes') {
-        console.log('Using RectangleZoneWithLanesDrawer - setting draw mode to zone');
         (zoneDrawerRef.current as RectangleZoneWithLanesDrawer).setDrawMode('zone');
       } else if (currentZoneType === 'polygon') {
-        console.log('Using PolygonZoneDrawer - starting polygon drawing');
         (zoneDrawerRef.current as PolygonZoneDrawer).startDrawing();
       } else if (currentZoneType === 'polygon-with-lanes') {
-        console.log('Using PolygonZoneDrawerWithLanes - setting draw mode to polygon');
         (zoneDrawerRef.current as PolygonZoneDrawerWithLanes).setDrawMode('polygon');
       }
     } else {
       // Try to initialize the zone drawer if it's not already initialized
       if (snapshotImageRef.current && zoneCanvasRef.current) {
-        console.log('Zone drawer not initialized, attempting to initialize...');
         initializeZoneDrawer(currentZoneType);
         // Try again after a short delay
         setTimeout(() => {
@@ -319,41 +279,27 @@ export const useZoneDrawing = () => {
   const handleDrawLane = useCallback(() => {
     if (zoneDrawerRef.current) {
       if (currentZoneType === 'rectangle-with-lanes') {
-        console.log('Zone: Draw Lane clicked');
-        console.log('Zone: Zone drawer type:', zoneDrawerRef.current.constructor.name);
-        
         // Check if the drawer has the hasZones method (RectangleZoneWithLanesDrawer)
-        if (typeof (zoneDrawerRef.current as any).hasZones === 'function') {
+        if (typeof (zoneDrawerRef.current as RectangleZoneWithLanesDrawer).hasZones === 'function') {
           const hasZones = (zoneDrawerRef.current as RectangleZoneWithLanesDrawer).hasZones();
-          console.log('Zone: Has zones:', hasZones);
           if (!hasZones) {
             return { success: false, message: 'Please create a zone first before drawing lanes. Use "Draw Zone" to create a rectangle zone.' };
           }
           
-          console.log('Zone: Setting draw mode to lane');
           (zoneDrawerRef.current as RectangleZoneWithLanesDrawer).setDrawMode('lane');
-          const activeZoneIndex = (zoneDrawerRef.current as RectangleZoneWithLanesDrawer).getActiveZoneIndex();
-          console.log('Zone: Active zone index:', activeZoneIndex);
         } else {
-          console.error('Zone: Zone drawer does not support lanes. Current type:', zoneDrawerRef.current.constructor.name);
           return { success: false, message: 'Current zone type does not support lane drawing. Please select "Rectangle Zone with Lanes" from the zone type dropdown.' };
         }
       } else if (currentZoneType === 'polygon-with-lanes') {
-        console.log('Zone: Draw Lane clicked for polygon with lanes');
-        console.log('Zone: Zone drawer type:', zoneDrawerRef.current.constructor.name);
-        
         // Check if the drawer has the hasZones method (PolygonZoneDrawerWithLanes)
-        if (typeof (zoneDrawerRef.current as any).hasZones === 'function') {
+        if (typeof (zoneDrawerRef.current as PolygonZoneDrawerWithLanes).hasZones === 'function') {
           const hasZones = (zoneDrawerRef.current as PolygonZoneDrawerWithLanes).hasZones();
-          console.log('Zone: Has zones:', hasZones);
           if (!hasZones) {
             return { success: false, message: 'Please create a polygon zone first before drawing lanes. Use "Draw Zone" to create a polygon zone.' };
           }
           
-          console.log('Zone: Setting draw mode to lane');
           (zoneDrawerRef.current as PolygonZoneDrawerWithLanes).setDrawMode('lane');
         } else {
-          console.error('Zone: Zone drawer does not support lanes. Current type:', zoneDrawerRef.current.constructor.name);
           return { success: false, message: 'Current zone type does not support lane drawing. Please select "Polygon Zone with Lanes" from the zone type dropdown.' };
         }
       } else {
@@ -362,7 +308,6 @@ export const useZoneDrawing = () => {
     } else {
       // Try to initialize the zone drawer if it's not already initialized
       if (snapshotImageRef.current && zoneCanvasRef.current) {
-        console.log('Zone drawer not initialized, attempting to initialize...');
         initializeZoneDrawer(currentZoneType);
         // Try again after a short delay
         setTimeout(() => {
@@ -407,7 +352,7 @@ export const useZoneDrawing = () => {
   useEffect(() => {
     return () => {
       if (zoneDrawerRef.current) {
-        (zoneDrawerRef.current as any).destroy();
+        (zoneDrawerRef.current as RectangleZoneDrawer | RectangleZoneWithLanesDrawer | PolygonZoneDrawer | PolygonZoneDrawerWithLanes).destroy?.();
       }
     };
   }, []);

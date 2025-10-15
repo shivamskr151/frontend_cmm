@@ -7,10 +7,16 @@ interface ZoneCoordinatesProps {
   zoneCoordinates: ZoneCoordinatesType;
 }
 
-const ZoneCoordinates: React.FC<ZoneCoordinatesProps> = ({
+const ZoneCoordinates: React.FC<ZoneCoordinatesProps> = React.memo(({
   currentZoneType,
   zoneCoordinates
 }) => {
+  // Ensure zoneCoordinates properties are always arrays
+  const safeZoneCoordinates = {
+    zones: Array.isArray(zoneCoordinates.zones) ? zoneCoordinates.zones : [],
+    lanes: Array.isArray(zoneCoordinates.lanes) ? zoneCoordinates.lanes : [],
+    polygons: Array.isArray(zoneCoordinates.polygons) ? zoneCoordinates.polygons : []
+  };
   return (
     <div className="bg-white/90 backdrop-blur-sm rounded-xl border border-gray-200/60 p-4 sm:p-6 shadow-lg shadow-gray-200/10">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 sm:mb-6 gap-3">
@@ -29,8 +35,8 @@ const ZoneCoordinates: React.FC<ZoneCoordinatesProps> = ({
         <button 
           onClick={() => {
             const dataToCopy = (currentZoneType === 'polygon' || currentZoneType === 'polygon-with-lanes') 
-              ? zoneCoordinates.polygons 
-              : zoneCoordinates.zones;
+              ? safeZoneCoordinates.polygons 
+              : safeZoneCoordinates.zones;
             copyToClipboard(JSON.stringify(dataToCopy));
           }}
           className="px-4 py-2 bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white rounded-lg text-sm font-medium transition-all duration-200 hover:shadow-lg hover:shadow-blue-500/30 flex items-center gap-2 transform hover:-translate-y-0.5"
@@ -46,7 +52,7 @@ const ZoneCoordinates: React.FC<ZoneCoordinatesProps> = ({
       <div className="h-80 overflow-y-auto pr-2 space-y-4 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
         {(() => {
           if (currentZoneType === 'polygon' || currentZoneType === 'polygon-with-lanes') {
-            if (zoneCoordinates.polygons.length === 0) {
+            if (safeZoneCoordinates.polygons.length === 0) {
               return (
                 <div className="text-center py-8 text-gray-500">
                   <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="mx-auto mb-2 opacity-50">
@@ -60,7 +66,7 @@ const ZoneCoordinates: React.FC<ZoneCoordinatesProps> = ({
               );
             }
             
-            return zoneCoordinates.polygons
+            return safeZoneCoordinates.polygons
               .map((polygon, index) => {
                 // Add safety check for polygon data
                 if (!polygon || !Array.isArray(polygon) || polygon.length === 0) {
@@ -151,7 +157,7 @@ const ZoneCoordinates: React.FC<ZoneCoordinatesProps> = ({
               })
               .filter(Boolean);
           } else {
-            if (zoneCoordinates.zones.length === 0) {
+            if (safeZoneCoordinates.zones.length === 0) {
               return (
                 <div className="text-center py-8 text-gray-500">
                   <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="mx-auto mb-2 opacity-50">
@@ -163,7 +169,7 @@ const ZoneCoordinates: React.FC<ZoneCoordinatesProps> = ({
               );
             }
             
-            return zoneCoordinates.zones
+            return safeZoneCoordinates.zones
               .map((zone, index) => {
                 // Add safety check for zone data
                 if (!zone || typeof zone.x !== 'number' || typeof zone.y !== 'number' || typeof zone.width !== 'number' || typeof zone.height !== 'number') {
@@ -230,6 +236,8 @@ const ZoneCoordinates: React.FC<ZoneCoordinatesProps> = ({
       </div>
     </div>
   );
-};
+});
+
+ZoneCoordinates.displayName = 'ZoneCoordinates';
 
 export default ZoneCoordinates;

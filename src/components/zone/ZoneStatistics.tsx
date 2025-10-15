@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import type { ZoneCoordinates as ZoneCoordinatesType } from '../../types/dashboard';
 
 interface ZoneStatisticsProps {
@@ -6,10 +6,32 @@ interface ZoneStatisticsProps {
   zoneCoordinates: ZoneCoordinatesType;
 }
 
-const ZoneStatistics: React.FC<ZoneStatisticsProps> = ({
+const ZoneStatistics: React.FC<ZoneStatisticsProps> = React.memo(({
   currentZoneType,
   zoneCoordinates
 }) => {
+  // Ensure zoneCoordinates properties are always arrays
+  const safeZoneCoordinates = {
+    zones: Array.isArray(zoneCoordinates.zones) ? zoneCoordinates.zones : [],
+    lanes: Array.isArray(zoneCoordinates.lanes) ? zoneCoordinates.lanes : [],
+    polygons: Array.isArray(zoneCoordinates.polygons) ? zoneCoordinates.polygons : []
+  };
+
+  // Memoize statistics calculations to prevent unnecessary recalculations
+  const statistics = useMemo(() => {
+    const zonesCount = currentZoneType === 'polygon' || currentZoneType === 'polygon-with-lanes' 
+      ? safeZoneCoordinates.polygons.length 
+      : safeZoneCoordinates.zones.length;
+    
+    const lanesCount = safeZoneCoordinates.lanes.length;
+    const zoneTypeDisplay = currentZoneType.replace('-', ' ');
+    
+    return {
+      zonesCount,
+      lanesCount,
+      zoneTypeDisplay
+    };
+  }, [currentZoneType, safeZoneCoordinates.polygons.length, safeZoneCoordinates.zones.length, safeZoneCoordinates.lanes.length]);
   return (
     <div className="bg-white/90 backdrop-blur-sm rounded-xl border border-gray-200/60 p-4 sm:p-6 shadow-lg shadow-gray-200/10 w-full">
       <div className="flex items-center gap-3 mb-4 sm:mb-6">
@@ -30,9 +52,7 @@ const ZoneStatistics: React.FC<ZoneStatisticsProps> = ({
             <span className="text-sm font-medium text-blue-800">Zones Created</span>
           </div>
           <span className="text-2xl font-bold text-blue-900">
-            {currentZoneType === 'polygon' || currentZoneType === 'polygon-with-lanes' 
-              ? zoneCoordinates.polygons.length 
-              : zoneCoordinates.zones.length}
+            {statistics.zonesCount}
           </span>
         </div>
         
@@ -41,7 +61,7 @@ const ZoneStatistics: React.FC<ZoneStatisticsProps> = ({
             <div className="flex flex-col">
               <span className="text-sm font-medium text-green-800">Lanes Created</span>
             </div>
-            <span className="text-2xl font-bold text-green-900">{zoneCoordinates.lanes.length}</span>
+            <span className="text-2xl font-bold text-green-900">{statistics.lanesCount}</span>
           </div>
         )}
         
@@ -50,12 +70,14 @@ const ZoneStatistics: React.FC<ZoneStatisticsProps> = ({
             <span className="text-sm font-medium text-gray-800">Zone Type</span>
           </div>
           <span className="text-lg font-bold text-gray-900 capitalize text-right">
-            {currentZoneType.replace('-', ' ')}
+            {statistics.zoneTypeDisplay}
           </span>
         </div>
       </div>
     </div>
   );
-};
+});
+
+ZoneStatistics.displayName = 'ZoneStatistics';
 
 export default ZoneStatistics;

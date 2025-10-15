@@ -475,13 +475,51 @@ const Zone: React.FC = () => {
             } : {})
           }
         }
-      } as { sensorId: string; cameraId: string; activityData: Record<string, unknown> };
+      } as { sensorId: string; cameraId: string; activityData: Record<string, unknown>; id?: string };
 
       
 
-      // Use the new createOrUpdateConfiguration method that handles conflicts automatically
-      console.log('🔄 Creating or updating configuration...');
-      const result = await configurationApi.createOrUpdateConfiguration(payload, selectedCamera, selectedCamera);
+      // Check if configuration already exists for this camera
+      console.log('🔍 Checking for existing configuration...');
+      const existingConfig = await configurationApi.findExistingConfiguration(selectedCamera);
+      
+      let result;
+      
+      if (existingConfig.found && existingConfig.id) {
+        // Configuration exists - use updateActivityData to preserve other activities
+        console.log('📝 Updating existing configuration with ID:', existingConfig.id);
+        
+        const activityUpdatePayload = {
+          activityName: selectedActivity,
+          activityData: {
+            status: "ACTIVE",
+            parameters: activityParameters,
+            // Include zone coordinates based on current zone type
+            ...(currentZoneType === 'rectangle' || currentZoneType === 'rectangle-with-lanes' ? {
+              zone_mode: "rectangle",
+              zones: zoneCoordinates.zones
+            } : {}),
+            ...(currentZoneType === 'polygon' || currentZoneType === 'polygon-with-lanes' ? {
+              zone_mode: "polygon", 
+              polygons: zoneCoordinates.polygons
+            } : {}),
+            // Include lanes if they exist
+            ...(zoneCoordinates.lanes.length > 0 ? {
+              lanes: zoneCoordinates.lanes.reduce((acc, lane, index) => {
+                acc[`L${index + 1}`] = [[lane.x1, lane.y1], [lane.x2, lane.y2]];
+                return acc;
+              }, {} as Record<string, number[][]>)
+            } : {})
+          }
+        };
+        
+        console.log('🔄 Updating activity data for existing configuration...');
+        result = await configurationApi.updateActivityData(existingConfig.id, activityUpdatePayload);
+      } else {
+        // No existing configuration - create new one
+        console.log('🔄 Creating new configuration...');
+        result = await configurationApi.createOrUpdateConfiguration(payload, false);
+      }
       
       console.log('📡 API response:', result);
       

@@ -13,6 +13,13 @@ const LaneCoordinates: React.FC<LaneCoordinatesProps> = ({
   zoneCoordinates,
   zoneDrawerRef
 }) => {
+  // Ensure zoneCoordinates properties are always arrays
+  const safeZoneCoordinates = {
+    zones: Array.isArray(zoneCoordinates.zones) ? zoneCoordinates.zones : [],
+    lanes: Array.isArray(zoneCoordinates.lanes) ? zoneCoordinates.lanes : [],
+    polygons: Array.isArray(zoneCoordinates.polygons) ? zoneCoordinates.polygons : []
+  };
+
   // Only show when zone type includes lanes
   if (currentZoneType !== 'rectangle-with-lanes' && currentZoneType !== 'polygon-with-lanes') {
     return null;
@@ -32,7 +39,7 @@ const LaneCoordinates: React.FC<LaneCoordinatesProps> = ({
           </div>
         </div>
         <button 
-          onClick={() => copyToClipboard(JSON.stringify(zoneCoordinates.lanes))}
+          onClick={() => copyToClipboard(JSON.stringify(safeZoneCoordinates.lanes))}
           className="px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white rounded-lg text-sm font-medium transition-all duration-200 hover:shadow-lg hover:shadow-green-500/30 flex items-center gap-2 transform hover:-translate-y-0.5"
         >
           <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -146,11 +153,11 @@ const LaneCoordinates: React.FC<LaneCoordinatesProps> = ({
           }
           
           // Fallback to flat lane display if no structured data
-          if (zoneCoordinates.lanes.length > 0) {
+          if (safeZoneCoordinates.lanes.length > 0) {
             return (
               <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
                 <div className="text-gray-700 font-mono text-xs sm:text-sm leading-relaxed overflow-x-auto">
-                  {JSON.stringify(zoneCoordinates.lanes, null, 2)}
+                  {JSON.stringify(safeZoneCoordinates.lanes, null, 2)}
                 </div>
               </div>
             );
